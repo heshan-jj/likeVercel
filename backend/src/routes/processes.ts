@@ -1,33 +1,13 @@
 import { Router, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../utils/prisma';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { sshManager } from '../services/SSHManager';
 import { processStartSchema } from '../utils/validators';
+import { verifyVps } from '../utils/helpers';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 router.use(authMiddleware);
-
-// Helper to verify VPS ownership & connection
-async function verifyVps(req: AuthRequest, res: Response): Promise<string | null> {
-  const vpsId = req.params.id;
-  const profile = await prisma.vpsProfile.findFirst({
-    where: { id: vpsId, userId: req.userId },
-  });
-
-  if (!profile) {
-    res.status(404).json({ error: 'VPS profile not found' });
-    return null;
-  }
-
-  if (!sshManager.isConnected(vpsId)) {
-    res.status(400).json({ error: 'VPS not connected' });
-    return null;
-  }
-
-  return vpsId;
-}
 
 // GET /api/vps/:id/processes — list managed processes
 router.get('/:id/processes', async (req: AuthRequest, res: Response): Promise<void> => {
@@ -65,6 +45,13 @@ router.get('/:id/processes', async (req: AuthRequest, res: Response): Promise<vo
   }
 });
 
+/**
+ * Escapes a string for use in a shell command.
+ */
+function escapeShellArg(arg: string): string {
+  return `'${arg.replace(/'/g, "'\\''")}'`;
+}
+
 // POST /api/vps/:id/processes/start — detect project & start process
 router.post('/:id/processes/start', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -72,13 +59,17 @@ router.post('/:id/processes/start', async (req: AuthRequest, res: Response): Pro
     if (!vpsId) return;
 
     const data = processStartSchema.parse(req.body);
-    const projectPath = data.projectPath.replace(/\.\./g, '');
+    const projectPath = data.projectPath; // Already validated for .. and absolute path
     const port = data.port || Math.floor(3000 + Math.random() * 6000);
 
-    // Detect project type
+    const escapedPath = escapeShellArg(projectPath);
+
+    // Detect project type using a more robust way (Fix 14)
+    // We'll check for files using find or ls with specific flags
     let files: string;
     try {
-      files = await sshManager.executeCommand(vpsId, `ls ${projectPath}`);
+      // Fix 2: Use escaped path
+      files = await sshManager.executeCommand(vpsId, `ls -F ${escapedPath}`);
     } catch {
       res.status(400).json({ error: 'Project path not found on server' });
       return;
@@ -88,22 +79,28 @@ router.post('/:id/processes/start', async (req: AuthRequest, res: Response): Pro
     let processName: string;
     let projectType: string;
 
+    const fileList = files.split('\n').map(f => f.trim());
+
     if (data.command) {
       // Custom command
-      startCommand = `cd ${projectPath} && pm2 start "${data.command}" --name "custom-${port}"`;
       processName = `custom-${port}`;
+      const escapedCmd = data.command.replace(/"/g, '\\"');
+      startCommand = `cd ${escapedPath} && pm2 start "${escapedCmd}" --name ${escapeShellArg(processName)}`;
       projectType = 'custom';
-    } else if (files.includes('package.json')) {
+    } else if (fileList.includes('package.json')) {
       processName = `node-${port}`;
-      startCommand = `cd ${projectPath} && npm install && PORT=${port} pm2 start npm --name "${processName}" -- start`;
+      const escapedProcessName = escapeShellArg(processName);
+      startCommand = `cd ${escapedPath} && npm install && PORT=${port} pm2 start npm --name ${escapedProcessName} -- start`;
       projectType = 'node';
-    } else if (files.includes('requirements.txt')) {
+    } else if (fileList.includes('requirements.txt')) {
       processName = `python-${port}`;
-      startCommand = `cd ${projectPath} && pip install -r requirements.txt && pm2 start "python app.py" --name "${processName}"`;
+      const escapedProcessName = escapeShellArg(processName);
+      startCommand = `cd ${escapedPath} && pip install -r requirements.txt && pm2 start "python app.py" --name ${escapedProcessName}`;
       projectType = 'python';
-    } else if (files.includes('index.html')) {
+    } else if (fileList.includes('index.html')) {
       processName = `static-${port}`;
-      startCommand = `pm2 serve ${projectPath} ${port} --name "${processName}" --spa`;
+      const escapedProcessName = escapeShellArg(processName);
+      startCommand = `pm2 serve ${escapedPath} ${port} --name ${escapedProcessName} --spa`;
       projectType = 'static';
     } else {
       res.status(400).json({
@@ -155,7 +152,7 @@ router.post('/:id/processes/:deploymentId/stop', async (req: AuthRequest, res: R
     if (!vpsId) return;
 
     const deployment = await prisma.deployment.findFirst({
-      where: { id: req.params.deploymentId, vpsId },
+      where: { id: req.params.deploymentId as string, vpsId },
     });
 
     if (!deployment) {
@@ -164,7 +161,7 @@ router.post('/:id/processes/:deploymentId/stop', async (req: AuthRequest, res: R
     }
 
     try {
-      await sshManager.executeCommand(vpsId, `pm2 stop ${deployment.processName}`);
+      await sshManager.executeCommand(vpsId, `pm2 stop ${escapeShellArg(deployment.processName)}`);
     } catch (error: any) {
       console.warn(`[Process] PM2 stop warning: ${error.message}`);
     }
@@ -187,7 +184,7 @@ router.post('/:id/processes/:deploymentId/restart', async (req: AuthRequest, res
     if (!vpsId) return;
 
     const deployment = await prisma.deployment.findFirst({
-      where: { id: req.params.deploymentId, vpsId },
+      where: { id: req.params.deploymentId as string, vpsId },
     });
 
     if (!deployment) {
@@ -195,7 +192,7 @@ router.post('/:id/processes/:deploymentId/restart', async (req: AuthRequest, res
       return;
     }
 
-    await sshManager.executeCommand(vpsId, `pm2 restart ${deployment.processName}`);
+    await sshManager.executeCommand(vpsId, `pm2 restart ${escapeShellArg(deployment.processName)}`);
 
     await prisma.deployment.update({
       where: { id: deployment.id },
@@ -215,7 +212,7 @@ router.delete('/:id/processes/:deploymentId', async (req: AuthRequest, res: Resp
     if (!vpsId) return;
 
     const deployment = await prisma.deployment.findFirst({
-      where: { id: req.params.deploymentId, vpsId },
+      where: { id: req.params.deploymentId as string, vpsId },
     });
 
     if (!deployment) {
@@ -225,7 +222,7 @@ router.delete('/:id/processes/:deploymentId', async (req: AuthRequest, res: Resp
 
     // Delete from PM2
     try {
-      await sshManager.executeCommand(vpsId, `pm2 delete ${deployment.processName}`);
+      await sshManager.executeCommand(vpsId, `pm2 delete ${escapeShellArg(deployment.processName)}`);
     } catch {
       // PM2 process might not exist
     }
@@ -244,7 +241,7 @@ router.get('/:id/processes/:deploymentId/logs', async (req: AuthRequest, res: Re
     if (!vpsId) return;
 
     const deployment = await prisma.deployment.findFirst({
-      where: { id: req.params.deploymentId, vpsId },
+      where: { id: req.params.deploymentId as string, vpsId },
     });
 
     if (!deployment) {
@@ -255,7 +252,7 @@ router.get('/:id/processes/:deploymentId/logs', async (req: AuthRequest, res: Re
     const lines = parseInt(req.query.lines as string) || 100;
     const logs = await sshManager.executeCommand(
       vpsId,
-      `pm2 logs ${deployment.processName} --nostream --lines ${lines} 2>&1`
+      `pm2 logs ${escapeShellArg(deployment.processName)} --nostream --lines ${lines} 2>&1`
     );
 
     res.json({ logs });

@@ -1,13 +1,12 @@
 import { Router, Response } from 'express';
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
+import jwt, { SignOptions } from 'jsonwebtoken';
+import prisma from '../utils/prisma';
 import { config } from '../config';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { registerSchema, loginSchema } from '../utils/validators';
 
 const router = Router();
-const prisma = new PrismaClient();
 const SALT_ROUNDS = 12;
 
 // POST /api/auth/register
@@ -36,10 +35,10 @@ router.post('/register', async (req: AuthRequest, res: Response): Promise<void> 
 
     // Generate tokens
     const accessToken = jwt.sign({ userId: user.id }, config.jwt.secret, {
-      expiresIn: config.jwt.expiresIn,
+      expiresIn: config.jwt.expiresIn as any,
     });
     const refreshToken = jwt.sign({ userId: user.id }, config.jwt.refreshSecret, {
-      expiresIn: config.jwt.refreshExpiresIn,
+      expiresIn: config.jwt.refreshExpiresIn as any,
     });
 
     res.status(201).json({
@@ -75,10 +74,10 @@ router.post('/login', async (req: AuthRequest, res: Response): Promise<void> => 
     }
 
     const accessToken = jwt.sign({ userId: user.id }, config.jwt.secret, {
-      expiresIn: config.jwt.expiresIn,
+      expiresIn: config.jwt.expiresIn as any,
     });
     const refreshToken = jwt.sign({ userId: user.id }, config.jwt.refreshSecret, {
-      expiresIn: config.jwt.refreshExpiresIn,
+      expiresIn: config.jwt.refreshExpiresIn as any,
     });
 
     res.json({
@@ -114,7 +113,7 @@ router.post('/refresh', async (req: AuthRequest, res: Response): Promise<void> =
     }
 
     const accessToken = jwt.sign({ userId: user.id }, config.jwt.secret, {
-      expiresIn: config.jwt.expiresIn,
+      expiresIn: config.jwt.expiresIn as any,
     });
 
     res.json({ accessToken });
@@ -126,6 +125,11 @@ router.post('/refresh', async (req: AuthRequest, res: Response): Promise<void> =
 // GET /api/auth/me
 router.get('/me', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
       select: { id: true, email: true, name: true, createdAt: true },

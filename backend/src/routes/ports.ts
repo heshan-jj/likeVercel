@@ -1,32 +1,12 @@
 import { Router, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../utils/prisma';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { sshManager } from '../services/SSHManager';
+import { verifyVps } from '../utils/helpers';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 router.use(authMiddleware);
-
-// Helper to verify VPS ownership & connection
-async function verifyVps(req: AuthRequest, res: Response): Promise<string | null> {
-  const vpsId = req.params.id;
-  const profile = await prisma.vpsProfile.findFirst({
-    where: { id: vpsId, userId: req.userId },
-  });
-
-  if (!profile) {
-    res.status(404).json({ error: 'VPS profile not found' });
-    return null;
-  }
-
-  if (!sshManager.isConnected(vpsId)) {
-    res.status(400).json({ error: 'VPS not connected' });
-    return null;
-  }
-
-  return vpsId;
-}
 
 // GET /api/vps/:id/ports — list used ports
 router.get('/:id/ports', async (req: AuthRequest, res: Response): Promise<void> => {
@@ -79,7 +59,8 @@ router.post('/:id/ports/check', async (req: AuthRequest, res: Response): Promise
     if (!vpsId) return;
 
     const { port } = req.body;
-    if (!port || port < 1 || port > 65535) {
+    const portNum = parseInt(port);
+    if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
       res.status(400).json({ error: 'Invalid port number' });
       return;
     }
@@ -87,17 +68,17 @@ router.post('/:id/ports/check', async (req: AuthRequest, res: Response): Promise
     try {
       const output = await sshManager.executeCommand(
         vpsId,
-        `ss -tlnp | grep ":${port} " | wc -l`
+        `ss -tlnp | grep ":${portNum} " | wc -l`
       );
       const isUsed = parseInt(output.trim()) > 0;
 
       res.json({
-        port,
+        port: portNum,
         available: !isUsed,
-        message: isUsed ? `Port ${port} is in use` : `Port ${port} is available`,
+        message: isUsed ? `Port ${portNum} is in use` : `Port ${portNum} is available`,
       });
     } catch {
-      res.json({ port, available: true, message: `Port ${port} appears available` });
+      res.json({ port: portNum, available: true, message: `Port ${portNum} appears available` });
     }
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -107,8 +88,9 @@ router.post('/:id/ports/check', async (req: AuthRequest, res: Response): Promise
 // GET /api/vps/:id/ports/share/:port — generate shareable URL
 router.get('/:id/ports/share/:port', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const vpsId = req.params.id as string;
     const profile = await prisma.vpsProfile.findFirst({
-      where: { id: req.params.id, userId: req.userId },
+      where: { id: vpsId, userId: req.userId },
     });
 
     if (!profile) {
@@ -116,7 +98,7 @@ router.get('/:id/ports/share/:port', async (req: AuthRequest, res: Response): Pr
       return;
     }
 
-    const port = parseInt(req.params.port);
+    const port = parseInt(req.params.port as string);
     if (isNaN(port) || port < 1 || port > 65535) {
       res.status(400).json({ error: 'Invalid port number' });
       return;

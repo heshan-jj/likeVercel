@@ -37,13 +37,21 @@ const XtermTerminal: React.FC<XtermTerminalProps> = ({ vpsId }) => {
     term.loadAddon(new WebLinksAddon());
 
     term.open(terminalRef.current);
-    fitAddon.fit();
+    
+    // Delay initial fit slightly to ensure DOM is fully rendered
+    setTimeout(() => {
+      try {
+        fitAddon.fit();
+      } catch (e) {
+        console.warn('[Xterm] initial fit error:', e);
+      }
+    }, 100);
 
     xtermRef.current = term;
     fitAddonRef.current = fitAddon;
 
     // Initialize socket
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
     const socket = io('http://localhost:3001', {
       auth: { token },
     });
@@ -51,19 +59,27 @@ const XtermTerminal: React.FC<XtermTerminalProps> = ({ vpsId }) => {
     socketRef.current = socket;
 
     socket.on('connect', () => {
+      console.log('[Xterm] Socket.io connected. Requesting start-terminal.');
       term.write('\x1b[1;32m[SYSTEM] Connected to terminal server...\x1b[0m\r\n');
       socket.emit('start-terminal', { vpsId });
     });
 
-    socket.on('terminal-output', (data: string) => {
-      term.write(data);
+    socket.on('terminal-output', (data: string | ArrayBuffer) => {
+      if (typeof data === 'string') {
+        term.write(data);
+      } else {
+        term.write(new Uint8Array(data));
+      }
     });
 
     socket.on('terminal-ready', () => {
+      console.log('[Xterm] Terminal session ready server-side.');
       term.write('\x1b[1;32m[SYSTEM] Terminal session established.\x1b[0m\r\n');
+      term.focus();
     });
 
     socket.on('terminal-error', (msg: string) => {
+      console.error('[Xterm] Server terminal error:', msg);
       term.write(`\r\n\x1b[1;31m[ERROR] ${msg}\x1b[0m\r\n`);
     });
 
@@ -77,16 +93,23 @@ const XtermTerminal: React.FC<XtermTerminalProps> = ({ vpsId }) => {
 
     // Handle input
     term.onData((data) => {
+      console.log('[Xterm] Emitting terminal-input:', JSON.stringify(data));
       socket.emit('terminal-input', data);
     });
 
     // Handle resize
     const handleResize = () => {
-      fitAddon.fit();
-      socket.emit('terminal-resize', {
-        rows: term.rows,
-        cols: term.cols,
-      });
+      try {
+        fitAddon.fit();
+        if (term.rows && term.cols) {
+          socket.emit('terminal-resize', {
+            rows: term.rows,
+            cols: term.cols,
+          });
+        }
+      } catch (e) {
+        console.warn('[Xterm] resize fit error:', e);
+      }
     };
 
     window.addEventListener('resize', handleResize);

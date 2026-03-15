@@ -125,3 +125,64 @@
 **Multiple files**
 - Uses `catch (error: any)` inconsistently
 - **Fix:** Use proper error types or `unknown` with type guards
+
+### 24. Express Param Type Issues (TypeScript Errors)
+**Files:** `routes/files.ts`, `routes/vps.ts`, `routes/processes.ts`, `routes/ports.ts`
+- `req.params.id` is typed as `string | string[]` not `string`
+- Prisma queries fail because of type mismatch
+- **Fix:** Cast or use type assertion: `req.params.id as string`
+
+### 25. JWT Sign Type Errors (TypeScript Errors)
+**File:** `routes/auth.ts:38, 41, 77, 80, 116`
+- `expiresIn` option type mismatch with jsonwebtoken types
+- **Fix:** Cast option or use proper SignOptions type
+
+### 26. Missing Return Type on Async Route Handlers
+**Multiple route files**
+- Async route handlers don't have explicit return types causing unhandled promise rejections
+- **Fix:** Add explicit `Promise<void>` return type to all async handlers
+
+### 27. SFTP Not Closed on Error Paths
+**File:** `routes/files.ts:71-94`
+- If error occurs before `sftp.end()` is called, SFTP connection leaks
+- **Fix:** Wrap in try-finally or use `sftp.on('error')` cleanup
+
+### 28. Upload Stream Not Properly Closed on Error
+**File:** `routes/files.ts:118-130`
+- If writeStream errors, client may hang waiting for response
+- **Fix:** Ensure proper error handling with res cleanup
+
+### 29. Delete Endpoint Missing Ownership Check
+**File:** `routes/files.ts:201-218`
+- Uses verifyVps but then runs `rm -rf` - needs extra safety
+- **Fix:** Add additional validation for dangerous operations
+
+### 30. No Input Sanitization on Port Parameter
+**File:** `routes/ports.ts:119`
+- `parseInt(req.params.port)` could return NaN
+- **Fix:** Add explicit NaN check
+
+### 31. Private Key Not Validated
+**File:** `routes/vps.ts:103`
+- Private key string stored without validation
+- **Fix:** Add validation for key format/PEM structure
+
+### 32. No Connection Retry Logic
+**File:** `services/SSHManager.ts:33-107`
+- SSH connection fails immediately, no retry on transient failures
+- **Fix:** Add retry with exponential backoff
+
+### 33. Keep-alive Uses Exec (Inefficient)
+**File:** `services/SSHManager.ts:66-74`
+- Uses `client.exec('echo keepalive')` which creates new channel each time
+- **Fix:** Use `client.on('banner')` or configure TCP keepalive instead
+
+### 34. Terminal Doesn't Handle Binary Data
+**File:** `websocket/terminal.ts:63-68`
+- Assumes UTF-8 text, could break with binary output
+- **Fix:** Handle binary data or document text-only limitation
+
+### 35. No Maximum File Size Enforcement in Routes
+**File:** `routes/files.ts:13-16`
+- Multer configured but no content-length check before processing
+- **Fix:** Add early rejection for oversized requests

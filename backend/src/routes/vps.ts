@@ -1,12 +1,11 @@
 import { Router, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../utils/prisma';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { createVpsSchema, updateVpsSchema } from '../utils/validators';
 import { encrypt } from '../utils/crypto';
 import { sshManager } from '../services/SSHManager';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // All routes require authentication
 router.use(authMiddleware);
@@ -14,6 +13,11 @@ router.use(authMiddleware);
 // GET /api/vps — list all VPS profiles for current user
 router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Unauthorized: User not found' });
+      return;
+    }
+
     const profiles = await prisma.vpsProfile.findMany({
       where: { userId: req.userId },
       select: {
@@ -45,6 +49,11 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
 // GET /api/vps/:id — get single VPS profile
 router.get('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
     const profile = await prisma.vpsProfile.findFirst({
       where: { id: req.params.id as string, userId: req.userId },
       select: {
@@ -89,6 +98,11 @@ router.get('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
 // POST /api/vps — create new VPS profile
 router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
     const data = createVpsSchema.parse(req.body);
 
     // Build credentials object
@@ -111,7 +125,7 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
 
     const profile = await prisma.vpsProfile.create({
       data: {
-        userId: req.userId!,
+        userId: req.userId,
         name: data.name,
         host: data.host,
         port: data.port,
@@ -148,6 +162,11 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
 // PUT /api/vps/:id — update VPS profile
 router.put('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
     const data = updateVpsSchema.parse(req.body);
 
     // Verify ownership
@@ -190,7 +209,7 @@ router.put('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
     }
 
     const profile = await prisma.vpsProfile.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: updateData,
     });
 
@@ -219,8 +238,13 @@ router.put('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
 // DELETE /api/vps/:id — delete VPS profile
 router.delete('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
     const existing = await prisma.vpsProfile.findFirst({
-      where: { id: req.params.id, userId: req.userId },
+      where: { id: req.params.id as string, userId: req.userId },
     });
 
     if (!existing) {
@@ -233,7 +257,7 @@ router.delete('/:id', async (req: AuthRequest, res: Response): Promise<void> => 
       await sshManager.disconnect(existing.id);
     }
 
-    await prisma.vpsProfile.delete({ where: { id: req.params.id } });
+    await prisma.vpsProfile.delete({ where: { id: existing.id } });
     res.json({ message: 'VPS profile deleted' });
   } catch (error) {
     console.error('[VPS] Delete error:', error);
@@ -244,8 +268,13 @@ router.delete('/:id', async (req: AuthRequest, res: Response): Promise<void> => 
 // POST /api/vps/:id/connect — establish SSH connection
 router.post('/:id/connect', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
     const profile = await prisma.vpsProfile.findFirst({
-      where: { id: req.params.id, userId: req.userId },
+      where: { id: req.params.id as string, userId: req.userId },
     });
 
     if (!profile) {
@@ -281,8 +310,13 @@ router.post('/:id/connect', async (req: AuthRequest, res: Response): Promise<voi
 // POST /api/vps/:id/disconnect — close SSH connection
 router.post('/:id/disconnect', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
     const profile = await prisma.vpsProfile.findFirst({
-      where: { id: req.params.id, userId: req.userId },
+      where: { id: req.params.id as string, userId: req.userId },
     });
 
     if (!profile) {
@@ -301,6 +335,11 @@ router.post('/:id/disconnect', async (req: AuthRequest, res: Response): Promise<
 // GET /api/vps/:id/status — get connection status
 router.get('/:id/status', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
     const profile = await prisma.vpsProfile.findFirst({
       where: { id: req.params.id as string, userId: req.userId },
     });

@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -7,6 +7,8 @@ import { Server as SocketIOServer } from 'socket.io';
 import { config } from './config';
 import { errorHandler } from './middleware/errorHandler';
 import { setupTerminalWebSocket } from './websocket/terminal';
+import prisma from './utils/prisma';
+import { sshManager } from './services/SSHManager';
 
 // Routes
 import authRoutes from './routes/auth';
@@ -25,6 +27,16 @@ const io = new SocketIOServer(httpServer, {
     methods: ['GET', 'POST'],
     credentials: true,
   },
+});
+
+// Simple request logger (Fix 17)
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`[HTTP] ${req.method} ${req.originalUrl} ${res.statusCode} - ${duration}ms`);
+  });
+  next();
 });
 
 // Middleware
@@ -60,9 +72,21 @@ app.use('/api/vps', fileRoutes);
 app.use('/api/vps', processRoutes);
 app.use('/api/vps', portRoutes);
 
-// Health check
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', uptime: process.uptime() });
+// Health check with DB ping (Fix 18)
+app.get('/api/health', async (_req, res) => {
+  let dbStatus = 'ok';
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+  } catch (error) {
+    dbStatus = 'down';
+  }
+
+  res.json({
+    status: dbStatus === 'ok' ? 'ok' : 'degraded',
+    database: dbStatus,
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // Error handler
@@ -79,17 +103,27 @@ httpServer.listen(config.port, () => {
   console.log(`   Frontend URL: ${config.frontendUrl}\n`);
 });
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('[Server] SIGTERM received, shutting down...');
-  httpServer.close();
-  process.exit(0);
-});
+// Graceful shutdown (Fix 16)
+const gracefulShutdown = async (signal: string) => {
+  console.log(`[Server] ${signal} received, shutting down gracefully...`);
+  
+  // Close HTTP server
+  httpServer.close(() => {
+    console.log('[Server] HTTP server closed');
+  });
 
-process.on('SIGINT', () => {
-  console.log('[Server] SIGINT received, shutting down...');
-  httpServer.close();
+  // Disconnect all SSH sessions
+  sshManager.disconnectAll();
+  console.log('[SSH] All sessions disconnected');
+
+  // Disconnect Prisma
+  await prisma.$disconnect();
+  console.log('[DB] Prisma disconnected');
+
   process.exit(0);
-});
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 export { app, httpServer, io };

@@ -5,7 +5,6 @@ import { decrypt } from '../utils/crypto';
 interface ConnectionInfo {
   client: Client;
   vpsId: string;
-  keepAliveInterval?: NodeJS.Timeout;
   reconnectAttempts: number;
 }
 
@@ -43,10 +42,11 @@ export class SSHManager extends EventEmitter {
     vpsId: string,
     encryptedCreds: string,
     iv: string,
-    authTag: string
+    authTag: string,
+    attempt: number = 0
   ): Promise<Client> {
-    // Disconnect existing connection if any
-    if (this.connections.has(vpsId)) {
+    // Disconnect existing connection if any (only on first attempt)
+    if (attempt === 0 && this.connections.has(vpsId)) {
       await this.disconnect(vpsId);
     }
 
@@ -66,32 +66,18 @@ export class SSHManager extends EventEmitter {
       };
 
       if (decrypted.password) {
-        console.log(`[SSH] Authenticating to ${decrypted.host} with PASSWORD`);
         connectConfig.password = decrypted.password;
       } else if (decrypted.privateKey) {
-        console.log(`[SSH] Authenticating to ${decrypted.host} with PRIVATE KEY (length: ${decrypted.privateKey.length})`);
         connectConfig.privateKey = decrypted.privateKey;
         if (decrypted.passphrase) {
-          console.log(`[SSH] Using passphrase of length ${decrypted.passphrase.length}`);
           connectConfig.passphrase = decrypted.passphrase;
         }
       }
 
       client.on('ready', () => {
-        const keepAliveInterval = setInterval(() => {
-          if (client) {
-            client.exec('echo keepalive', (err) => {
-              if (err) {
-                console.warn(`[SSH] Keep-alive failed for ${vpsId}`);
-              }
-            });
-          }
-        }, this.KEEPALIVE_INTERVAL);
-
         const connInfo: ConnectionInfo = {
           client,
           vpsId,
-          keepAliveInterval,
           reconnectAttempts: 0,
         };
 
@@ -100,11 +86,26 @@ export class SSHManager extends EventEmitter {
         resolve(client);
       });
 
-      client.on('error', (err) => {
-        console.error(`[SSH] Error for ${vpsId}:`, err.message);
+      client.on('error', async (err) => {
+        console.error(`[SSH] Error for ${vpsId} (Attempt ${attempt + 1}):`, err.message);
         this.cleanup(vpsId);
-        this.emit('error', vpsId, err);
-        reject(err);
+        
+        // Fix 32: Exponential backoff retry logic
+        if (attempt < this.MAX_RECONNECT_ATTEMPTS - 1) {
+          const delay = Math.pow(2, attempt) * 1000;
+          console.log(`[SSH] Retrying connection to ${vpsId} in ${delay}ms...`);
+          setTimeout(async () => {
+            try {
+              const newClient = await this.connect(vpsId, encryptedCreds, iv, authTag, attempt + 1);
+              resolve(newClient);
+            } catch (retryErr) {
+              reject(retryErr);
+            }
+          }, delay);
+        } else {
+          this.emit('error', vpsId, err);
+          reject(err);
+        }
       });
 
       client.on('close', () => {
@@ -124,9 +125,6 @@ export class SSHManager extends EventEmitter {
   async disconnect(vpsId: string): Promise<void> {
     const connInfo = this.connections.get(vpsId);
     if (connInfo) {
-      if (connInfo.keepAliveInterval) {
-        clearInterval(connInfo.keepAliveInterval);
-      }
       connInfo.client.end();
       this.connections.delete(vpsId);
       this.emit('disconnected', vpsId);
@@ -146,15 +144,22 @@ export class SSHManager extends EventEmitter {
     return Array.from(this.connections.keys());
   }
 
-  async executeCommand(vpsId: string, command: string): Promise<string> {
+  async executeCommand(vpsId: string, command: string, timeoutMs: number = 60000): Promise<string> {
     const client = this.getConnection(vpsId);
     if (!client) {
       throw new Error(`No active connection for VPS ${vpsId}`);
     }
 
     return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error(`Command timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+
       client.exec(command, (err, stream) => {
-        if (err) return reject(err);
+        if (err) {
+          clearTimeout(timeout);
+          return reject(err);
+        }
 
         let stdout = '';
         let stderr = '';
@@ -168,6 +173,7 @@ export class SSHManager extends EventEmitter {
         });
 
         stream.on('close', (code: number) => {
+          clearTimeout(timeout);
           if (code === 0) {
             resolve(stdout.trim());
           } else {
@@ -202,13 +208,7 @@ export class SSHManager extends EventEmitter {
   }
 
   private cleanup(vpsId: string): void {
-    const connInfo = this.connections.get(vpsId);
-    if (connInfo) {
-      if (connInfo.keepAliveInterval) {
-        clearInterval(connInfo.keepAliveInterval);
-      }
-      this.connections.delete(vpsId);
-    }
+    this.connections.delete(vpsId);
   }
 
   disconnectAll(): void {
