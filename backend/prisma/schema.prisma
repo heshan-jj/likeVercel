@@ -1,0 +1,57 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vpsProfiles VpsProfile[]
+}
+
+model VpsProfile {
+  id                   String   @id @default(cuid())
+  userId               String
+  name                 String
+  host                 String
+  port                 Int      @default(22)
+  username             String
+  authType             String   @default("password") // "password" or "privateKey"
+  encryptedCredentials String   // AES-256-GCM encrypted JSON
+  iv                   String   // Initialization vector
+  authTag              String   // GCM auth tag
+  lastConnectedAt      DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deployments Deployment[]
+
+  @@index([userId])
+}
+
+model Deployment {
+  id          String   @id @default(cuid())
+  vpsId       String
+  projectPath String
+  processName String
+  port        Int?
+  status      String   @default("stopped") // "running", "stopped", "errored"
+  startedAt   DateTime?
+  stoppedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  vps VpsProfile @relation(fields: [vpsId], references: [id], onDelete: Cascade)
+
+  @@index([vpsId])
+}
