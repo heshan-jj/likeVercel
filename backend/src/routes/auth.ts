@@ -146,4 +146,58 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response): Promi
   }
 });
 
+// PUT /api/auth/profile
+router.put('/profile', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { name } = req.body;
+    if (!name) {
+      res.status(400).json({ error: 'Name is required' });
+      return;
+    }
+
+    const user = await prisma.user.update({
+      where: { id: req.userId },
+      data: { name },
+      select: { id: true, email: true, name: true }
+    });
+
+    res.json({ user });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+// PUT /api/auth/password
+router.put('/password', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({ error: 'Both current and new passwords are required' });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: req.userId } });
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    const validPassword = await bcrypt.compare(currentPassword, user.password);
+    if (!validPassword) {
+      res.status(401).json({ error: 'Current password is incorrect' });
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    await prisma.user.update({
+      where: { id: req.userId },
+      data: { password: hashedPassword }
+    });
+
+    res.json({ message: 'Password updated successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update password' });
+  }
+});
+
 export default router;

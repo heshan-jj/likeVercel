@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Play,
   Square,
@@ -82,8 +82,13 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
   const [logLoading, setLogLoading] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const fetchProcesses = useCallback(async () => {
-    setLoading(true);
+  const isFetching = useRef(false);
+
+  const fetchProcesses = useCallback(async (silent = false) => {
+    if (isFetching.current) return;
+    isFetching.current = true;
+    
+    if (!silent) setLoading(true);
     setError('');
     try {
       const { data } = await api.get(`/vps/${vpsId}/processes`);
@@ -91,14 +96,15 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to load processes');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
+      isFetching.current = false;
     }
   }, [vpsId]);
 
   useEffect(() => {
     fetchProcesses();
-    // Auto-refresh every 10 seconds
-    const interval = setInterval(fetchProcesses, 10000);
+    // Auto-refresh every 10 seconds silently if not already fetching
+    const interval = setInterval(() => fetchProcesses(true), 10000);
     return () => clearInterval(interval);
   }, [fetchProcesses]);
 

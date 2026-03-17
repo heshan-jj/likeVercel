@@ -92,6 +92,11 @@ function AppRoutes() {
 }
 
 function App() {
+  React.useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  }, []);
+
   return (
     <AuthProvider>
       <BrowserRouter>

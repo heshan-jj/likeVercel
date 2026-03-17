@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Server, Activity, TerminalSquare, FolderOpen } from 'lucide-react';
+import { Plus, Server, Activity, TerminalSquare, FolderOpen, Trash2, PowerOff, Loader2 } from 'lucide-react';
 import api from '../utils/api';
 
 interface VpsProfile {
@@ -17,6 +17,7 @@ interface VpsProfile {
 const Dashboard: React.FC = () => {
   const [profiles, setProfiles] = useState<VpsProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [connecting, setConnecting] = useState<string | null>(null);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -37,12 +38,40 @@ const Dashboard: React.FC = () => {
 
   const handleConnect = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    setConnecting(id);
     try {
       await api.post(`/vps/${id}/connect`);
       fetchProfiles(); // Refresh status
     } catch (error) {
       console.error('Connection failed', error);
       alert('Connection failed. Please check credentials.');
+    } finally {
+      setConnecting(null);
+    }
+  };
+
+  const handleDisconnect = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await api.post(`/vps/${id}/disconnect`);
+      fetchProfiles(); // Refresh status
+    } catch (error) {
+      console.error('Disconnect failed', error);
+    }
+  };
+
+  const handleDelete = async (id: string, name: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm(`Are you sure you want to delete "${name}"? This will disconnect any active sessions.`)) {
+      return;
+    }
+
+    try {
+      await api.delete(`/vps/${id}`);
+      fetchProfiles();
+    } catch (err: any) {
+      console.error('Delete failed', err);
+      alert(err.response?.data?.error || 'Failed to delete VPS');
     }
   };
 
@@ -61,7 +90,7 @@ const Dashboard: React.FC = () => {
           onClick={() => navigate('/vps/add')}
         >
           <Plus size={20} />
-          Add Endpoint
+          Add VPS
         </button>
       </div>
 
@@ -101,16 +130,29 @@ const Dashboard: React.FC = () => {
                 </div>
                 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                  <span style={{ 
-                    display: 'inline-block', 
-                    width: '8px', 
-                    height: '8px', 
-                    borderRadius: '50%', 
-                    background: vps.isConnected ? 'var(--success)' : 'var(--error)' 
-                  }} />
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                    {vps.isConnected ? 'Online' : 'Offline'}
-                  </span>
+                  <div style={{ 
+                    display: 'flex', alignItems: 'center', gap: '6px', 
+                    padding: '4px 8px', background: vps.isConnected ? 'var(--success-bg)' : 'var(--error-bg)',
+                    borderRadius: 'var(--radius-sm)', border: `1px solid ${vps.isConnected ? 'var(--success)' : 'var(--error)'}33`
+                  }}>
+                    <span style={{ 
+                      display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', 
+                      background: vps.isConnected ? 'var(--success)' : 'var(--error)' 
+                    }} />
+                    <span style={{ fontSize: '0.7rem', fontWeight: 600, color: vps.isConnected ? 'var(--success)' : 'var(--error)', textTransform: 'uppercase' }}>
+                      {vps.isConnected ? 'Online' : 'Offline'}
+                    </span>
+                  </div>
+                  <button 
+                    className="btn btn-secondary" 
+                    style={{ padding: '6px', minWidth: 'auto', background: 'transparent', color: 'var(--text-muted)' }}
+                    onClick={(e) => handleDelete(vps.id, vps.name, e)}
+                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--error)'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+                    title="Delete VPS"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               </div>
 
@@ -118,33 +160,42 @@ const Dashboard: React.FC = () => {
                 {!vps.isConnected ? (
                   <button 
                     className="btn btn-primary" 
-                    style={{ flex: 1 }}
+                    style={{ flex: 1, height: '38px' }}
                     onClick={(e) => handleConnect(vps.id, e)}
+                    disabled={connecting === vps.id}
                   >
-                    Connect
+                    {connecting === vps.id ? <><Loader2 size={16} className="spin" /> Connecting...</> : 'Connect'}
                   </button>
                 ) : (
                   <>
                     <button 
                       className="btn btn-secondary" 
-                      style={{ flex: 1 }}
+                      style={{ flex: 1, height: '38px', fontSize: '0.85rem' }}
                       onClick={(e) => { e.stopPropagation(); navigate(`/vps/${vps.id}?tab=terminal`); }}
                     >
                       <TerminalSquare size={16} /> Terminal
                     </button>
                     <button 
                       className="btn btn-secondary" 
-                      style={{ flex: 1 }}
+                      style={{ flex: 1, height: '38px', fontSize: '0.85rem' }}
                       onClick={(e) => { e.stopPropagation(); navigate(`/vps/${vps.id}?tab=files`); }}
                     >
                       <FolderOpen size={16} /> Files
                     </button>
                     <button 
                       className="btn btn-secondary" 
-                      style={{ flex: 1 }}
+                      style={{ flex: 1, height: '38px', fontSize: '0.85rem' }}
                       onClick={(e) => { e.stopPropagation(); navigate(`/vps/${vps.id}?tab=processes`); }}
                     >
-                      <Activity size={16} /> Processes
+                      <Activity size={16} /> Apps
+                    </button>
+                    <button 
+                      className="btn btn-danger" 
+                      style={{ width: '38px', height: '38px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '38px' }}
+                      onClick={(e) => handleDisconnect(vps.id, e)}
+                      title="Disconnect VPS"
+                    >
+                      <PowerOff size={16} />
                     </button>
                   </>
                 )}
@@ -153,6 +204,10 @@ const Dashboard: React.FC = () => {
           ))
         )}
       </div>
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .spin { animation: spin 1s linear infinite; }
+      `}</style>
     </div>
   );
 };

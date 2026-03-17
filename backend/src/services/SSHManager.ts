@@ -152,14 +152,22 @@ export class SSHManager extends EventEmitter {
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
+        // If we have a stream, try to close it
+        if (activeStream) {
+          activeStream.destroy();
+        }
         reject(new Error(`Command timed out after ${timeoutMs}ms`));
       }, timeoutMs);
+
+      let activeStream: ClientChannel | null = null;
 
       client.exec(command, (err, stream) => {
         if (err) {
           clearTimeout(timeout);
           return reject(err);
         }
+
+        activeStream = stream;
 
         let stdout = '';
         let stderr = '';
@@ -193,6 +201,7 @@ export class SSHManager extends EventEmitter {
     }
 
     return new Promise((resolve, reject) => {
+      console.log(`[SSH] Opening shell for ${vpsId}...`);
       client.shell(
         {
           term: 'xterm-256color',
@@ -200,7 +209,11 @@ export class SSHManager extends EventEmitter {
           rows: 24,
         },
         (err, stream) => {
-          if (err) return reject(err);
+          if (err) {
+            console.error(`[SSH] Failed to open shell for ${vpsId}:`, err.message);
+            return reject(err);
+          }
+          console.log(`[SSH] Shell opened successfully for ${vpsId}`);
           resolve(stream);
         }
       );
