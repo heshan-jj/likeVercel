@@ -1,20 +1,35 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { WebLinksAddon } from 'xterm-addon-web-links';
 import { io, Socket } from 'socket.io-client';
+import { Maximize2, Minimize2, Eraser } from 'lucide-react';
 import 'xterm/css/xterm.css';
 
 interface XtermTerminalProps {
   vpsId: string;
+  vpsHost?: string;
+  vpsUsername?: string;
 }
 
-const XtermTerminal: React.FC<XtermTerminalProps> = ({ vpsId }) => {
+const XtermTerminal: React.FC<XtermTerminalProps> = ({ vpsId, vpsHost, vpsUsername }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<Terminal | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const handleClear = () => {
+    xtermRef.current?.clear();
+  };
+
+  const toggleFullscreen = () => {
+    setIsFullscreen(v => !v);
+    // After toggling, re-fit after the transition
+    setTimeout(() => fitAddonRef.current?.fit(), 150);
+  };
 
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -118,19 +133,58 @@ const XtermTerminal: React.FC<XtermTerminalProps> = ({ vpsId }) => {
     };
   }, [vpsId]);
 
+  const hostLabel = vpsUsername && vpsHost ? `${vpsUsername}@${vpsHost}` : 'terminal';
+
   return (
-    <div 
-      ref={terminalRef} 
-      style={{ 
-        width: '100%', 
-        height: '100%', 
-        minHeight: '400px', 
-        background: '#0f172a',
-        padding: '10px',
-        borderRadius: 'var(--radius-md)',
-        overflow: 'hidden'
-      }} 
-    />
+    <div
+      ref={containerRef}
+      className={`flex flex-col ${isFullscreen ? 'fixed inset-0 z-[200] rounded-none' : 'h-full rounded-2xl overflow-hidden'}`}
+      style={{ background: '#0d1117' }}
+    >
+      {/* Terminal Toolbar */}
+      <div className="flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-white/5 flex-shrink-0">
+        <div className="flex items-center space-x-3">
+          {/* Traffic lights */}
+          <div className="flex items-center space-x-1.5">
+            <div className="h-3 w-3 rounded-full bg-red-500/70" />
+            <div className="h-3 w-3 rounded-full bg-amber-500/70" />
+            <div className="h-3 w-3 rounded-full bg-emerald-500/70" />
+          </div>
+          <span className="font-mono text-[11px] font-bold text-slate-400 tracking-tight select-none">
+            {hostLabel}
+          </span>
+        </div>
+        <div className="flex items-center space-x-1">
+          <button
+            onClick={handleClear}
+            title="Clear terminal"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all"
+          >
+            <Eraser size={14} />
+          </button>
+          <button
+            onClick={toggleFullscreen}
+            title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all"
+          >
+            {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+          </button>
+        </div>
+      </div>
+
+      {/* xterm.js container */}
+      <div 
+        ref={terminalRef} 
+        style={{ 
+          width: '100%', 
+          flex: 1,
+          minHeight: '0',
+          background: '#0f172a',
+          padding: '10px',
+          overflow: 'hidden'
+        }} 
+      />
+    </div>
   );
 };
 

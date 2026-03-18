@@ -174,9 +174,9 @@ const PortManager: React.FC<PortManagerProps> = ({ vpsId }) => {
           
           <div className="glass-effect rounded-[32px] border border-border-light p-6 shadow-xl min-h-[160px] flex items-center justify-center">
             {activePorts.length === 0 ? (
-              <div className="flex flex-col items-center space-y-3 opacity-30">
-                 <Loader2 size={32} className="animate-spin text-text-muted" />
-                 <p className="text-text-muted font-bold uppercase tracking-widest text-[10px]">Filtering traffic...</p>
+              <div className="flex flex-col items-center space-y-3 opacity-40">
+                 <Settings size={32} className="text-text-muted" />
+                 <p className="text-text-muted font-bold uppercase tracking-widest text-[10px]">No listening ports detected</p>
               </div>
             ) : (
               <div className="flex flex-wrap gap-2 w-full">

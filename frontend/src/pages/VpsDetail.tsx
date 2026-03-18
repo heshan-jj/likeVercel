@@ -122,7 +122,7 @@ const VpsDetail: React.FC = () => {
 
       {/* Main Tab Area */}
       <div className="flex-1 flex flex-col min-h-0">
-        <div className="px-8 border-b border-black/10 bg-bg-secondary/10 flex space-x-8">
+        <div className="px-8 border-b border-black/10 bg-bg-secondary/10 flex space-x-8 overflow-x-auto no-scrollbar">
           {tabs.map(tab => (
             <button
               key={tab.id}
@@ -158,8 +158,12 @@ const VpsDetail: React.FC = () => {
                   </button>
                 </div>
               ) : (
-                <div className="h-full rounded-2xl overflow-hidden border border-border-light shadow-2xl bg-black">
-                  <XtermTerminal vpsId={profile.id} />
+                <div className="h-full rounded-2xl overflow-hidden border border-border-light shadow-2xl">
+                  <XtermTerminal
+                    vpsId={profile.id}
+                    vpsHost={profile.host}
+                    vpsUsername={profile.username}
+                  />
                 </div>
               )}
             </div>

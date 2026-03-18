@@ -96,8 +96,9 @@ const Settings: React.FC = () => {
           </div>
 
           <button 
-            onClick={() => setFeedback({ type: 'error', message: 'Identity protocol editing is not yet implemented' })}
-            className="w-full py-4 bg-bg-primary hover:bg-bg-tertiary transition-all text-sm font-bold rounded-2xl border border-black/5 active:scale-[0.98]"
+            disabled
+            title="Coming soon"
+            className="w-full py-4 bg-bg-primary transition-all text-sm font-bold rounded-2xl border border-black/5 opacity-50 cursor-not-allowed"
           >
             Edit Identity Protocol
           </button>
@@ -113,14 +114,14 @@ const Settings: React.FC = () => {
               <div className="space-y-3">
                  <button 
                   onClick={handleRotateToken}
-                  className="w-full flex items-center justify-between p-5 bg-white border border-black/5 rounded-2xl hover:bg-bg-primary transition-all group"
+                  className="w-full flex items-center justify-between p-5 bg-bg-secondary border border-black/5 rounded-2xl hover:bg-bg-primary transition-all group"
                  >
                     <span className="text-xs font-bold text-text-primary">Rotate Access Token</span>
                     <Lock size={16} className="text-text-muted group-hover:text-blue-500 transition-colors" />
                  </button>
                  <button 
                   onClick={() => setFeedback({ type: 'error', message: 'SSH key management is not yet implemented' })}
-                  className="w-full flex items-center justify-between p-5 bg-white border border-black/5 rounded-2xl hover:bg-bg-primary transition-all group"
+                  className="w-full flex items-center justify-between p-5 bg-bg-secondary border border-black/5 rounded-2xl hover:bg-bg-primary transition-all group"
                  >
                     <span className="text-xs font-bold text-text-primary">Manage Authorized SSH Keys</span>
                     <Fingerprint size={16} className="text-text-muted group-hover:text-blue-500 transition-colors" />

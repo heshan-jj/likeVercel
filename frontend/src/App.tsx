@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -9,6 +9,7 @@ import AddVps from './pages/AddVps';
 import EditVps from './pages/EditVps';
 import Layout from './components/Layout/Layout';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
@@ -23,14 +24,10 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 };
 
 const App: React.FC = () => {
-  useEffect(() => {
-    // Ensure the app stays in light theme
-    document.documentElement.setAttribute('data-theme', 'light');
-    localStorage.setItem('vps-deploy-theme', 'light');
-  }, []);
 
   return (
-    <AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -76,7 +73,8 @@ const App: React.FC = () => {
         />
         <Route path="/" element={<Navigate to="/dashboard" />} />
       </Routes>
-    </AuthProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 };
 

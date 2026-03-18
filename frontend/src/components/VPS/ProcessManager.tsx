@@ -344,24 +344,20 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
                     </div>
 
                     <div className="flex items-center justify-between xl:justify-end gap-3 pt-4 xl:pt-0 border-t xl:border-t-0 border-border-light">
-                      {isOnline && (
-                        <div className="flex items-center space-x-6 mr-6 hidden 2xl:flex">
-                           <div className="text-center">
-                              <p className="text-[9px] font-bold text-text-muted uppercase tracking-widest mb-1">CPU Usage</p>
-                              <div className="flex items-center justify-center space-x-2 text-emerald-500 font-bold text-[12px]">
-                                 <Cpu size={14} />
-                                 <span>{(dep.cpu || 0).toFixed(1)}%</span>
-                              </div>
-                           </div>
-                           <div className="text-center">
-                              <p className="text-[9px] font-bold text-text-muted uppercase tracking-widest mb-1">Memory Usage</p>
-                              <div className="flex items-center justify-center space-x-2 text-emerald-500 font-bold text-[12px]">
-                                 <HardDrive size={14} />
-                                 <span>{formatMemory(dep.memory || 0)}</span>
-                              </div>
-                           </div>
-                        </div>
-                      )}
+                      <div className="flex items-center space-x-3 mr-4">
+                        {isOnline && (
+                          <>
+                            <div className="flex items-center space-x-1.5 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                              <Cpu size={11} className="text-emerald-500" />
+                              <span className="text-[10px] font-bold text-emerald-500">{(dep.cpu || 0).toFixed(1)}%</span>
+                            </div>
+                            <div className="flex items-center space-x-1.5 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                              <HardDrive size={11} className="text-emerald-500" />
+                              <span className="text-[10px] font-bold text-emerald-500">{formatMemory(dep.memory || 0)}</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
 
                       <div className="flex items-center space-x-2">
                         <button

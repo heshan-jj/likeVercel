@@ -16,7 +16,8 @@ import {
   Power,
   PowerOff,
   Globe,
-  PieChart
+  PieChart,
+  X
 } from 'lucide-react';
 import api from '../utils/api';
 
@@ -45,6 +46,7 @@ const Dashboard: React.FC = () => {
   const [connecting, setConnecting] = useState<string | null>(null);
   const [specs, setSpecs] = useState<Record<string, ServerSpecs>>({});
   const [fetchingSpecs, setFetchingSpecs] = useState<Record<string, boolean>>({});
+  const [showOnlineOnly, setShowOnlineOnly] = useState(false);
 
   useEffect(() => {
     fetchProfiles();
@@ -139,9 +141,14 @@ const Dashboard: React.FC = () => {
       
       <div className="p-8 space-y-10">
         {error && (
-          <div className="flex items-center space-x-4 p-5 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl animate-in slide-in-from-top-4 duration-300">
-             <ShieldAlert size={20} />
-             <span className="font-bold text-sm tracking-wide">{error}</span>
+          <div className="flex items-center justify-between p-5 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl animate-in slide-in-from-top-4 duration-300">
+            <div className="flex items-center space-x-4">
+              <ShieldAlert size={20} />
+              <span className="font-bold text-sm tracking-wide">{error}</span>
+            </div>
+            <button onClick={() => setError('')} className="p-1.5 hover:bg-red-500/20 rounded-lg transition-all flex-shrink-0">
+              <X size={16} />
+            </button>
           </div>
         )}
 
@@ -183,17 +190,31 @@ const Dashboard: React.FC = () => {
                 <h2 className="text-base font-bold text-text-primary tracking-widest uppercase opacity-80">Server Grid</h2>
              </div>
              <div className="flex space-x-2.5">
-                <button className="p-2 bg-bg-secondary border border-border-light text-text-secondary rounded-xl hover:text-text-primary transition-all shadow-md active:scale-95">
+                <button
+                  title="View resource overview"
+                  onClick={() => navigate('/dashboard')}
+                  className="p-2 bg-bg-secondary border border-border-light text-text-secondary rounded-xl hover:text-text-primary transition-all shadow-md active:scale-95"
+                >
                    <PieChart size={18} />
                 </button>
-                <button className="p-2 bg-bg-secondary border border-border-light text-text-secondary rounded-xl hover:text-text-primary transition-all shadow-md active:scale-95">
+                <button
+                  title={showOnlineOnly ? 'Show all servers' : 'Show only online servers'}
+                  onClick={() => setShowOnlineOnly(v => !v)}
+                  className={`p-2 border rounded-xl transition-all shadow-md active:scale-95 ${
+                    showOnlineOnly
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500'
+                    : 'bg-bg-secondary border-border-light text-text-secondary hover:text-text-primary'
+                  }`}
+                >
                    <Globe size={18} />
                 </button>
              </div>
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-            {profiles.length === 0 ? (
+            {(() => {
+              const visibleProfiles = showOnlineOnly ? profiles.filter(p => p.isConnected) : profiles;
+              return visibleProfiles.length === 0 ? (
               <div className="col-span-full py-24 px-8 glass-effect rounded-[40px] border border-dashed border-border-primary text-center flex flex-col items-center">
                  <div className="p-8 bg-bg-secondary rounded-full mb-8 border border-border-light shadow-inner">
                     <Server size={48} className="text-text-muted/30" />
@@ -204,10 +225,10 @@ const Dashboard: React.FC = () => {
                     onClick={() => navigate('/vps/add')}
                     className="px-12 py-4 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-2xl shadow-2xl transition-all active:scale-95"
                  >
-                    Add First Server
+                    {showOnlineOnly ? 'Clear Filter' : 'Add First Server'}
                  </button>
               </div>
-            ) : profiles.map(vps => (
+            ) : visibleProfiles.map(vps => (
               <article 
                 key={vps.id} 
                 onClick={() => navigate(`/vps/${vps.id}`)}
@@ -312,16 +333,18 @@ const Dashboard: React.FC = () => {
                     ) : (
                       <button 
                         onClick={(e) => handleDisconnect(vps.id, e)}
+                        title="Disconnect SSH session"
                         className="px-8 py-3 bg-bg-secondary hover:bg-red-500 hover:text-white text-text-muted text-xs font-bold rounded-xl transition-all flex items-center justify-center space-x-2 shadow-sm"
                       >
                         <PowerOff size={16} />
-                        <span className="uppercase tracking-widest">Off</span>
+                        <span className="uppercase tracking-widest">Disconnect</span>
                       </button>
                     )}
                   </div>
                 </div>
               </article>
-            ))}
+            ));
+            })()}
           </div>
         </section>
       </div>

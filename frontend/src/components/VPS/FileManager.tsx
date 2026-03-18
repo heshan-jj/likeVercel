@@ -326,6 +326,7 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
               <tr className="bg-bg-secondary/80 text-[10px] font-bold uppercase tracking-widest text-text-muted sticky top-0 z-10">
                 <th className="px-6 py-4">Name</th>
                 <th className="px-6 py-4 w-28 text-right">Size</th>
+                <th className="px-6 py-4 w-36 text-right">Permissions</th>
                 <th className="px-6 py-4 w-40 text-right">Modified</th>
                 <th className="px-6 py-4 w-32 text-right">Actions</th>
               </tr>
@@ -384,6 +385,9 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
                     </td>
                     <td className="px-6 py-4 text-right font-mono text-[10px] text-text-muted">
                       {file.isDirectory ? '—' : formatBytes(file.size)}
+                    </td>
+                    <td className="px-6 py-4 text-right font-mono text-[10px] text-text-muted tracking-wider">
+                      {file.permissions || '—'}
                     </td>
                     <td className="px-6 py-4 text-right text-[10px] text-text-muted font-bold tracking-tight">
                       {timeAgo(file.modifiedAt)}

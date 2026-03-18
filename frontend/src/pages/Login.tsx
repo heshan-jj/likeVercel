@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
-import { Server, Lock, Mail, Loader2, ShieldCheck } from 'lucide-react';
+import { Server, Lock, Mail, Loader2, ShieldAlert } from 'lucide-react';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -59,7 +59,7 @@ const Login: React.FC = () => {
 
           {error && (
             <div className="mb-8 p-4 bg-red-500/5 border border-red-500/10 text-red-600 rounded-2xl text-[11px] font-bold flex items-center space-x-3 animate-in slide-in-from-top-2 duration-300">
-              <ShieldCheck size={16} />
+              <ShieldAlert size={16} />
               <span>{error}</span>
             </div>
           )}
