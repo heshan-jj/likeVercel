@@ -21,6 +21,8 @@ import {
   Maximize2
 } from 'lucide-react';
 import api from '../../utils/api';
+import ConfirmModal from '../ConfirmModal';
+import { useToast } from '../../context/ToastContext';
 
 interface Deployment {
   id: string;
@@ -85,18 +87,21 @@ function getDotColor(status: string): string {
 }
 
 const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
+  const { showToast } = useToast();
+  const logBodyRef = useRef<HTMLDivElement>(null);
   const [deployments, setDeployments] = useState<Deployment[]>([]);
+  const [unmanaged, setUnmanaged] = useState<UnmanagedProcess[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showDeploy, setShowDeploy] = useState(false);
-  const [deployForm, setDeployForm] = useState({ projectPath: '', port: '', command: '' });
-  const [unmanaged, setUnmanaged] = useState<UnmanagedProcess[]>([]);
-  const [deploying, setDeploying] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [logModal, setLogModal] = useState<{ id: string; name: string; logs: string } | null>(null);
   const [logLoading, setLogLoading] = useState(false);
+  const [showDeploy, setShowDeploy] = useState(false);
+  const [deployForm, setDeployForm] = useState({ projectPath: '', port: '', command: '', processName: '' });
+  const [deploying, setDeploying] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const isFetching = useRef(false);
 
@@ -132,10 +137,12 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
       const body: any = { projectPath: deployForm.projectPath };
       if (deployForm.port) body.port = parseInt(deployForm.port);
       if (deployForm.command) body.command = deployForm.command;
+      if (deployForm.processName) body.processName = deployForm.processName;
+
 
       await api.post(`/vps/${vpsId}/processes/start`, body);
       setShowDeploy(false);
-      setDeployForm({ projectPath: '', port: '', command: '' });
+      setDeployForm({ projectPath: '', port: '', command: '', processName: '' });
       setShowAdvanced(false);
       fetchProcesses();
     } catch (err: any) {
@@ -146,22 +153,34 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
   };
 
   const handleAction = async (deploymentId: string, action: 'stop' | 'restart' | 'delete') => {
+    if (action === 'delete') {
+      setConfirmDeleteId(deploymentId);
+      return;
+    }
     setActionLoading(`${deploymentId}-${action}`);
     try {
-      if (action === 'delete') {
-        if (!confirm('Delete this deployment? The PM2 process will be removed.')) {
-          setActionLoading(null);
-          return;
-        }
-        await api.delete(`/vps/${vpsId}/processes/${deploymentId}`);
-      } else {
-        await api.post(`/vps/${vpsId}/processes/${deploymentId}/${action}`);
-      }
+      await api.post(`/vps/${vpsId}/processes/${deploymentId}/${action}`);
+      showToast(`Process ${action}ed`, 'success');
       fetchProcesses();
     } catch (err: any) {
       setError(err.response?.data?.error || `Failed to ${action}`);
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const confirmDeleteDeployment = async () => {
+    if (!confirmDeleteId) return;
+    setActionLoading(`${confirmDeleteId}-delete`);
+    try {
+      await api.delete(`/vps/${vpsId}/processes/${confirmDeleteId}`);
+      showToast('Deployment removed', 'success');
+      fetchProcesses();
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to delete');
+    } finally {
+      setActionLoading(null);
+      setConfirmDeleteId(null);
     }
   };
 
@@ -179,6 +198,13 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
       setLogLoading(false);
     }
   };
+
+  // Auto-scroll log modal to bottom whenever logs update (#20)
+  useEffect(() => {
+    if (logBodyRef.current && logModal?.logs) {
+      logBodyRef.current.scrollTop = logBodyRef.current.scrollHeight;
+    }
+  }, [logModal?.logs]);
 
   const filteredDeployments = deployments.filter(d => 
     d.processName.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -463,10 +489,10 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
                         
                         <button 
                          onClick={() => {
-                           setShowDeploy(true);
-                           setDeployForm({ ...deployForm, projectPath: '/var/www/...', command: `pm2 interact ${proc.processName}` });
-                         }}
-                         className="px-6 py-2.5 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-muted hover:text-text-primary font-bold text-[10px] rounded-xl transition-all border border-border-light uppercase tracking-widest"
+                            setShowDeploy(true);
+                            setDeployForm(prev => ({ ...prev, projectPath: '', command: 'npm start', processName: proc.processName }));
+                          }}
+                          className="px-6 py-2.5 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-muted hover:text-text-primary font-bold text-[10px] rounded-xl transition-all border border-border-light uppercase tracking-widest"
                         >
                           Adopt Process
                         </button>
@@ -508,7 +534,7 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
               </div>
             </div>
             
-            <div className="flex-1 bg-black p-8 overflow-auto custom-scrollbar font-mono text-xs leading-relaxed text-slate-300 selection:bg-blue-500/30">
+            <div ref={logBodyRef} className="flex-1 bg-black p-8 overflow-auto custom-scrollbar font-mono text-xs leading-relaxed text-slate-300 selection:bg-blue-500/30">
                {logLoading ? (
                  <div className="h-full flex flex-col items-center justify-center space-y-4">
                    <Loader2 size={40} className="text-blue-500 animate-spin opacity-50" />
@@ -533,6 +559,17 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
             </div>
           </div>
         </div>
+      )}
+      {/* Confirm Delete Deployment Modal */}
+      {confirmDeleteId && (
+        <ConfirmModal
+          title="Delete Deployment"
+          message="Remove this PM2 process permanently? The app will stop and the managed entry will be deleted."
+          confirmLabel="Delete"
+          danger
+          onConfirm={confirmDeleteDeployment}
+          onCancel={() => setConfirmDeleteId(null)}
+        />
       )}
     </div>
   );

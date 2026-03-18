@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, Save, Terminal, Shield } from 'lucide-react';
 import api from '../utils/api';
+import { useToast } from '../context/ToastContext';
 
 const AddVps: React.FC = () => {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
@@ -45,6 +47,7 @@ const AddVps: React.FC = () => {
       };
 
       await api.post('/vps', payload);
+      showToast('Server added successfully', 'success');
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to add VPS endpoint');
@@ -60,7 +63,7 @@ const AddVps: React.FC = () => {
         className="flex items-center space-x-2 text-text-secondary hover:text-text-primary transition-colors mb-8 group font-bold text-xs uppercase tracking-widest"
       >
         <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-        <span className="font-bold">Protocol Exit</span>
+        <span className="font-bold">Back to Dashboard</span>
       </button>
 
       <div className="mb-10">

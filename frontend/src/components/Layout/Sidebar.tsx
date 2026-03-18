@@ -3,14 +3,15 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { 
+  LayoutDashboard, 
   Settings, 
-  LogOut, 
-  Zap,
-  LayoutDashboard,
-  ChevronLeft,
-  ChevronRight,
-  Sun,
-  Moon
+  ChevronLeft, 
+  ChevronRight, 
+  Zap, 
+  Moon, 
+  Sun, 
+  LogOut,
+  KeyRound
 } from 'lucide-react';
 
 const Sidebar: React.FC = () => {
@@ -23,26 +24,27 @@ const Sidebar: React.FC = () => {
       className={`${collapsed ? 'w-16' : 'w-64'} h-full flex-shrink-0 flex flex-col border-r border-black/30 bg-bg-primary transition-all duration-300 shadow-2xl z-20 relative`} 
       id="sidebar"
     >
-      {/* Collapse Toggle */}
-      <button
-        onClick={() => setCollapsed(v => !v)}
-        className="absolute -right-3 top-8 z-30 p-1 bg-bg-secondary border border-border-light rounded-full shadow-lg hover:bg-bg-tertiary transition-all text-text-secondary hover:text-text-primary"
-        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      >
-        {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-      </button>
-
-      {/* Brand Header */}
-      <div className={`p-4 pb-4 flex items-center ${collapsed ? 'justify-center' : 'space-x-3'} overflow-hidden`}>
-        <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-600/20 flex-shrink-0">
-          <Zap size={24} className="text-white" fill="currentColor" />
-        </div>
-        {!collapsed && (
-          <div className="flex flex-col overflow-hidden">
-            <span className="text-xl font-bold tracking-tighter text-text-primary truncate">likeVercel</span>
-            <span className="text-xs font-bold text-text-muted tracking-[0.1em] -mt-1 ml-1 uppercase opacity-60">v2.0 Beta</span>
+      {/* Brand Header + Collapse Toggle */}
+      <div className={`p-4 pb-4 flex items-center ${collapsed ? 'justify-center' : 'justify-between'} relative overflow-visible`}>
+        <div className={`flex items-center ${collapsed ? 'justify-center' : 'space-x-3 pr-6'} min-w-0`}>
+          <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-600/20 flex-shrink-0">
+            <Zap size={24} className="text-white" fill="currentColor" />
           </div>
-        )}
+          {!collapsed && (
+            <div className="flex flex-col overflow-hidden">
+              <span className="text-xl font-bold tracking-tighter text-text-primary truncate">likeVercel</span>
+              <span className="text-xs font-bold text-text-muted tracking-[0.1em] -mt-1 ml-1 uppercase opacity-60">v2.0 Beta</span>
+            </div>
+          )}
+        </div>
+        {/* Collapse toggle — absolutely positioned within header to avoid layout push/overlap */}
+        <button
+          onClick={() => setCollapsed(v => !v)}
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg bg-bg-tertiary/50 hover:bg-bg-tertiary text-text-secondary hover:text-text-primary transition-all flex-shrink-0 border border-border-light shadow-sm z-30"
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        </button>
       </div>
 
       <div className="px-4 py-4">
@@ -66,6 +68,19 @@ const Sidebar: React.FC = () => {
         >
           <LayoutDashboard className={`h-4 w-4 flex-shrink-0 ${!collapsed ? 'mr-3' : ''}`} />
           {!collapsed && <span>Dashboard</span>}
+        </NavLink>
+
+        <NavLink 
+          to="/keys" 
+          className={({ isActive }) => `group flex items-center ${collapsed ? 'justify-center px-2' : 'px-4'} py-2.5 text-sm font-bold rounded-xl transition-all ${
+            isActive 
+            ? 'sidebar-active text-blue-500 bg-blue-500/10' 
+            : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary shadow-sm'
+          }`}
+          title={collapsed ? 'SSH Keys' : undefined}
+        >
+          <KeyRound className={`h-4 w-4 flex-shrink-0 ${!collapsed ? 'mr-3' : ''}`} />
+          {!collapsed && <span>SSH Keys</span>}
         </NavLink>
 
         <div className={`${collapsed ? 'py-2' : 'py-6'}`}>

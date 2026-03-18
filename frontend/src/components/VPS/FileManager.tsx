@@ -23,6 +23,8 @@ import {
   Search
 } from 'lucide-react';
 import api from '../../utils/api';
+import ConfirmModal from '../ConfirmModal';
+import { useToast } from '../../context/ToastContext';
 
 interface FileEntry {
   name: string;
@@ -75,6 +77,7 @@ function getFileIcon(name: string, isDirectory: boolean) {
 }
 
 const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
+  const { showToast } = useToast();
   const [currentPath, setCurrentPath] = useState('/');
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,6 +89,8 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+  const [confirmDeletePath, setConfirmDeletePath] = useState<{ path: string; name: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchFiles = useCallback(async (path: string) => {
@@ -117,31 +122,45 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
 
   const breadcrumbs = currentPath.split('/').filter(Boolean);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleUpload = async (filesToUpload: FileList | File[]) => {
+    const fileArray = Array.from(filesToUpload);
+    if (fileArray.length === 0) return;
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('path', currentPath);
-
-    setUploadProgress(0);
-    try {
-      await api.post(`/vps/${vpsId}/files/upload`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
-            setUploadProgress(Math.round((progressEvent.loaded * 100) / progressEvent.total));
-          }
-        },
-      });
-      fetchFiles(currentPath);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Upload failed');
-    } finally {
-      setUploadProgress(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+    for (let i = 0; i < fileArray.length; i++) {
+      const file = fileArray[i];
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('path', currentPath);
+      setUploadProgress(0);
+      try {
+        await api.post(`/vps/${vpsId}/files/upload`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              setUploadProgress(Math.round((progressEvent.loaded * 100) / progressEvent.total));
+            }
+          },
+        });
+      } catch (err: any) {
+        setError(`Upload failed for "${file.name}": ${err.response?.data?.error || err.message}`);
+      }
     }
+    setUploadProgress(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    showToast(fileArray.length === 1 ? `"${fileArray[0].name}" uploaded` : `${fileArray.length} files uploaded`, 'success');
+    fetchFiles(currentPath);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) handleUpload(e.target.files);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
+  const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); };
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files.length > 0) handleUpload(e.dataTransfer.files);
   };
 
   const handleCreateFolder = async () => {
@@ -160,16 +179,22 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
     }
   };
 
-  const handleDelete = async (filePath: string, fileName: string) => {
-    if (!confirm(`Delete "${fileName}"? This cannot be undone.`)) return;
-    setActionLoading(filePath);
+  const handleDelete = (filePath: string, fileName: string) => {
+    setConfirmDeletePath({ path: filePath, name: fileName });
+  };
+
+  const confirmDelete = async () => {
+    if (!confirmDeletePath) return;
+    setActionLoading(confirmDeletePath.path);
     try {
-      await api.delete(`/vps/${vpsId}/files`, { params: { path: filePath } });
+      await api.delete(`/vps/${vpsId}/files`, { params: { path: confirmDeletePath.path } });
+      showToast(`"${confirmDeletePath.name}" deleted`, 'success');
       fetchFiles(currentPath);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Delete failed');
     } finally {
       setActionLoading(null);
+      setConfirmDeletePath(null);
     }
   };
 
@@ -212,7 +237,22 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
   const filteredFiles = files.filter(f => f.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
-    <div className="flex flex-col h-full space-y-4">
+    <>
+    <div
+      className={`flex flex-col h-full space-y-4 relative transition-all ${isDragging ? 'ring-2 ring-blue-500 ring-inset rounded-[28px]' : ''}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Drag Overlay */}
+      {isDragging && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center rounded-[28px] bg-blue-600/10 border-2 border-dashed border-blue-500 backdrop-blur-sm pointer-events-none">
+          <div className="text-center">
+            <Upload size={40} className="text-blue-500 mx-auto mb-3" />
+            <p className="text-sm font-bold text-blue-500">Drop files to upload</p>
+          </div>
+        </div>
+      )}
       {/* Search and Navigation Bar */}
       <div className="flex flex-col sm:flex-row items-center gap-4">
         {/* Breadcrumb Navigation */}
@@ -269,7 +309,7 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
             <Upload size={18} />
             <span className="hidden xl:inline">Upload</span>
           </button>
-          <input ref={fileInputRef} type="file" onChange={handleUpload} className="hidden" />
+          <input ref={fileInputRef} type="file" multiple onChange={handleInputChange} className="hidden" />
         </div>
       </div>
 
@@ -429,6 +469,19 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
         </div>
       </div>
     </div>
+
+    {/* Confirm Delete File Modal */}
+    {confirmDeletePath && (
+      <ConfirmModal
+        title="Delete File"
+        message={`Permanently delete "${confirmDeletePath.name}"? This cannot be undone.`}
+        confirmLabel="Delete"
+        danger
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmDeletePath(null)}
+      />
+    )}
+    </>
   );
 };
 

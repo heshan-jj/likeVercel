@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  Terminal as TerminalIcon, 
-  Folder, 
-  Activity, 
-  ExternalLink, 
+import {
+  ArrowLeft,
+  Terminal as TerminalIcon,
+  Folder,
+  Activity,
+  ExternalLink,
   Globe2,
   Settings as SettingsIcon,
+  PlugZap,
   Zap,
   Server
 } from 'lucide-react';
@@ -17,6 +18,26 @@ import FileManager from '../components/VPS/FileManager';
 import ProcessManager from '../components/VPS/ProcessManager';
 import PortManager from '../components/VPS/PortManager';
 import ProxyManager from '../components/VPS/ProxyManager';
+import ResourceChart from '../components/VPS/ResourceChart';
+
+// Shared offline state shown on all tabs when VPS is disconnected
+const OfflineState: React.FC<{ label: string; onNavigate: () => void }> = ({ label, onNavigate }) => (
+  <div className="glass-effect rounded-[32px] p-16 text-center border border-border-light flex flex-col items-center space-y-6 h-full justify-center">
+    <div className="p-5 bg-bg-secondary rounded-full border border-border-light">
+      <PlugZap size={36} className="text-text-muted/30" />
+    </div>
+    <div>
+      <p className="text-sm font-bold text-text-primary mb-2">{label}</p>
+      <p className="text-xs text-text-muted font-medium">This VPS must be connected to access this feature.</p>
+    </div>
+    <button
+      onClick={onNavigate}
+      className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all active:scale-95 shadow-xl shadow-blue-600/20"
+    >
+      Go to Dashboard to Connect
+    </button>
+  </div>
+);
 
 type Tab = 'terminal' | 'files' | 'processes' | 'ports' | 'domains';
 
@@ -118,6 +139,13 @@ const VpsDetail: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* Live Resource Charts — only visible when connected */}
+        {profile.isConnected && (
+          <div className="mt-6 pt-5 border-t border-black/10">
+            <ResourceChart vpsId={profile.id} isConnected={profile.isConnected} />
+          </div>
+        )}
       </div>
 
       {/* Main Tab Area */}
@@ -173,9 +201,7 @@ const VpsDetail: React.FC = () => {
                 {profile.isConnected ? (
                   <FileManager vpsId={profile.id} />
                 ) : (
-                  <div className="h-full flex items-center justify-center text-text-muted glass-effect rounded-[32px] border border-border-light font-bold text-xs tracking-wide">
-                    Storage Access Restricted
-                  </div>
+                  <OfflineState label="Storage Access Restricted" onNavigate={() => navigate('/dashboard')} />
                 )}
               </div>
             )}
@@ -185,9 +211,7 @@ const VpsDetail: React.FC = () => {
                 {profile.isConnected ? (
                   <ProcessManager vpsId={profile.id} />
                 ) : (
-                  <div className="glass-effect rounded-[32px] p-20 text-center text-text-muted border border-border-light font-bold text-xs tracking-wide">
-                     Workload manager dormant.
-                  </div>
+                  <OfflineState label="Workload Manager Dormant" onNavigate={() => navigate('/dashboard')} />
                 )}
               </div>
             )}
@@ -197,9 +221,7 @@ const VpsDetail: React.FC = () => {
                 {profile.isConnected ? (
                   <PortManager vpsId={profile.id} />
                 ) : (
-                  <div className="glass-effect rounded-[32px] p-20 text-center text-text-muted border border-border-light font-bold text-xs tracking-wide h-full flex items-center justify-center">
-                     Core connectivity offline.
-                  </div>
+                  <OfflineState label="Core Connectivity Offline" onNavigate={() => navigate('/dashboard')} />
                 )}
               </div>
             )}
@@ -209,9 +231,7 @@ const VpsDetail: React.FC = () => {
                 {profile.isConnected ? (
                   <ProxyManager vpsId={profile.id} />
                 ) : (
-                  <div className="glass-effect rounded-[32px] p-20 text-center text-text-muted border border-border-light font-bold text-xs tracking-wide h-full flex items-center justify-center">
-                     Proxy service unavailable.
-                  </div>
+                  <OfflineState label="Proxy Service Unavailable" onNavigate={() => navigate('/dashboard')} />
                 )}
               </div>
             )}

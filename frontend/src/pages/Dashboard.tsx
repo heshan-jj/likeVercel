@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Plus, 
-  Terminal, 
-  Folder, 
-  ShieldCheck, 
+  Terminal,
+  Folder,
+  ShieldCheck,
   ShieldAlert, 
   Activity, 
   Cpu, 
@@ -20,6 +20,8 @@ import {
   X
 } from 'lucide-react';
 import api from '../utils/api';
+import ConfirmModal from '../components/ConfirmModal';
+import { useToast } from '../context/ToastContext';
 
 interface VPSProfile {
   id: string;
@@ -40,6 +42,7 @@ interface ServerSpecs {
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [profiles, setProfiles] = useState<VPSProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -47,15 +50,23 @@ const Dashboard: React.FC = () => {
   const [specs, setSpecs] = useState<Record<string, ServerSpecs>>({});
   const [fetchingSpecs, setFetchingSpecs] = useState<Record<string, boolean>>({});
   const [showOnlineOnly, setShowOnlineOnly] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
+  const profilesRef = useRef<VPSProfile[]>([]);
 
   useEffect(() => {
     fetchProfiles();
+    // Auto-refresh connected server specs every 30s
+    const specInterval = setInterval(() => {
+      profilesRef.current.filter(p => p.isConnected).forEach(p => fetchSpecs(p.id));
+    }, 30_000);
+    return () => clearInterval(specInterval);
   }, []);
 
   const fetchProfiles = async () => {
     try {
       const { data } = await api.get('/vps');
       setProfiles(data.profiles);
+      profilesRef.current = data.profiles;
       data.profiles.forEach((p: VPSProfile) => {
         if (p.isConnected) fetchSpecs(p.id);
       });
@@ -83,6 +94,7 @@ const Dashboard: React.FC = () => {
     setConnecting(id);
     try {
       await api.post(`/vps/${id}/connect`);
+      showToast('Server connected successfully', 'success');
       fetchProfiles();
     } catch (err: any) {
       setError(err.response?.data?.error || 'Connection failed');
@@ -95,20 +107,28 @@ const Dashboard: React.FC = () => {
     e.stopPropagation();
     try {
       await api.post(`/vps/${id}/disconnect`);
+      showToast('Server disconnected', 'info');
       fetchProfiles();
     } catch (err: any) {
       setError(err.response?.data?.error || 'Disconnection failed');
     }
   };
 
-  const handleDelete = async (id: string, name: string, e: React.MouseEvent) => {
+  const handleDelete = (id: string, name: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm(`Permanently decommission node "${name}"?`)) return;
+    setConfirmDelete({ id, name });
+  };
+
+  const confirmDeleteServer = async () => {
+    if (!confirmDelete) return;
     try {
-      await api.delete(`/vps/${id}`);
+      await api.delete(`/vps/${confirmDelete.id}`);
+      showToast(`"${confirmDelete.name}" removed`, 'success');
       fetchProfiles();
     } catch (err) {
       setError('Decommission failed');
+    } finally {
+      setConfirmDelete(null);
     }
   };
 
@@ -120,6 +140,7 @@ const Dashboard: React.FC = () => {
   );
 
   return (
+    <>  
     <div className="flex flex-col h-full bg-bg-primary overflow-y-auto custom-scrollbar">
       {/* Refined Header */}
       <header className="sticky top-0 z-30 px-8 py-8 flex items-center justify-between border-b border-black/20 bg-bg-primary/80 backdrop-blur-xl">
@@ -349,6 +370,19 @@ const Dashboard: React.FC = () => {
         </section>
       </div>
     </div>
+
+    {/* Confirm Delete Modal */}
+    {confirmDelete && (
+      <ConfirmModal
+        title="Decommission Node"
+        message={`Permanently remove "${confirmDelete.name}"? This will delete all connection data and cannot be undone.`}
+        confirmLabel="Decommission"
+        danger
+        onConfirm={confirmDeleteServer}
+        onCancel={() => setConfirmDelete(null)}
+      />
+    )}
+    </>
   );
 };
 

@@ -7,9 +7,11 @@ import VpsDetail from './pages/VpsDetail';
 import Settings from './pages/Settings';
 import AddVps from './pages/AddVps';
 import EditVps from './pages/EditVps';
+import KeyManager from './pages/KeyManager';
 import Layout from './components/Layout/Layout';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { ToastProvider } from './context/ToastContext';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
@@ -27,7 +29,8 @@ const App: React.FC = () => {
 
   return (
     <ThemeProvider>
-      <AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -71,9 +74,18 @@ const App: React.FC = () => {
             </PrivateRoute>
           } 
         />
+        <Route 
+          path="/keys" 
+          element={
+            <PrivateRoute>
+              <KeyManager />
+            </PrivateRoute>
+          } 
+        />
         <Route path="/" element={<Navigate to="/dashboard" />} />
       </Routes>
       </AuthProvider>
+      </ToastProvider>
     </ThemeProvider>
   );
 };
