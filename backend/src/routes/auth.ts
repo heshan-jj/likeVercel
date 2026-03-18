@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import bcrypt from 'bcrypt';
-import jwt, { SignOptions } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import prisma from '../utils/prisma';
 import { config } from '../config';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
@@ -8,6 +8,13 @@ import { registerSchema, loginSchema } from '../utils/validators';
 
 const router = Router();
 const SALT_ROUNDS = 12;
+
+function generateTokens(userId: string) {
+  const { secret, refreshSecret, expiresIn, refreshExpiresIn } = config.jwt;
+  const accessToken = jwt.sign({ userId }, secret, { expiresIn } as jwt.SignOptions);
+  const refreshToken = jwt.sign({ userId }, refreshSecret, { expiresIn: refreshExpiresIn } as jwt.SignOptions);
+  return { accessToken, refreshToken };
+}
 
 // POST /api/auth/register
 router.post('/register', async (req: AuthRequest, res: Response): Promise<void> => {
@@ -34,12 +41,7 @@ router.post('/register', async (req: AuthRequest, res: Response): Promise<void> 
     });
 
     // Generate tokens
-    const accessToken = jwt.sign({ userId: user.id }, config.jwt.secret, {
-      expiresIn: config.jwt.expiresIn as any,
-    });
-    const refreshToken = jwt.sign({ userId: user.id }, config.jwt.refreshSecret, {
-      expiresIn: config.jwt.refreshExpiresIn as any,
-    });
+    const { accessToken, refreshToken } = generateTokens(user.id);
 
     res.status(201).json({
       user: { id: user.id, email: user.email, name: user.name },
@@ -73,12 +75,7 @@ router.post('/login', async (req: AuthRequest, res: Response): Promise<void> => 
       return;
     }
 
-    const accessToken = jwt.sign({ userId: user.id }, config.jwt.secret, {
-      expiresIn: config.jwt.expiresIn as any,
-    });
-    const refreshToken = jwt.sign({ userId: user.id }, config.jwt.refreshSecret, {
-      expiresIn: config.jwt.refreshExpiresIn as any,
-    });
+    const { accessToken, refreshToken } = generateTokens(user.id);
 
     res.json({
       user: { id: user.id, email: user.email, name: user.name },
@@ -112,9 +109,7 @@ router.post('/refresh', async (req: AuthRequest, res: Response): Promise<void> =
       return;
     }
 
-    const accessToken = jwt.sign({ userId: user.id }, config.jwt.secret, {
-      expiresIn: config.jwt.expiresIn as any,
-    });
+    const { accessToken } = generateTokens(user.id);
 
     res.json({ accessToken });
   } catch (error) {
@@ -197,6 +192,28 @@ router.put('/password', authMiddleware, async (req: AuthRequest, res: Response):
     res.json({ message: 'Password updated successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update password' });
+  }
+});
+
+// DELETE /api/auth/profile
+router.delete('/profile', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const userId = req.userId;
+    const vpsProfiles = await prisma.vpsProfile.findMany({ where: { userId } });
+    for (const profile of vpsProfiles) {
+      await prisma.deployment.deleteMany({ where: { vpsId: profile.id } });
+    }
+    await prisma.vpsProfile.deleteMany({ where: { userId } });
+    await prisma.user.delete({ where: { id: userId } });
+
+    res.json({ message: 'User profile and all associated data deleted' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete profile' });
   }
 });
 

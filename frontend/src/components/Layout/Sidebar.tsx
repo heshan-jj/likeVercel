@@ -3,11 +3,9 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { 
   Settings, 
-  Layers, 
   LogOut, 
   Zap,
-  LayoutDashboard,
-  HardDrive
+  LayoutDashboard
 } from 'lucide-react';
 
 const Sidebar: React.FC = () => {
@@ -44,30 +42,6 @@ const Sidebar: React.FC = () => {
         >
           <LayoutDashboard className="mr-3 h-4 w-4" />
           <span>Dashboard</span>
-        </NavLink>
-        
-        <NavLink 
-          to="/endpoints" 
-          className={({ isActive }) => `group flex items-center px-4 py-2.5 text-sm font-bold rounded-xl transition-all ${
-            isActive 
-            ? 'sidebar-active text-blue-500 bg-blue-500/10' 
-            : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary shadow-sm'
-          }`}
-        >
-          <HardDrive className="mr-3 h-4 w-4" />
-          <span>Endpoints</span>
-        </NavLink>
-
-        <NavLink 
-          to="/apps" 
-          className={({ isActive }) => `group flex items-center px-4 py-2.5 text-sm font-bold rounded-xl transition-all ${
-            isActive 
-            ? 'sidebar-active text-blue-500 bg-blue-500/10' 
-            : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary shadow-sm'
-          }`}
-        >
-          <Layers className="mr-3 h-4 w-4" />
-          <span>Managed Apps</span>
         </NavLink>
 
         <div className="py-6">

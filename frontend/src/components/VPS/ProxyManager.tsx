@@ -12,7 +12,6 @@ import {
   ArrowRight,
   Download,
   Lock,
-  Server,
   Zap,
   CheckCircle,
   HelpCircle

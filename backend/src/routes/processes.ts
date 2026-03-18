@@ -27,10 +27,15 @@ router.get('/:id/processes', async (req: AuthRequest, res: Response): Promise<vo
     });
 
     // Check actual PM2 process status
+    let pm2Processes: any[] = [];
     try {
-      const pm2Output = await sshManager.executeCommand(vpsId, 'pm2 jlist 2>/dev/null || echo "[]"');
-      const pm2Processes = JSON.parse(pm2Output);
+      const pm2Output = await sshManager.executeCommand(vpsId, 'pm2 list --format json 2>/dev/null || pm2 jlist 2>/dev/null || echo "[]"');
+      pm2Processes = JSON.parse(pm2Output);
+    } catch {
+      // PM2 not available or output not parseable, pm2Processes stays empty
+    }
 
+    if (pm2Processes.length > 0) {
       const processesWithStatus = deployments.map((d) => {
         const pm2Process = pm2Processes.find((p: any) => p.name === d.processName);
         return {
@@ -43,8 +48,7 @@ router.get('/:id/processes', async (req: AuthRequest, res: Response): Promise<vo
       });
 
       res.json({ processes: processesWithStatus });
-    } catch {
-      // PM2 not available, return DB status with URLs
+    } else {
       const processesWithUrls = deployments.map((d) => ({
         ...d,
         url: `http://${vps?.host}:${d.port}`,
@@ -93,10 +97,10 @@ router.post('/:id/processes/start', async (req: AuthRequest, res: Response): Pro
     const fileList = files.split('\n').map(f => f.trim());
 
     if (data.command) {
-      // Custom command
+      // Custom command — escape the entire command string safely
       processName = `custom-${port}`;
-      const escapedCmd = data.command.replace(/"/g, '\\"');
-      startCommand = `cd ${escapedPath} && pm2 start "${escapedCmd}" --name ${escapeShellArg(processName)}`;
+      const escapedCmd = escapeShellArg(data.command);
+      startCommand = `cd ${escapedPath} && pm2 start ${escapedCmd} --name ${escapeShellArg(processName)}`;
       projectType = 'custom';
     } else if (fileList.includes('package.json')) {
       processName = `node-${port}`;
@@ -106,7 +110,10 @@ router.post('/:id/processes/start', async (req: AuthRequest, res: Response): Pro
     } else if (fileList.includes('requirements.txt')) {
       processName = `python-${port}`;
       const escapedProcessName = escapeShellArg(processName);
-      startCommand = `cd ${escapedPath} && pip install -r requirements.txt && pm2 start "python app.py" --name ${escapedProcessName}`;
+      // Detect the main Python file instead of assuming app.py
+      const mainFile = fileList.find(f => f.endsWith('.py') && !f.startsWith('.')) || 'app.py';
+      const escapedMainFile = escapeShellArg(mainFile);
+      startCommand = `cd ${escapedPath} && pip install -r requirements.txt && pm2 start ${escapedMainFile} --name ${escapedProcessName}`;
       projectType = 'python';
     } else if (fileList.includes('index.html')) {
       processName = `static-${port}`;

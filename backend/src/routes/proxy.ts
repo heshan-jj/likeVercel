@@ -1,30 +1,10 @@
 import { Router, Response } from 'express';
-import prisma from '../utils/prisma';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { sshManager } from '../services/SSHManager';
+import { verifyVps } from '../utils/helpers';
 
 const router = Router();
 router.use(authMiddleware);
-
-// Helper: verify VPS ownership and connection
-async function verifyVps(req: AuthRequest, res: Response): Promise<string | null> {
-  if (!req.userId) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return null;
-  }
-  const profile = await prisma.vpsProfile.findFirst({
-    where: { id: req.params.id as string, userId: req.userId },
-  });
-  if (!profile) {
-    res.status(404).json({ error: 'VPS profile not found' });
-    return null;
-  }
-  if (!sshManager.isConnected(profile.id)) {
-    res.status(400).json({ error: 'VPS not connected' });
-    return null;
-  }
-  return profile.id;
-}
 
 // Helper: escape single quotes for shell
 function shellEscape(str: string): string {
@@ -169,8 +149,8 @@ router.post('/:id/proxy', async (req: AuthRequest, res: Response): Promise<void>
       return;
     }
 
-    // Validate domain format
-    const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    // Validate domain format (allows subdomains like api.example.com)
+    const domainRegex = /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
     if (!domainRegex.test(domain)) {
       res.status(400).json({ error: 'Invalid domain format' });
       return;

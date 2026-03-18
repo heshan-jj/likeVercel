@@ -30,13 +30,20 @@ interface VPSProfile {
   isConnected: boolean;
 }
 
+interface ServerSpecs {
+  os: string;
+  cpu: string;
+  ram: string;
+  disk: string;
+}
+
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [profiles, setProfiles] = useState<VPSProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [connecting, setConnecting] = useState<string | null>(null);
-  const [specs, setSpecs] = useState<Record<string, any>>({});
+  const [specs, setSpecs] = useState<Record<string, ServerSpecs>>({});
   const [fetchingSpecs, setFetchingSpecs] = useState<Record<string, boolean>>({});
 
   useEffect(() => {

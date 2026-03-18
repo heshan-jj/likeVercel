@@ -33,8 +33,12 @@ router.use(authMiddleware);
 // Helper to sanitize remote paths
 function sanitizePath(remotePath: string): string {
   if (!remotePath) return '/';
-  // Prevent path traversal
-  const cleaned = remotePath.replace(/\.\.\//g, '').replace(/\.\.\\/g, '');
+  // Decode URI components to catch encoded path traversal
+  let decoded = decodeURIComponent(remotePath);
+  // Remove null bytes (poison null byte attack)
+  decoded = decoded.replace(/\0/g, '');
+  // Prevent path traversal — remove all .. segments
+  const cleaned = decoded.replace(/\.\./g, '').replace(/\.\./g, '');
   return cleaned.startsWith('/') ? cleaned : '/' + cleaned;
 }
 

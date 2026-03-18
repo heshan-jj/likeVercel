@@ -19,20 +19,29 @@ import ProcessManager from '../components/VPS/ProcessManager';
 import PortManager from '../components/VPS/PortManager';
 import ProxyManager from '../components/VPS/ProxyManager';
 
+type Tab = 'terminal' | 'files' | 'processes' | 'ports' | 'domains';
+
+interface VpsProfile {
+  id: string;
+  name: string;
+  host: string;
+  username: string;
+  port: number;
+  authType: string;
+  isConnected: boolean;
+}
+
 const VpsDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<VpsProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [pingResult, setPingResult] = useState<string | null>(null);
-  const [pinging, setPinging] = useState(false);
   
-  // Get tab from URL search param if exists
   const queryParams = new URLSearchParams(location.search);
-  const initialTab = queryParams.get('tab') as any;
-  const [activeTab, setActiveTab] = useState<'terminal' | 'files' | 'processes' | 'ports' | 'domains'>(
-    ['terminal', 'files', 'processes', 'ports', 'domains'].includes(initialTab) ? initialTab : 'terminal'
+  const initialTab = queryParams.get('tab') as Tab | null;
+  const [activeTab, setActiveTab] = useState<Tab>(
+    ['terminal', 'files', 'processes', 'ports', 'domains'].includes(initialTab || '') ? (initialTab as Tab) : 'terminal'
   );
 
   useEffect(() => {
@@ -107,37 +116,6 @@ const VpsDetail: React.FC = () => {
             >
               <SettingsIcon size={16} className="text-text-muted group-hover:text-blue-500 transition-colors" />
               <span>Edit Settings</span>
-            </button>
-            <button 
-              onClick={async () => {
-                if (pinging) return;
-                setPinging(true);
-                setPingResult(null);
-                try {
-                  const start = Date.now();
-                  await api.get(`/vps/${id}/status`);
-                  const latency = Date.now() - start;
-                  setPingResult(`${latency}ms`);
-                  setTimeout(() => setPingResult(null), 3000); // Clear after 3s
-                } catch (e) {
-                  setPingResult('FAIL');
-                } finally {
-                  setPinging(false);
-                }
-              }}
-              disabled={pinging}
-              className={`flex items-center space-x-2 px-6 py-3 ${pingResult === 'FAIL' ? 'bg-red-500' : 'bg-blue-600 hover:bg-blue-500'} text-white font-bold text-xs rounded-xl shadow-xl transition-all active:scale-95 shadow-blue-600/20 disabled:opacity-80 w-[140px] h-[42px] justify-center overflow-hidden`}
-            >
-              {pinging ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : pingResult ? (
-                <span className="animate-in zoom-in-95 duration-200">{pingResult}</span>
-              ) : (
-                <>
-                  <Zap size={16} fill="white" />
-                  <span>Ping</span>
-                </>
-              )}
             </button>
           </div>
         </div>

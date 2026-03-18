@@ -4,6 +4,8 @@ import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { createVpsSchema, updateVpsSchema } from '../utils/validators';
 import { encrypt } from '../utils/crypto';
 import { sshManager } from '../services/SSHManager';
+import { exec } from 'child_process';
+import os from 'os';
 
 const router = Router();
 
@@ -193,9 +195,18 @@ router.put('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
         port: data.port || existing.port,
         username: data.username || existing.username,
       };
-      if ((data.authType || existing.authType) === 'password') {
+      const effectiveAuthType = data.authType || existing.authType;
+      if (effectiveAuthType === 'password') {
+        if (!data.password) {
+          res.status(400).json({ error: 'Password is required when authType is password' });
+          return;
+        }
         credentials.password = data.password;
       } else {
+        if (!data.privateKey) {
+          res.status(400).json({ error: 'Private key is required when authType is privateKey' });
+          return;
+        }
         credentials.privateKey = data.privateKey;
         if (data.passphrase) {
           credentials.passphrase = data.passphrase;
@@ -397,6 +408,47 @@ router.get('/:id/status', async (req: AuthRequest, res: Response): Promise<void>
     res.json({ isConnected: sshManager.isConnected(profile.id) });
   } catch (error) {
     res.status(500).json({ error: 'Failed to get status' });
+  }
+});
+
+// GET /api/vps/:id/real-ping — get ICMP latency from backend to VPS
+router.get('/:id/real-ping', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const profile = await prisma.vpsProfile.findFirst({
+      where: { id: req.params.id as string, userId: req.userId },
+    });
+
+    if (!profile) {
+      res.status(404).json({ error: 'VPS profile not found' });
+      return;
+    }
+
+    const isWin = os.platform() === 'win32';
+    const cmd = isWin ? `ping -n 1 ${profile.host}` : `ping -c 1 ${profile.host}`;
+
+    exec(cmd, (err, stdout) => {
+      if (err) {
+        return res.status(503).json({ error: 'Host unreachable' });
+      }
+
+      // Try to parse latency from stdout
+      // Windows: time=12ms
+      // Linux: time=12.3 ms
+      let latency = 'Unknown';
+      const match = stdout.match(/time[=<]([\d\.]+)\s?ms/i);
+      if (match && match[1]) {
+        latency = `${Math.round(parseFloat(match[1]))}ms`;
+      }
+
+      res.json({ latency });
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Ping execution failed' });
   }
 });
 
