@@ -41,7 +41,7 @@ npm run install:all
 
 ### 2. Environment Setup
 Create a `.env` file in the root or `backend/` directory:
-
+ run 
 
 ### 3. Database Initialization
 ```bash

@@ -111,7 +111,7 @@ const VpsDetail: React.FC = () => {
           <div className="flex items-center space-x-3">
             <button 
               onClick={() => navigate(`/vps/${id}/edit`)} // Assuming we'll add an edit route
-              className="flex items-center space-x-2 px-6 py-3 bg-bg-secondary hover:bg-bg-tertiary text-text-primary font-bold text-xs rounded-xl border border-black/10 transition-all shadow-sm active:scale-95 group h-[42px]"
+              className="px-6 py-3 bg-bg-secondary hover:bg-bg-tertiary text-text-primary font-bold text-xs rounded-xl border border-black/10 transition-all shadow-sm active:scale-95 group h-[42px]"
             >
               <SettingsIcon size={16} className="text-text-muted group-hover:text-blue-500 transition-colors" />
               <span>Edit Settings</span>
@@ -141,29 +141,28 @@ const VpsDetail: React.FC = () => {
 
         <div className="flex-1 min-h-0 relative">
           <div className="absolute inset-0 px-8 py-8 overflow-y-auto custom-scrollbar">
-            {activeTab === 'terminal' && (
-              <div className="h-full min-h-[450px]">
-                {profile.isConnected ? (
-                  <div className="h-full rounded-2xl overflow-hidden border border-border-light shadow-2xl bg-black">
-                    <XtermTerminal vpsId={profile.id} />
+            {/* Map over tabs to keep them alive but hidden when not active */}
+            <div className={`h-full ${activeTab !== 'terminal' ? 'hidden' : 'block'}`}>
+              {!profile.isConnected ? (
+                <div className="h-full glass-effect rounded-[32px] flex flex-col items-center justify-center p-12 text-center border border-border-light">
+                  <div className="p-8 bg-bg-secondary rounded-full mb-8 border border-border-light">
+                    <TerminalIcon size={48} className="text-text-muted" />
                   </div>
-                ) : (
-                  <div className="h-full glass-effect rounded-[32px] flex flex-col items-center justify-center p-12 text-center border border-border-light">
-                    <div className="p-8 bg-bg-secondary rounded-full mb-8 border border-border-light">
-                      <TerminalIcon size={48} className="text-text-muted" />
-                    </div>
-                    <h3 className="text-xl font-bold text-text-primary mb-3 tracking-tight">Terminal Locked</h3>
-                    <p className="text-text-muted max-w-sm mb-10 text-xs font-medium leading-relaxed">Establish a connection from the core dashboard to initialize shell access.</p>
-                    <button 
-                      onClick={() => navigate('/dashboard')}
-                      className="px-10 py-4 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-primary font-bold text-xs rounded-2xl border border-border-light transition-all shadow-xl"
-                    >
-                      Connect VPS
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
+                  <h3 className="text-xl font-bold text-text-primary mb-3 tracking-tight">Terminal Locked</h3>
+                  <p className="text-text-muted max-w-sm mb-10 text-xs font-medium leading-relaxed">Establish a connection from the core dashboard to initialize shell access.</p>
+                  <button 
+                    onClick={() => navigate('/dashboard')}
+                    className="px-10 py-4 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-primary font-bold text-xs rounded-2xl border border-border-light transition-all shadow-xl"
+                  >
+                    Connect VPS
+                  </button>
+                </div>
+              ) : (
+                <div className="h-full rounded-2xl overflow-hidden border border-border-light shadow-2xl bg-black">
+                  <XtermTerminal vpsId={profile.id} />
+                </div>
+              )}
+            </div>
             
             {activeTab === 'files' && (
               <div className="h-full">

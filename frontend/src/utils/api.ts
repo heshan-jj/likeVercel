@@ -1,7 +1,10 @@
+/// <reference types="vite/client" />
 import axios from 'axios';
 
+const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
 const api = axios.create({
-  baseURL: 'http://localhost:3001/api',
+  baseURL,
   withCredentials: true,
 });
 
@@ -28,7 +31,7 @@ api.interceptors.response.use(
       if (refreshToken) {
         try {
           // Attempt to refresh token
-          const { data } = await axios.post('http://localhost:3001/api/auth/refresh', {
+          const { data } = await axios.post(`${baseURL}/auth/refresh`, {
             refreshToken,
           });
           
