@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  ExternalLink,
   ShieldCheck,
   ShieldAlert,
   Search,
   RefreshCw,
-  Plus,
   X,
   Loader2,
   Globe,
   Settings,
+  Zap,
+  Activity,
+  ArrowUpRight
 } from 'lucide-react';
 import api from '../../utils/api';
 
@@ -66,84 +67,97 @@ const PortManager: React.FC<PortManagerProps> = ({ vpsId }) => {
   };
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-      {/* Error Banner */}
-      {error && (
-        <div style={{
-          padding: 'var(--space-2) var(--space-3)',
-          background: 'var(--error-bg)', color: 'var(--error)',
-          borderRadius: 'var(--radius-md)', fontSize: '0.85rem',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
-          <span>{error}</span>
-          <button onClick={() => setError('')} style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer', display: 'flex' }}>
-            <X size={14} />
-          </button>
-        </div>
-      )}
+    <div className="flex flex-col space-y-8 animate-in fade-in duration-500">
+      {/* Port Checker Card */}
+      <div className="glass-effect rounded-[32px] p-8 border border-border-light relative overflow-hidden group shadow-2xl">
+         <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none group-hover:scale-110 transition-transform">
+            <Zap size={96} />
+         </div>
+         
+         <div className="flex items-center space-x-3 mb-8">
+            <div className="p-2.5 bg-blue-500/10 text-blue-500 rounded-xl">
+               <ShieldCheck size={20} />
+            </div>
+            <h3 className="text-sm font-bold text-text-primary tracking-tight">Security Port Auditor</h3>
+         </div>
 
-      {/* Port Checker */}
-      <div className="glass-panel" style={{ padding: 'var(--space-4)', background: 'rgba(255,255,255,0.01)' }}>
-        <h3 style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: 'var(--space-3)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-          <ShieldCheck size={18} style={{ color: 'var(--accent-primary)' }} />
-          Port Availability Checker
-        </h3>
-        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-          <input
-            className="input-field"
-            type="number"
-            placeholder="Enter port (e.g. 8000)"
-            value={checkPort}
-            onChange={(e) => setCheckPort(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleCheckPort()}
-            style={{ maxWidth: '200px' }}
-          />
-          <button className="btn btn-primary" onClick={handleCheckPort} disabled={checking || !checkPort}>
-            {checking ? <Loader2 size={16} className="spin" /> : <Search size={16} />} Check
-          </button>
-          <button className="btn btn-secondary" onClick={fetchPorts}>
-            <RefreshCw size={16} className={loading ? 'spin' : ''} />
-          </button>
-        </div>
-        {checkResult && (
-          <div style={{ 
-            marginTop: 'var(--space-3)', padding: 'var(--space-2) var(--space-3)', 
-            borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)',
-            background: checkResult.available ? 'var(--success-bg)' : 'var(--error-bg)',
-            color: checkResult.available ? 'var(--success)' : 'var(--error)',
-            fontSize: '0.85rem'
-          }}>
-            {checkResult.available ? <ShieldCheck size={16} /> : <ShieldAlert size={16} />}
-            {checkResult.message}
-          </div>
-        )}
+         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center relative z-10">
+            <div className="relative flex-1 w-full sm:max-w-xs">
+               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted text-[10px] font-bold uppercase tracking-widest">Port</span>
+               <input
+                type="number"
+                placeholder="Ex. 8080"
+                value={checkPort}
+                onChange={(e) => setCheckPort(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleCheckPort()}
+                className="w-full bg-bg-primary/80 border border-border-light rounded-2xl pl-16 pr-4 py-3 text-xs text-text-primary outline-none focus:border-blue-500 transition-all font-mono shadow-inner"
+              />
+            </div>
+            <div className="flex items-center space-x-3 w-full sm:w-auto">
+               <button 
+                  onClick={handleCheckPort} 
+                  disabled={checking || !checkPort}
+                  className="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-xl active:scale-95 disabled:opacity-50"
+               >
+                  {checking ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+                  <span>Scan</span>
+               </button>
+               <button 
+                  onClick={fetchPorts}
+                  className="p-3 bg-bg-tertiary/50 hover:bg-bg-tertiary text-text-secondary rounded-xl transition-all border border-border-light shadow-lg"
+               >
+                  <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+               </button>
+            </div>
+         </div>
+
+         {checkResult && (
+           <div className={`mt-6 p-4 rounded-2xl border flex items-center space-x-3 animate-in slide-in-from-top-4 ${
+             checkResult.available 
+             ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' 
+             : 'bg-red-500/10 border-red-500/20 text-red-500'
+           }`}>
+             {checkResult.available ? <ShieldCheck size={18} /> : <ShieldAlert size={18} />}
+             <span className="text-xs font-bold leading-relaxed">{checkResult.message}</span>
+           </div>
+         )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-6)' }}>
-        {/* Managed Ports (Deployments) */}
-        <section>
-          <h3 style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            <Globe size={18} style={{ color: 'var(--success)' }} />
-            App URLs
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        {/* Managed Ports Section */}
+        <section className="space-y-4">
+          <div className="flex items-center space-x-3 px-1">
+             <Activity className="text-emerald-500" size={18} />
+             <h3 className="text-[11px] font-bold text-text-muted tracking-tight">Public Service Sockets</h3>
+          </div>
+          
+          <div className="space-y-3">
             {managedPorts.length === 0 ? (
-              <p className="text-muted" style={{ fontSize: '0.85rem' }}>No active deployments with ports.</p>
+              <div className="p-12 text-center text-xs font-bold text-text-muted glass-effect rounded-[32px] border border-border-light border-dashed uppercase tracking-widest">
+                 No active endpoint maps.
+              </div>
             ) : (
               managedPorts.map((mp) => (
-                <div key={mp.port} className="glass-panel" style={{ padding: 'var(--space-3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-primary)' }}>{mp.processName}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>port {mp.port}</div>
+                <div key={mp.port} className="group glass-effect rounded-[24px] p-4 border border-border-light hover:border-emerald-500/30 transition-all flex items-center justify-between shadow-xl">
+                  <div className="flex items-center space-x-4">
+                     <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-xl group-hover:bg-emerald-500/20 transition-colors">
+                        <Globe size={20} />
+                     </div>
+                     <div className="min-w-0">
+                        <h4 className="text-sm font-bold text-text-primary tracking-tight truncate max-w-[150px] md:max-w-xs">{mp.processName}</h4>
+                        <div className="flex items-center mt-1 space-x-3">
+                           <span className="text-[10px] font-mono font-bold text-emerald-500 bg-emerald-500/5 px-2 py-0.5 rounded-lg border border-emerald-500/10">Port {mp.port}</span>
+                           <span className="text-[9px] font-bold text-text-muted truncate max-w-[100px] font-mono">{mp.projectPath}</span>
+                        </div>
+                     </div>
                   </div>
                   <a 
                     href={mp.url} 
                     target="_blank" 
                     rel="noopener noreferrer" 
-                    className="btn btn-secondary" 
-                    style={{ padding: '6px 12px', fontSize: '0.75rem' }}
+                    className="p-3 bg-bg-secondary/50 hover:bg-emerald-500 hover:text-white text-text-muted rounded-xl transition-all border border-border-light shadow-inner"
                   >
-                    Open <ExternalLink size={12} style={{ marginLeft: '4px' }} />
+                    <ArrowUpRight size={18} />
                   </a>
                 </div>
               ))
@@ -151,41 +165,47 @@ const PortManager: React.FC<PortManagerProps> = ({ vpsId }) => {
           </div>
         </section>
 
-        {/* System Listening Ports */}
-        <section>
-          <h3 style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            <Settings size={18} style={{ color: 'var(--warning)' }} />
-            System Listening Ports
-          </h3>
-          <div style={{ 
-            display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', 
-            background: 'var(--bg-primary)', padding: 'var(--space-4)', 
-            borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' 
-          }}>
+        {/* System Listening Ports Section */}
+        <section className="space-y-4">
+          <div className="flex items-center space-x-3 px-1">
+             <Settings className="text-amber-500" size={18} />
+             <h3 className="text-[11px] font-bold text-text-muted tracking-tight">Host Listening Grid</h3>
+          </div>
+          
+          <div className="glass-effect rounded-[32px] border border-border-light p-6 shadow-xl min-h-[160px] flex items-center justify-center">
             {activePorts.length === 0 ? (
-              <p className="text-muted" style={{ fontSize: '0.85rem' }}>No active listening ports detected.</p>
+              <div className="flex flex-col items-center space-y-3 opacity-30">
+                 <Loader2 size={32} className="animate-spin text-text-muted" />
+                 <p className="text-text-muted font-bold uppercase tracking-widest text-[10px]">Filtering traffic...</p>
+              </div>
             ) : (
-              activePorts.map((port) => (
-                <span key={port} style={{ 
-                  background: 'var(--bg-tertiary)', padding: '2px 10px', 
-                  borderRadius: 'var(--radius-sm)', fontSize: '0.75rem', 
-                  fontFamily: 'var(--font-mono)', border: '1px solid var(--border-color)'
-                }}>
-                  {port}
-                </span>
-              ))
+              <div className="flex flex-wrap gap-2 w-full">
+                {activePorts.map((port) => (
+                  <span key={port} className="px-3 py-1.5 bg-bg-primary border border-border-light rounded-xl text-[11px] font-bold font-mono text-amber-500 shadow-2xl hover:border-amber-500/40 transition-all cursor-default group hover:scale-110">
+                    {port}
+                  </span>
+                ))}
+              </div>
             )}
           </div>
-          <p style={{ marginTop: 'var(--space-4)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            These are all active TCP ports currently listening on your VPS.
-          </p>
+          <div className="px-5 py-3 bg-amber-500/5 border border-amber-500/10 rounded-2xl flex items-start space-x-3">
+             <ShieldAlert size={16} className="text-amber-500/60 mt-0.5" />
+             <p className="text-[10px] leading-relaxed text-amber-600/70 font-bold tracking-tight">
+                Traffic Audit Note: Only authorized ingress ports should be exposed to public gateway protocols.
+             </p>
+          </div>
         </section>
       </div>
 
-      <style>{`
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .spin { animation: spin 1s linear infinite; }
-      `}</style>
+      {error && (
+        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl flex items-center justify-between text-xs font-bold animate-in shake-1">
+          <div className="flex items-center space-x-3">
+             <ShieldAlert size={18} />
+             <span>{error}</span>
+          </div>
+          <button onClick={() => setError('')} className="p-1 hover:bg-red-500/20 rounded-lg transition-all"><X size={16} /></button>
+        </div>
+      )}
     </div>
   );
 };

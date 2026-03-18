@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, Save } from 'lucide-react';
+import { ArrowLeft, Loader2, Save, Terminal, Shield } from 'lucide-react';
 import api from '../utils/api';
 
 const AddVps: React.FC = () => {
@@ -33,7 +33,6 @@ const AddVps: React.FC = () => {
     setError('');
 
     try {
-      // Clean up body based on authType
       const payload = {
         name: formData.name,
         host: formData.host,
@@ -55,149 +54,169 @@ const AddVps: React.FC = () => {
   };
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+    <div className="max-w-4xl mx-auto py-8 px-4 bg-bg-primary min-h-full">
       <button 
-        className="btn-link" 
         onClick={() => navigate('/dashboard')}
-        style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'var(--text-secondary)', marginBottom: 'var(--space-6)' }}
+        className="flex items-center space-x-2 text-text-secondary hover:text-text-primary transition-colors mb-8 group font-bold text-xs uppercase tracking-widest"
       >
-        <ArrowLeft size={16} /> Back to Dashboard
+        <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+        <span className="font-bold">Protocol Exit</span>
       </button>
 
-      <div className="flex-between" style={{ marginBottom: 'var(--space-6)' }}>
-        <div>
-          <h1 style={{ fontSize: '1.875rem', fontWeight: 600, marginBottom: 'var(--space-2)' }}>Add New Endpoint</h1>
-          <p className="text-secondary">Configure a new remote server connection to manage your services.</p>
-        </div>
+      <div className="mb-10">
+        <h1 className="text-3xl font-bold text-text-primary tracking-tight">Add New Endpoint</h1>
+        <p className="mt-2 text-text-secondary text-sm font-medium">Configure a new remote server connection to manage your services.</p>
       </div>
 
-      <div className="glass-panel" style={{ padding: 'var(--space-8)' }}>
+      <div className="glass-effect rounded-2xl overflow-hidden p-8 border border-border-light shadow-2xl relative">
+        <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+          <Terminal size={120} className="text-text-primary" />
+        </div>
+
         {error && (
-          <div style={{ padding: 'var(--space-4)', background: 'var(--error-bg)', color: 'var(--error)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-6)' }}>
-            {error}
+          <div className="mb-8 p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl flex items-center space-x-3 text-xs font-bold">
+             <Shield size={18} className="text-red-500" />
+             <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-6)', marginBottom: 'var(--space-6)' }}>
-            <div style={{ gridColumn: '1 / -1' }}>
-              <label style={{ display: 'block', marginBottom: 'var(--space-2)', fontWeight: 500 }}>Connection Name</label>
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="md:col-span-2">
+              <label className="block text-xs font-bold text-text-muted mb-2 uppercase tracking-widest">Connection Name</label>
               <input 
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className="input-field" 
+                className="w-full bg-bg-primary border border-border-light focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-4 focus:ring-blue-500/5 font-bold" 
                 placeholder="e.g. Production Web Server" 
                 required 
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: 'var(--space-2)', fontWeight: 500 }}>Hostname / IP</label>
+              <label className="block text-xs font-bold text-text-muted mb-2 uppercase tracking-widest">Hostname / IP</label>
               <input 
                 name="host"
                 value={formData.host}
                 onChange={handleChange}
-                className="input-field" 
-                placeholder="192.168.1.100 or example.com" 
+                className="w-full bg-bg-primary border border-border-light focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-4 focus:ring-blue-500/5 font-mono text-sm" 
+                placeholder="192.168.1.100" 
                 required 
               />
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: 'var(--space-2)', fontWeight: 500 }}>Port</label>
+              <label className="block text-xs font-bold text-text-muted mb-2 uppercase tracking-widest">SSH Port</label>
               <input 
                 name="port"
                 type="number"
                 value={formData.port}
                 onChange={handleChange}
-                className="input-field" 
+                className="w-full bg-bg-primary border border-border-light focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-4 focus:ring-blue-500/5 font-mono text-sm" 
                 required 
               />
             </div>
 
-            <div style={{ gridColumn: '1 / -1' }}>
-              <label style={{ display: 'block', marginBottom: 'var(--space-2)', fontWeight: 500 }}>Username</label>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-bold text-text-muted mb-2 uppercase tracking-widest">Username</label>
               <input 
                 name="username"
                 value={formData.username}
                 onChange={handleChange}
-                className="input-field" 
+                className="w-full bg-bg-primary border border-border-light focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-4 focus:ring-blue-500/5 font-bold" 
                 placeholder="root" 
                 required 
               />
             </div>
 
-            <div style={{ gridColumn: '1 / -1' }}>
-              <label style={{ display: 'block', marginBottom: 'var(--space-2)', fontWeight: 500 }}>Authentication Type</label>
-              <select 
-                name="authType"
-                value={formData.authType}
-                onChange={handleChange}
-                className="input-field"
-                style={{ appearance: 'auto', background: 'var(--bg-primary)' }}
-              >
-                <option value="password">Password</option>
-                <option value="privateKey">SSH Key</option>
-              </select>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-bold text-text-muted mb-3 uppercase tracking-widest">Authentication Type</label>
+              <div className="grid grid-cols-2 gap-4">
+                <label 
+                  className={`cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-center space-y-2 transition-all ${
+                    formData.authType === 'password' 
+                    ? 'border-blue-500 bg-blue-500/10 text-blue-500 shadow-xl shadow-blue-500/5' 
+                    : 'border-border-light bg-bg-tertiary/20 text-text-muted hover:border-text-secondary'
+                  }`}
+                >
+                  <input type="radio" name="authType" value="password" checked={formData.authType === 'password'} onChange={handleChange} className="hidden" />
+                  <div className={`p-2 rounded-lg ${formData.authType === 'password' ? 'bg-blue-600 text-white' : 'bg-bg-tertiary text-text-muted'}`}>
+                    <Save size={18} />
+                  </div>
+                  <span className="font-bold text-xs uppercase tracking-widest">Password</span>
+                </label>
+                <label 
+                  className={`cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-center space-y-2 transition-all ${
+                    formData.authType === 'privateKey' 
+                    ? 'border-blue-500 bg-blue-500/10 text-blue-500 shadow-xl shadow-blue-500/5' 
+                    : 'border-border-light bg-bg-tertiary/20 text-text-muted hover:border-text-secondary'
+                  }`}
+                >
+                  <input type="radio" name="authType" value="privateKey" checked={formData.authType === 'privateKey'} onChange={handleChange} className="hidden" />
+                  <div className={`p-2 rounded-lg ${formData.authType === 'privateKey' ? 'bg-blue-600 text-white' : 'bg-bg-tertiary text-text-muted'}`}>
+                    <Shield size={18} />
+                  </div>
+                  <span className="font-bold text-xs uppercase tracking-widest">SSH Key</span>
+                </label>
+              </div>
             </div>
 
             {formData.authType === 'password' && (
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label style={{ display: 'block', marginBottom: 'var(--space-2)', fontWeight: 500 }}>Password</label>
+              <div className="md:col-span-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                <label className="block text-xs font-bold text-text-muted mb-2 uppercase tracking-widest">SSH Password</label>
                 <input 
                   name="password"
                   type="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="input-field" 
-                  placeholder="Leave empty for passwordless setups" 
+                  className="w-full bg-bg-primary border border-border-light focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-4 focus:ring-blue-500/5 font-bold" 
+                  placeholder="Enter Password" 
                 />
               </div>
             )}
 
             {formData.authType === 'privateKey' && (
-              <>
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={{ display: 'block', marginBottom: 'var(--space-2)', fontWeight: 500 }}>Private Key</label>
+              <div className="md:col-span-2 space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div>
+                  <label className="block text-xs font-bold text-text-muted mb-2 uppercase tracking-widest">Private Key Content</label>
                   <textarea 
                     name="privateKey"
                     value={formData.privateKey}
                     onChange={handleChange}
-                    className="input-field" 
-                    rows={6}
-                    style={{ resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: '0.875rem' }}
+                    className="w-full bg-bg-primary border border-border-light focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-4 focus:ring-blue-500/5 font-mono text-xs leading-relaxed" 
+                    rows={8}
                     placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----" 
                   />
                 </div>
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={{ display: 'block', marginBottom: 'var(--space-2)', fontWeight: 500 }}>Key Passphrase (Optional)</label>
+                <div>
+                  <label className="block text-xs font-bold text-text-muted mb-2 uppercase tracking-widest">Key Passphrase (Optional)</label>
                   <input 
                     name="passphrase"
                     type="password"
                     value={formData.passphrase}
                     onChange={handleChange}
-                    className="input-field" 
+                    className="w-full bg-bg-primary border border-border-light focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-4 focus:ring-blue-500/5 font-bold" 
                   />
                 </div>
-              </>
+              </div>
             )}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-4)', marginTop: 'var(--space-8)' }}>
+          <div className="flex items-center justify-end space-x-4 pt-8 border-t border-border-light mt-8">
             <button 
               type="button" 
-              className="btn btn-secondary"
               onClick={() => navigate('/dashboard')}
+              className="px-6 py-3 text-text-secondary hover:text-text-primary font-bold transition-all hover:bg-bg-tertiary/20 rounded-xl"
             >
               Cancel
             </button>
             <button 
               type="submit" 
-              className="btn btn-primary"
+              className="flex items-center space-x-2 px-10 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-xl shadow-blue-600/20 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
               disabled={loading}
             >
               {loading ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
-              Save Connection
+              <span>Save Connection</span>
             </button>
           </div>
         </form>

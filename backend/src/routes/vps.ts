@@ -332,6 +332,51 @@ router.post('/:id/disconnect', async (req: AuthRequest, res: Response): Promise<
   }
 });
 
+// GET /api/vps/:id/specs — get dynamic server hardware specs
+router.get('/:id/specs', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const profile = await prisma.vpsProfile.findFirst({
+      where: { id: req.params.id as string, userId: req.userId },
+    });
+
+    if (!profile) {
+      res.status(404).json({ error: 'VPS profile not found' });
+      return;
+    }
+
+    if (!sshManager.isConnected(profile.id)) {
+      res.status(400).json({ error: 'VPS is not connected' });
+      return;
+    }
+
+    try {
+      const osVersion = await sshManager.executeCommand(profile.id, "cat /etc/os-release | grep PRETTY_NAME | cut -d '=' -f 2 | tr -d '\"'");
+      const cpuStr = await sshManager.executeCommand(profile.id, "nproc");
+      const cpuCores = parseInt(cpuStr, 10) || 'Unknown';
+      const ramStr = await sshManager.executeCommand(profile.id, "free -h | awk '/^Mem:/{print $2}'");
+      const diskStr = await sshManager.executeCommand(profile.id, "df -h / | awk 'NR==2 {print $2}'");
+
+      res.json({
+        os: osVersion.trim(),
+        cpu: `${cpuCores} Cores`,
+        ram: ramStr.trim(),
+        disk: diskStr.trim()
+      });
+    } catch (cmdErr: any) {
+      console.error('[VPS] Specs cmd error:', cmdErr);
+      res.status(500).json({ error: 'Failed to execute spec commands on VPS' });
+    }
+  } catch (error) {
+    console.error('[VPS] Get specs error:', error);
+    res.status(500).json({ error: 'Failed to fetch specs' });
+  }
+});
+
 // GET /api/vps/:id/status — get connection status
 router.get('/:id/status', async (req: AuthRequest, res: Response): Promise<void> => {
   try {

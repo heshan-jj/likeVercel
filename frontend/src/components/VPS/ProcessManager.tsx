@@ -15,6 +15,10 @@ import {
   Clock,
   FolderOpen,
   ExternalLink,
+  Search,
+  Activity,
+  Filter,
+  Maximize2
 } from 'lucide-react';
 import api from '../../utils/api';
 
@@ -44,29 +48,31 @@ function formatMemory(bytes: number): string {
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
-function getStatusColor(status: string): string {
+function getStatusClasses(status: string): string {
   switch (status) {
     case 'online':
     case 'running':
-      return 'var(--success)';
+      return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
     case 'stopping':
     case 'launching':
-      return 'var(--warning)';
+      return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
+    case 'errored':
+      return 'bg-red-500/10 text-red-100 border-red-500/30';
     default:
-      return 'var(--error)';
+      return 'bg-bg-tertiary text-text-secondary border-border-light';
   }
 }
 
-function getStatusBg(status: string): string {
+function getDotColor(status: string): string {
   switch (status) {
     case 'online':
     case 'running':
-      return 'var(--success-bg)';
+      return 'bg-emerald-500';
     case 'stopping':
     case 'launching':
-      return 'var(--warning-bg)';
+      return 'bg-amber-500';
     default:
-      return 'var(--error-bg)';
+      return 'bg-red-500';
   }
 }
 
@@ -81,6 +87,7 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
   const [logModal, setLogModal] = useState<{ id: string; name: string; logs: string } | null>(null);
   const [logLoading, setLogLoading] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const isFetching = useRef(false);
 
@@ -103,8 +110,7 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
 
   useEffect(() => {
     fetchProcesses();
-    // Auto-refresh every 10 seconds silently if not already fetching
-    const interval = setInterval(() => fetchProcesses(true), 10000);
+    const interval = setInterval(() => fetchProcesses(true), 15000);
     return () => clearInterval(interval);
   }, [fetchProcesses]);
 
@@ -164,316 +170,300 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
     }
   };
 
+  const filteredDeployments = deployments.filter(d => 
+    d.processName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    d.projectPath.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--space-2) 0' }}>
-        <div>
-          <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '2px' }}>Deployments</h3>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            {deployments.length} process{deployments.length !== 1 ? 'es' : ''} managed
-          </p>
+    <div className="flex flex-col h-full space-y-5">
+      {/* Search and Action Bar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="relative flex-1 w-full sm:max-w-xs group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-blue-500 transition-colors" size={16} />
+          <input 
+            type="text" 
+            placeholder="Search processes..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-bg-secondary border border-border-light rounded-xl pl-10 pr-4 py-2 text-xs text-text-primary outline-none focus:border-blue-500/50 transition-all focus:ring-4 focus:ring-blue-500/5"
+          />
         </div>
-        <button className="btn btn-primary" onClick={() => setShowDeploy(true)} style={{ padding: '8px 16px' }}>
-          <Rocket size={16} /> New Deployment
-        </button>
+        <div className="flex items-center space-x-3 w-full sm:w-auto">
+          <button className="p-2 text-text-muted hover:text-text-primary transition-colors">
+            <Filter size={18} />
+          </button>
+          <button 
+            onClick={() => setShowDeploy(true)}
+            className="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold rounded-xl shadow-xl active:scale-95"
+          >
+            <Plus size={16} />
+            <span>New App</span>
+          </button>
+        </div>
       </div>
 
-      {/* Error Banner */}
       {error && (
-        <div style={{
-          padding: 'var(--space-2) var(--space-3)',
-          background: 'var(--error-bg)', color: 'var(--error)',
-          borderRadius: 'var(--radius-md)', fontSize: '0.85rem',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
-          <span>{error}</span>
-          <button onClick={() => setError('')} style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer', display: 'flex' }}>
+        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl flex items-center justify-between animate-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center space-x-3">
+            <X size={18} />
+            <span className="text-xs font-bold">{error}</span>
+          </div>
+          <button onClick={() => setError('')} className="p-1 hover:bg-red-500/20 rounded transition-all">
             <X size={14} />
           </button>
         </div>
       )}
 
-      {/* New Deployment Form */}
       {showDeploy && (
-        <div style={{
-          background: 'var(--bg-primary)', borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--accent-primary)', padding: 'var(--space-4)',
-          display: 'flex', flexDirection: 'column', gap: 'var(--space-3)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h4 style={{ fontWeight: 600, fontSize: '0.95rem' }}>Deploy Application</h4>
-            <button onClick={() => { setShowDeploy(false); setError(''); }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex' }}>
-              <X size={18} />
+        <div className="p-6 bg-bg-secondary/90 backdrop-blur-md border border-blue-500/20 rounded-2xl space-y-6 animate-in zoom-in-95 duration-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Rocket className="text-blue-500" size={20} />
+              <h4 className="font-bold text-text-primary tracking-tight text-[13px]">Initialize Deploy</h4>
+            </div>
+            <button onClick={() => setShowDeploy(false)} className="text-text-muted hover:text-text-primary transition-colors">
+              <X size={20} />
             </button>
           </div>
 
-          <div>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Project Path on Server *</label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-              <FolderOpen size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-              <input
-                className="input-field"
-                placeholder="/root/my-app"
-                value={deployForm.projectPath}
-                onChange={(e) => setDeployForm({ ...deployForm, projectPath: e.target.value })}
-                style={{ flex: 1 }}
-              />
+          <div className="space-y-4">
+            <div>
+              <label className="block text-[10px] font-bold text-text-muted mb-2 uppercase tracking-widest">Target Path</label>
+              <div className="relative">
+                <FolderOpen className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted/50" size={16} />
+                <input
+                  placeholder="/var/www/my-node-app"
+                  value={deployForm.projectPath}
+                  onChange={(e) => setDeployForm({ ...deployForm, projectPath: e.target.value })}
+                  className="w-full bg-bg-primary border border-border-light rounded-xl pl-10 pr-4 py-3 text-xs text-text-primary outline-none focus:border-blue-500 transition-all font-mono"
+                />
+              </div>
             </div>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Auto-detects: package.json → Node.js | requirements.txt → Python | index.html → Static
-            </p>
+
+            <button 
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="flex items-center space-x-2 text-[10px] font-bold text-text-muted hover:text-text-primary transition-colors uppercase tracking-widest"
+            >
+              <ChevronDown size={14} className={`transition-transform duration-300 ${showAdvanced ? 'rotate-180' : ''}`} />
+              <span>Advanced Protocol</span>
+            </button>
+
+            {showAdvanced && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-300">
+                <div>
+                  <label className="block text-[10px] font-bold text-text-muted mb-2 uppercase tracking-widest">Binding Port</label>
+                  <input
+                    placeholder="Auto"
+                    type="number"
+                    value={deployForm.port}
+                    onChange={(e) => setDeployForm({ ...deployForm, port: e.target.value })}
+                    className="w-full bg-bg-primary border border-border-light rounded-xl px-4 py-3 text-xs text-text-primary outline-none focus:border-blue-500 transition-all font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-text-muted mb-2 uppercase tracking-widest">Entry Call</label>
+                  <input
+                    placeholder="e.g. npm start"
+                    value={deployForm.command}
+                    onChange={(e) => setDeployForm({ ...deployForm, command: e.target.value })}
+                    className="w-full bg-bg-primary border border-border-light rounded-xl px-4 py-3 text-xs text-text-primary outline-none focus:border-blue-500 transition-all font-mono"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
-          <button
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            style={{
-              background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', padding: 0,
-            }}
-          >
-            <ChevronDown size={14} style={{ transform: showAdvanced ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-            Advanced Options
-          </button>
-
-          {showAdvanced && (
-            <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Port (optional)</label>
-                <input
-                  className="input-field"
-                  placeholder="Auto-assigned"
-                  type="number"
-                  value={deployForm.port}
-                  onChange={(e) => setDeployForm({ ...deployForm, port: e.target.value })}
-                />
-              </div>
-              <div style={{ flex: 2 }}>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Custom Command (optional)</label>
-                <input
-                  className="input-field"
-                  placeholder="e.g. node server.js"
-                  value={deployForm.command}
-                  onChange={(e) => setDeployForm({ ...deployForm, command: e.target.value })}
-                />
-              </div>
-            </div>
-          )}
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
-            <button className="btn btn-secondary" onClick={() => { setShowDeploy(false); setError(''); }}>Cancel</button>
-            <button className="btn btn-primary" onClick={handleDeploy} disabled={deploying || !deployForm.projectPath.trim()}>
-              {deploying ? <><Loader2 size={16} className="spin" /> Deploying…</> : <><Rocket size={16} /> Deploy</>}
+          <div className="flex justify-end space-x-3 pt-2">
+            <button onClick={() => setShowDeploy(false)} className="px-6 py-2 text-text-muted hover:text-text-primary font-bold text-xs transition-colors">Discard</button>
+            <button 
+              onClick={handleDeploy} 
+              disabled={deploying || !deployForm.projectPath.trim()}
+              className="px-8 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-xl text-xs transition-all disabled:opacity-50"
+            >
+              {deploying ? <Loader2 size={16} className="animate-spin" /> : 'Launch'}
             </button>
           </div>
         </div>
       )}
 
       {/* Deployments List */}
-      <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+      <div className="space-y-4">
         {loading ? (
-          <div className="flex-center" style={{ height: '200px', gap: 'var(--space-2)' }}>
-            <Loader2 size={20} className="spin" style={{ color: 'var(--accent-primary)' }} />
-            <span className="text-muted">Loading processes…</span>
+          <div className="flex flex-col items-center justify-center py-16 animate-pulse">
+            <Loader2 size={32} className="text-blue-500 animate-spin mb-4" />
+            <span className="text-text-muted font-bold uppercase tracking-widest text-[10px]">Scanning Workloads...</span>
           </div>
-        ) : deployments.length === 0 && !showDeploy ? (
-          <div className="flex-center" style={{ height: '200px', flexDirection: 'column', gap: 'var(--space-4)' }}>
-            <Rocket size={40} style={{ color: 'var(--text-muted)', opacity: 0.4 }} />
-            <div style={{ textAlign: 'center' }}>
-              <p className="text-muted" style={{ marginBottom: 'var(--space-2)' }}>No deployments yet</p>
-              <button className="btn btn-primary" onClick={() => setShowDeploy(true)}>
-                <Plus size={16} /> Create First Deployment
-              </button>
+        ) : filteredDeployments.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 px-8 border border-dashed border-border-light rounded-[32px] bg-bg-secondary/10">
+            <div className="p-6 bg-bg-secondary rounded-full mb-6 border border-border-light">
+              <Rocket size={48} className="text-text-muted/30" />
             </div>
+            <h3 className="text-lg font-bold text-text-primary mb-2 tracking-tight">No Active Deploys</h3>
+            <p className="text-text-muted text-center max-w-sm mb-10 text-xs font-medium leading-relaxed">Initialize application clusters on target host to begin orchestration.</p>
+            <button onClick={() => setShowDeploy(true)} className="px-10 py-4 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-primary font-bold text-xs rounded-2xl transition-all border border-border-light shadow-xl">
+              Initialize Protocol
+            </button>
           </div>
         ) : (
-          deployments.map((dep) => {
-            const status = dep.actualStatus || dep.status;
-            return (
-              <div
-                key={dep.id}
-                style={{
-                  background: 'var(--bg-primary)', borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--border-color)', padding: 'var(--space-3) var(--space-4)',
-                  transition: 'border-color 0.2s',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--border-color)')}
-              >
-                {/* Top row */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '6px',
-                      padding: '3px 10px', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600,
-                      background: getStatusBg(status), color: getStatusColor(status),
-                    }}>
-                      <span style={{
-                        width: '6px', height: '6px', borderRadius: '50%',
-                        background: getStatusColor(status),
-                        boxShadow: status === 'online' || status === 'running' ? `0 0 6px ${getStatusColor(status)}` : 'none',
-                      }} />
-                      {status.charAt(0).toUpperCase() + status.slice(1)}
-                    </span>
-                    <span style={{ fontWeight: 600, fontSize: '0.9rem', fontFamily: 'var(--font-mono)' }}>
-                      {dep.processName}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', gap: '4px' }}>
-                    {(status === 'stopped' || status === 'errored') && (
-                      <button
-                        className="btn btn-secondary"
-                        style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                        onClick={() => handleAction(dep.id, 'restart')}
-                        disabled={actionLoading === `${dep.id}-restart`}
-                        title="Start"
-                      >
-                        {actionLoading === `${dep.id}-restart` ? <Loader2 size={14} className="spin" /> : <Play size={14} />}
-                      </button>
-                    )}
-                    {(status === 'online' || status === 'running') && (
-                      <>
-                        <button
-                          className="btn btn-secondary"
-                          style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                          onClick={() => handleAction(dep.id, 'restart')}
-                          disabled={actionLoading === `${dep.id}-restart`}
-                          title="Restart"
-                        >
-                          {actionLoading === `${dep.id}-restart` ? <Loader2 size={14} className="spin" /> : <RotateCcw size={14} />}
-                        </button>
-                        <button
-                          className="btn btn-secondary"
-                          style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                          onClick={() => handleAction(dep.id, 'stop')}
-                          disabled={actionLoading === `${dep.id}-stop`}
-                          title="Stop"
-                        >
-                          {actionLoading === `${dep.id}-stop` ? <Loader2 size={14} className="spin" /> : <Square size={14} />}
-                        </button>
-                      </>
-                    )}
-                    <button
-                      className="btn btn-secondary"
-                      style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                      onClick={() => handleViewLogs(dep.id, dep.processName)}
-                      title="View Logs"
-                    >
-                      <ScrollText size={14} />
-                    </button>
-                    {dep.url && (
-                      <a
-                        href={dep.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-primary"
-                        style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                        title="View Site"
-                      >
-                        <ExternalLink size={14} />
-                      </a>
-                    )}
-                    <button
-                      className="btn btn-danger"
-                      style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                      onClick={() => handleAction(dep.id, 'delete')}
-                      disabled={actionLoading === `${dep.id}-delete`}
-                      title="Delete"
-                    >
-                      {actionLoading === `${dep.id}-delete` ? <Loader2 size={14} className="spin" /> : <Trash2 size={14} />}
-                    </button>
-                  </div>
-                </div>
+          <div className="grid grid-cols-1 gap-4">
+            {filteredDeployments.map((dep) => {
+              const status = dep.actualStatus || dep.status;
+              const isOnline = status === 'online' || status === 'running';
+              
+              return (
+                <div key={dep.id} className="group glass-effect rounded-[24px] border border-border-light hover:border-blue-500/20 transition-all duration-300 overflow-hidden shadow-xl">
+                  <div className="p-5 flex flex-col xl:flex-row xl:items-center justify-between gap-5">
+                    <div className="flex items-center space-x-4">
+                      <div className={`p-4 rounded-2xl ${status === 'online' ? 'bg-emerald-500/10' : 'bg-bg-tertiary'} transition-all shadow-inner`}>
+                         <Activity size={24} className={status === 'online' ? 'text-emerald-500' : 'text-text-muted'} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center space-x-3 mb-1.5">
+                          <h5 className="font-bold text-text-primary truncate max-w-[150px] sm:max-w-xs tracking-tight text-[13px]">{dep.processName}</h5>
+                          <div className={`flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full border ${getStatusClasses(status)}`}>
+                             <div className={`h-1.5 w-1.5 rounded-full ${getDotColor(status)} ${isOnline ? 'animate-pulse' : ''}`} />
+                             <span className="text-[9px] font-bold uppercase tracking-widest">{status}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-4 text-[10px] font-medium text-text-muted tracking-wide">
+                           <span className="flex items-center space-x-2"><FolderOpen size={10} /> <span className="truncate max-w-[150px]">{dep.projectPath}</span></span>
+                           <span className="flex items-center space-x-2"><ExternalLink size={10} /> <span>Port: {dep.port}</span></span>
+                        </div>
+                      </div>
+                    </div>
 
-                {/* Bottom row - details */}
-                <div style={{ display: 'flex', gap: 'var(--space-4)', fontSize: '0.78rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontFamily: 'var(--font-mono)' }}>
-                    <FolderOpen size={12} /> {dep.projectPath}
-                  </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    Port: <strong style={{ color: 'var(--text-primary)' }}>{dep.port}</strong>
-                  </span>
-                  {(status === 'online' || status === 'running') && (
-                    <>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <Cpu size={12} /> {(dep.cpu || 0).toFixed(1)}%
-                      </span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <HardDrive size={12} /> {formatMemory(dep.memory || 0)}
-                      </span>
-                    </>
-                  )}
-                  {dep.startedAt && (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Clock size={12} /> {new Date(dep.startedAt).toLocaleString()}
-                    </span>
-                  )}
+                    <div className="flex items-center justify-between xl:justify-end gap-3 pt-4 xl:pt-0 border-t xl:border-t-0 border-border-light">
+                      {isOnline && (
+                        <div className="flex items-center space-x-6 mr-6 hidden 2xl:flex">
+                           <div className="text-center">
+                              <p className="text-[9px] font-bold text-text-muted uppercase tracking-widest mb-1">CPU Usage</p>
+                              <div className="flex items-center justify-center space-x-2 text-emerald-500 font-bold text-[12px]">
+                                 <Cpu size={14} />
+                                 <span>{(dep.cpu || 0).toFixed(1)}%</span>
+                              </div>
+                           </div>
+                           <div className="text-center">
+                              <p className="text-[9px] font-bold text-text-muted uppercase tracking-widest mb-1">Memory Usage</p>
+                              <div className="flex items-center justify-center space-x-2 text-emerald-500 font-bold text-[12px]">
+                                 <HardDrive size={14} />
+                                 <span>{formatMemory(dep.memory || 0)}</span>
+                              </div>
+                           </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleViewLogs(dep.id, dep.processName)}
+                          className="p-3 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-secondary rounded-xl transition-all border border-border-light"
+                          title="View Logs"
+                        >
+                          <ScrollText size={18} />
+                        </button>
+                        
+                        {!isOnline ? (
+                          <button
+                            onClick={() => handleAction(dep.id, 'restart')}
+                            className="p-3 bg-emerald-600 text-white hover:bg-emerald-500 rounded-xl transition-all shadow-lg shadow-emerald-600/10"
+                            disabled={actionLoading === `${dep.id}-restart`}
+                          >
+                            {actionLoading === `${dep.id}-restart` ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} fill="currentColor" />}
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleAction(dep.id, 'restart')}
+                              className="p-3 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-secondary rounded-xl transition-all border border-border-light"
+                              disabled={actionLoading === `${dep.id}-restart`}
+                              title="Restart"
+                            >
+                              {actionLoading === `${dep.id}-restart` ? <Loader2 size={18} className="animate-spin" /> : <RotateCcw size={18} />}
+                            </button>
+                            <button
+                              onClick={() => handleAction(dep.id, 'stop')}
+                              className="p-3 bg-red-500/10 hover:bg-red-500 hover:text-white text-red-500 rounded-xl transition-all border border-red-500/20"
+                              disabled={actionLoading === `${dep.id}-stop`}
+                              title="Stop"
+                            >
+                              {actionLoading === `${dep.id}-stop` ? <Loader2 size={18} className="animate-spin" /> : <Square size={18} fill="currentColor" />}
+                            </button>
+                          </>
+                        )}
+
+                        <div className="w-px h-6 bg-border-light mx-1" />
+
+                        <button
+                          onClick={() => handleAction(dep.id, 'delete')}
+                          className="p-3 bg-bg-tertiary hover:bg-red-500 hover:text-white text-text-muted rounded-xl transition-all border border-border-light"
+                          disabled={actionLoading === `${dep.id}-delete`}
+                        >
+                          {actionLoading === `${dep.id}-delete` ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            })}
+          </div>
         )}
       </div>
 
       {/* Log Modal */}
       {logModal && (
-        <div
-          style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 'var(--space-6)',
-          }}
-          onClick={() => setLogModal(null)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)',
-              border: '1px solid var(--border-color)', width: '100%', maxWidth: '800px',
-              maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
-            }}
-          >
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: 'var(--space-4)', borderBottom: '1px solid var(--border-color)',
-            }}>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-6 sm:p-12 animate-in fade-in duration-300" onClick={() => setLogModal(null)}>
+          <div className="bg-bg-primary w-full max-w-5xl h-full max-h-[85vh] rounded-[32px] border border-border-light flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.5)] relative animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-border-light flex items-center justify-between bg-bg-secondary/40 rounded-t-[32px]">
               <div>
-                <h3 style={{ fontWeight: 600, fontSize: '1rem' }}>Logs</h3>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{logModal.name}</p>
+                <div className="flex items-center space-x-2 text-text-muted text-[10px] font-bold uppercase tracking-widest mb-1">
+                  <ScrollText size={14} />
+                  <span>Interactive Log Stream</span>
+                </div>
+                <h3 className="text-lg font-bold text-text-primary tracking-tight">{logModal.name}</h3>
               </div>
-              <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.8rem' }} onClick={() => handleViewLogs(logModal.id, logModal.name)}>
-                  <RotateCcw size={14} /> Refresh
+              <div className="flex items-center space-x-3">
+                <button 
+                  onClick={() => handleViewLogs(logModal.id, logModal.name)}
+                  className="p-2.5 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-secondary rounded-xl transition-all"
+                >
+                  <RotateCcw size={20} className={logLoading ? 'animate-spin' : ''} />
                 </button>
-                <button onClick={() => setLogModal(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex' }}>
+                <button 
+                  onClick={() => setLogModal(null)}
+                  className="p-2.5 bg-bg-tertiary hover:bg-red-500 text-white rounded-xl transition-all shadow-lg"
+                >
                   <X size={20} />
                 </button>
               </div>
             </div>
-            <div style={{ flex: 1, overflow: 'auto', padding: 'var(--space-3)' }}>
-              {logLoading ? (
-                <div className="flex-center" style={{ height: '200px', gap: 'var(--space-2)' }}>
-                  <Loader2 size={20} className="spin" style={{ color: 'var(--accent-primary)' }} />
-                  <span className="text-muted">Loading logs…</span>
-                </div>
-              ) : (
-                <pre style={{
-                  fontFamily: 'var(--font-mono)', fontSize: '0.8rem', lineHeight: 1.6,
-                  color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
-                  margin: 0, padding: 'var(--space-2)', background: 'var(--bg-primary)',
-                  borderRadius: 'var(--radius-md)', minHeight: '200px',
-                }}>
-                  {logModal.logs || 'No logs available.'}
-                </pre>
-              )}
+            
+            <div className="flex-1 bg-black p-8 overflow-auto custom-scrollbar font-mono text-xs leading-relaxed text-slate-300 selection:bg-blue-500/30">
+               {logLoading ? (
+                 <div className="h-full flex flex-col items-center justify-center space-y-4">
+                   <Loader2 size={40} className="text-blue-500 animate-spin opacity-50" />
+                   <p className="text-text-muted font-bold uppercase tracking-widest text-[10px]">Ingesting Log Buffer...</p>
+                 </div>
+               ) : (
+                 <pre className="whitespace-pre-wrap break-all">
+                   {logModal.logs || 'No active buffer output detected for this process.'}
+                 </pre>
+               )}
+            </div>
+
+            <div className="p-5 border-t border-border-light bg-bg-secondary/40 flex items-center justify-between px-8 rounded-b-[32px]">
+               <div className="flex items-center space-x-3 text-[10px] font-bold text-text-muted uppercase tracking-widest">
+                  <Clock size={14} />
+                  <span>Last Refresh: {new Date().toLocaleTimeString()}</span>
+               </div>
+               <button className="flex items-center space-x-2 text-[10px] font-bold text-blue-500/80 uppercase tracking-widest hover:text-blue-500 transition-colors">
+                  <Maximize2 size={14} />
+                  <span>Scale View</span>
+               </button>
             </div>
           </div>
         </div>
       )}
-
-      {/* Spin animation (shared) */}
-      <style>{`
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .spin { animation: spin 1s linear infinite; }
-      `}</style>
     </div>
   );
 };

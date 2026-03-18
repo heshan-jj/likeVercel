@@ -1,228 +1,105 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import React from 'react';
 import { 
   User, 
-  Lock, 
-  Palette, 
-  Moon, 
-  Sun, 
-  ShieldCheck, 
-  Save, 
-  Loader2,
-  CheckCircle2,
-  AlertCircle
+  Settings as SettingsIcon, 
+  LogOut, 
+  Trash2,
+  Lock,
+  Mail,
+  Fingerprint
 } from 'lucide-react';
-import api from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 
 const Settings: React.FC = () => {
-  const { user, updateUser } = useAuth();
-  const [theme, setTheme] = useState(document.documentElement.getAttribute('data-theme') || 'dark');
-  const [name, setName] = useState(user?.name || '');
-  const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
-  
-  const [loading, setLoading] = useState(false);
-  const [passLoading, setPassLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
-
-  useEffect(() => {
-    if (user) {
-      setName(user.name);
-    }
-  }, [user]);
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
-    document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem('theme', newTheme);
-  };
-
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage({ type: '', text: '' });
-    try {
-      const { data } = await api.put('/auth/profile', { name });
-      updateUser({ name: data.user.name });
-      setMessage({ type: 'success', text: 'Profile updated successfully!' });
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.error || 'Failed to update profile' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (passwords.new !== passwords.confirm) {
-      setMessage({ type: 'error', text: 'Passwords do not match' });
-      return;
-    }
-    setPassLoading(true);
-    setMessage({ type: '', text: '' });
-    try {
-      await api.put('/auth/password', { 
-        currentPassword: passwords.current, 
-        newPassword: passwords.new 
-      });
-      setMessage({ type: 'success', text: 'Password changed successfully!' });
-      setPasswords({ current: '', new: '', confirm: '' });
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.error || 'Failed to change password' });
-    } finally {
-      setPassLoading(false);
-    }
-  };
+  const { user, logout } = useAuth();
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: 'var(--space-12)' }}>
-      <header style={{ marginBottom: 'var(--space-8)' }}>
-        <h1 style={{ fontSize: '1.875rem', fontWeight: 600, marginBottom: 'var(--space-2)' }}>Settings</h1>
-        <p className="text-secondary">Manage your application preferences and security settings.</p>
-      </header>
-
-      {message.text && (
-        <div style={{ 
-          padding: 'var(--space-4)', 
-          borderRadius: 'var(--radius-md)', 
-          marginBottom: 'var(--space-6)',
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 'var(--space-3)',
-          background: message.type === 'success' ? 'var(--success-bg)' : 'var(--error-bg)',
-          color: message.type === 'success' ? 'var(--success)' : 'var(--error)',
-          border: `1px solid ${message.type === 'success' ? 'var(--success)' : 'var(--error)'}`,
-          opacity: 0.9
-        }}>
-          {message.type === 'success' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
-          <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{message.text}</span>
+    <div className="max-w-4xl mx-auto py-12 px-6 space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-black/10 pb-8">
+        <div>
+           <div className="flex items-center space-x-2 text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">
+             <SettingsIcon size={14} />
+             <span>System Preferences</span>
+           </div>
+           <h1 className="text-4xl font-bold text-text-primary tracking-tighter">Authority Settings</h1>
         </div>
-      )}
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
-        
-        {/* Appearance Section */}
-        <section className="glass-panel" style={{ padding: 'var(--space-8)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-6)' }}>
-            <Palette className="text-accent" size={24} />
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Appearance</h2>
-          </div>
-          
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <h3 style={{ fontWeight: 500, marginBottom: '4px' }}>Theme</h3>
-              <p className="text-secondary" style={{ fontSize: '0.875rem' }}>Switch between light and dark modes.</p>
-            </div>
-            <button 
-              className="btn btn-secondary" 
-              onClick={toggleTheme}
-              style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', minWidth: '120px', justifyContent: 'center' }}
-            >
-              {theme === 'dark' ? <><Sun size={18} /> Light Mode</> : <><Moon size={18} /> Dark Mode</>}
-            </button>
-          </div>
-        </section>
-
-        {/* Profile Section */}
-        <section className="glass-panel" style={{ padding: 'var(--space-8)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-6)' }}>
-            <User className="text-accent" size={24} />
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Profile Information</h2>
-          </div>
-          
-          <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: 'var(--space-2)' }}>Email Address</label>
-              <input 
-                className="input-field" 
-                type="email" 
-                value={user?.email || ''} 
-                disabled 
-                style={{ opacity: 0.6, cursor: 'not-allowed' }}
-              />
-              <p className="text-muted" style={{ fontSize: '0.75rem', marginTop: 'var(--space-2)' }}>Email address cannot be changed currently.</p>
-            </div>
-            
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: 'var(--space-2)' }}>Full Name</label>
-              <input 
-                className="input-field" 
-                type="text" 
-                value={name} 
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Your Name"
-              />
-            </div>
-            
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button className="btn btn-primary" type="submit" disabled={loading || name === user?.name}>
-                {loading ? <Loader2 className="spin" size={18} /> : <Save size={18} />}
-                Update Profile
-              </button>
-            </div>
-          </form>
-        </section>
-
-        {/* Security Section */}
-        <section className="glass-panel" style={{ padding: 'var(--space-8)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-6)' }}>
-            <Lock className="text-accent" size={24} />
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Security</h2>
-          </div>
-          
-          <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: 'var(--space-2)' }}>Current Password</label>
-              <input 
-                className="input-field" 
-                type="password" 
-                value={passwords.current}
-                onChange={(e) => setPasswords({...passwords, current: e.target.value})}
-                autoComplete="current-password"
-              />
-            </div>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: 'var(--space-2)' }}>New Password</label>
-                <input 
-                  className="input-field" 
-                  type="password" 
-                  value={passwords.new}
-                  onChange={(e) => setPasswords({...passwords, new: e.target.value})}
-                  autoComplete="new-password"
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: 'var(--space-2)' }}>Confirm New Password</label>
-                <input 
-                  className="input-field" 
-                  type="password" 
-                  value={passwords.confirm}
-                  onChange={(e) => setPasswords({...passwords, confirm: e.target.value})}
-                  autoComplete="new-password"
-                />
-              </div>
-            </div>
-            
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button 
-                className="btn btn-primary" 
-                type="submit" 
-                disabled={passLoading || !passwords.current || !passwords.new || passwords.new !== passwords.confirm}
-              >
-                {passLoading ? <Loader2 className="spin" size={18} /> : <ShieldCheck size={18} />}
-                Change Password
-              </button>
-            </div>
-          </form>
-        </section>
+        <button 
+          onClick={logout}
+          className="flex items-center space-x-2 px-6 py-2.5 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white font-bold text-xs rounded-xl transition-all active:scale-95"
+        >
+          <LogOut size={16} />
+          <span>Terminate Session</span>
+        </button>
       </div>
-      
-      <style>{`
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .spin { animation: spin 1s linear infinite; }
-      `}</style>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+        {/* User Card */}
+        <div className="glass-effect rounded-[32px] p-8 space-y-8 relative overflow-hidden shadow-2xl">
+          <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+            <Fingerprint size={120} className="text-blue-600" />
+          </div>
+
+          <div className="flex items-center space-x-5">
+            <div className="h-16 w-16 rounded-[24px] bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-bold text-2xl shadow-xl">
+              {user?.name?.charAt(0).toUpperCase() || 'U'}
+            </div>
+            <div>
+              <p className="text-xs font-bold text-text-muted uppercase tracking-widest mb-1">Authorized Node</p>
+              <h3 className="text-2xl font-bold text-text-primary tracking-tight">{user?.name || 'Authorized Operator'}</h3>
+            </div>
+          </div>
+
+          <div className="space-y-4 pt-4">
+            <div className="flex items-center space-x-3 text-text-secondary/70">
+              <div className="p-2 bg-bg-primary rounded-lg">
+                <Mail size={16} />
+              </div>
+              <span className="text-xs font-bold">{user?.email || 'unidentified_identity'}</span>
+            </div>
+            <div className="flex items-center space-x-3 text-text-secondary/70">
+              <div className="p-2 bg-bg-primary rounded-lg">
+                <Lock size={16} />
+              </div>
+              <span className="text-xs font-bold">Standard RSA Auth</span>
+            </div>
+          </div>
+
+          <button className="w-full py-4 bg-bg-primary hover:bg-bg-tertiary transition-all text-sm font-bold rounded-2xl border border-black/5 active:scale-[0.98]">
+            Edit Identity Protocol
+          </button>
+        </div>
+
+        {/* System Settings Area */}
+        <div className="space-y-10">
+           <section>
+              <h4 className="text-xs font-bold text-text-muted uppercase tracking-widest mb-4 flex items-center space-x-2">
+                 <User size={14} className="text-blue-500" />
+                 <span>Security Node</span>
+              </h4>
+              <div className="space-y-3">
+                 <button className="w-full flex items-center justify-between p-5 bg-white border border-black/5 rounded-2xl hover:bg-bg-primary transition-all group">
+                    <span className="text-xs font-bold text-text-primary">Rotate Access Token</span>
+                    <Lock size={16} className="text-text-muted group-hover:text-blue-500 transition-colors" />
+                 </button>
+                 <button className="w-full flex items-center justify-between p-5 bg-white border border-black/5 rounded-2xl hover:bg-bg-primary transition-all group">
+                    <span className="text-xs font-bold text-text-primary">Manage Authorized SSH Keys</span>
+                    <Fingerprint size={16} className="text-text-muted group-hover:text-blue-500 transition-colors" />
+                 </button>
+              </div>
+           </section>
+
+           <section>
+              <h4 className="text-xs font-bold text-red-500/70 uppercase tracking-widest mb-4 flex items-center space-x-2">
+                 <Trash2 size={14} />
+                 <span>Destruction Sector</span>
+              </h4>
+              <button className="w-full p-5 bg-red-500/5 hover:bg-red-500 hover:text-white text-red-500 text-xs font-bold rounded-2xl border border-red-500/20 transition-all text-left group">
+                 Purge Infrastructure Nodes
+                 <p className="text-[10px] font-medium opacity-60 mt-1">This action decommissions all remote connections permanently.</p>
+              </button>
+           </section>
+        </div>
+      </div>
     </div>
   );
 };

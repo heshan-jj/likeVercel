@@ -7,13 +7,13 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <div className="h-screen w-full overflow-hidden flex bg-bg-primary text-text-primary">
       <Sidebar />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <main style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-6)', background: 'var(--bg-primary)' }}>
+      <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+        <div className="absolute inset-0 overflow-y-auto custom-scrollbar">
           {children}
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   );
 };
