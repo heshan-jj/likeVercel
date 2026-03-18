@@ -35,6 +35,16 @@ router.get('/:id/processes', async (req: AuthRequest, res: Response): Promise<vo
       // PM2 not available or output not parseable, pm2Processes stays empty
     }
 
+    const unmanagedPm2Processes = pm2Processes.filter(
+      (p: any) => !deployments.find((d) => d.processName === p.name)
+    ).map((p: any) => ({
+      processName: p.name,
+      cpu: p.monit?.cpu || 0,
+      memory: p.monit?.memory || 0,
+      status: p.pm2_env?.status || 'unknown',
+      pm_id: p.pm_id
+    }));
+
     if (pm2Processes.length > 0) {
       const processesWithStatus = deployments.map((d: any) => {
         const pm2Process = pm2Processes.find((p: any) => p.name === d.processName);
@@ -47,13 +57,13 @@ router.get('/:id/processes', async (req: AuthRequest, res: Response): Promise<vo
         };
       });
 
-      res.json({ processes: processesWithStatus });
+      res.json({ processes: processesWithStatus, unmanagedProcesses: unmanagedPm2Processes });
     } else {
       const processesWithUrls = deployments.map((d: any) => ({
         ...d,
         url: `http://${vps?.host}:${d.port}`,
       }));
-      res.json({ processes: processesWithUrls });
+      res.json({ processes: processesWithUrls, unmanagedProcesses: unmanagedPm2Processes });
     }
   } catch (error: any) {
     res.status(500).json({ error: error.message });

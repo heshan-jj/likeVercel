@@ -19,7 +19,7 @@ const Sidebar: React.FC = () => {
           <Zap size={24} className="text-white" fill="currentColor" />
         </div>
         <div className="flex flex-col">
-          <span className="text-xl font-bold tracking-tighter text-text-primary">VPS Deploy</span>
+          <span className="text-xl font-bold tracking-tighter text-text-primary">likeVercel</span>
           <span className="text-xs font-bold text-text-muted tracking-[0.1em] -mt-1 ml-1 uppercase opacity-60">v2.0 Beta</span>
         </div>
       </div>

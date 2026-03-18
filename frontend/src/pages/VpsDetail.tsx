@@ -110,8 +110,8 @@ const VpsDetail: React.FC = () => {
           
           <div className="flex items-center space-x-3">
             <button 
-              onClick={() => navigate(`/vps/${id}/edit`)} // Assuming we'll add an edit route
-              className="px-6 py-3 bg-bg-secondary hover:bg-bg-tertiary text-text-primary font-bold text-xs rounded-xl border border-black/10 transition-all shadow-sm active:scale-95 group h-[42px]"
+              onClick={() => navigate(`/vps/${id}/edit`)}
+              className="flex items-center space-x-2 px-6 py-3 bg-bg-secondary hover:bg-bg-tertiary text-text-primary font-bold text-xs rounded-xl border border-black/10 transition-all shadow-sm active:scale-95 group h-[42px]"
             >
               <SettingsIcon size={16} className="text-text-muted group-hover:text-blue-500 transition-colors" />
               <span>Edit Settings</span>

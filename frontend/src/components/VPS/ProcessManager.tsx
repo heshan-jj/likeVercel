@@ -39,6 +39,14 @@ interface Deployment {
   url?: string;
 }
 
+interface UnmanagedProcess {
+  processName: string;
+  status: string;
+  cpu: number;
+  memory: number;
+  pm_id: number;
+}
+
 interface ProcessManagerProps {
   vpsId: string;
 }
@@ -82,6 +90,7 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
   const [error, setError] = useState('');
   const [showDeploy, setShowDeploy] = useState(false);
   const [deployForm, setDeployForm] = useState({ projectPath: '', port: '', command: '' });
+  const [unmanaged, setUnmanaged] = useState<UnmanagedProcess[]>([]);
   const [deploying, setDeploying] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [logModal, setLogModal] = useState<{ id: string; name: string; logs: string } | null>(null);
@@ -100,6 +109,7 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
     try {
       const { data } = await api.get(`/vps/${vpsId}/processes`);
       setDeployments(data.processes);
+      setUnmanaged(data.unmanagedProcesses || []);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to load processes');
     } finally {
@@ -406,6 +416,70 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
                 </div>
               );
             })}
+
+            {/* Unmanaged Processes */}
+            {unmanaged.length > 0 && (
+              <>
+                <div className="flex items-center space-x-3 mt-10 mb-4 px-1">
+                  <Activity className="text-amber-500" size={18} />
+                  <h3 className="text-[11px] font-bold text-text-muted tracking-tight uppercase tracking-widest">External Workloads detected</h3>
+                </div>
+                {unmanaged.map((proc) => (
+                  <div key={proc.pm_id} className="group glass-effect rounded-[24px] border border-border-light bg-amber-500/[0.02] hover:border-amber-500/20 transition-all duration-300 overflow-hidden shadow-xl">
+                    <div className="p-5 flex flex-col xl:flex-row xl:items-center justify-between gap-5">
+                      <div className="flex items-center space-x-4">
+                        <div className="p-4 rounded-2xl bg-amber-500/5 transition-all shadow-inner">
+                          <Activity size={24} className="text-amber-500" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center space-x-3 mb-1.5">
+                            <h5 className="font-bold text-text-primary tracking-tight text-[13px]">{proc.processName}</h5>
+                            <div className="px-2.5 py-0.5 rounded-full border bg-amber-500/10 border-amber-500/20 text-amber-500 text-[9px] font-bold uppercase tracking-widest">
+                               UNMANAGED
+                            </div>
+                          </div>
+                          <p className="text-[10px] font-medium text-text-muted tracking-wide flex items-center space-x-2">
+                             <span className={`h-1.5 w-1.5 rounded-full ${proc.status === 'online' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                             <span>Status: {proc.status}</span>
+                             <span className="opacity-30">|</span>
+                             <span>ID: {proc.pm_id}</span>
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between xl:justify-end gap-10 pt-4 xl:pt-0 border-t xl:border-t-0 border-border-light">
+                        <div className="flex items-center space-x-6">
+                           <div className="text-center">
+                              <p className="text-[9px] font-bold text-text-muted uppercase tracking-widest mb-1">CPU Usage</p>
+                              <div className="flex items-center justify-center space-x-2 text-amber-500 font-bold text-[12px]">
+                                 <Cpu size={14} />
+                                 <span>{proc.cpu.toFixed(1)}%</span>
+                              </div>
+                           </div>
+                           <div className="text-center">
+                              <p className="text-[9px] font-bold text-text-muted uppercase tracking-widest mb-1">Memory Usage</p>
+                              <div className="flex items-center justify-center space-x-2 text-amber-500 font-bold text-[12px]">
+                                 <HardDrive size={14} />
+                                 <span>{formatMemory(proc.memory)}</span>
+                              </div>
+                           </div>
+                        </div>
+                        
+                        <button 
+                         onClick={() => {
+                           setShowDeploy(true);
+                           setDeployForm({ ...deployForm, projectPath: '/var/www/...', command: `pm2 interact ${proc.processName}` });
+                         }}
+                         className="px-6 py-2.5 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-muted hover:text-text-primary font-bold text-[10px] rounded-xl transition-all border border-border-light uppercase tracking-widest"
+                        >
+                          Adopt Process
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         )}
       </div>

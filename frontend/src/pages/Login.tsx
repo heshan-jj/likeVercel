@@ -46,7 +46,7 @@ const Login: React.FC = () => {
             <Server size={48} className="text-white" />
           </div>
           <h2 className="text-3xl font-bold text-text-primary tracking-tighter">
-             VPS Deploy
+             likeVercel
           </h2>
           <p className="mt-2 text-text-muted font-bold tracking-[0.1em] uppercase text-[10px] opacity-60">Login to your account</p>
         </div>
