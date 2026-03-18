@@ -40,7 +40,7 @@ router.get('/:id/ports', async (req: AuthRequest, res: Response): Promise<void> 
 
     res.json({
       activePorts,
-      managedPorts: deployments.map((d) => ({
+      managedPorts: deployments.map((d: any) => ({
         port: d.port,
         processName: d.processName,
         projectPath: d.projectPath,

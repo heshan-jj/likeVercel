@@ -36,7 +36,7 @@ router.get('/:id/processes', async (req: AuthRequest, res: Response): Promise<vo
     }
 
     if (pm2Processes.length > 0) {
-      const processesWithStatus = deployments.map((d) => {
+      const processesWithStatus = deployments.map((d: any) => {
         const pm2Process = pm2Processes.find((p: any) => p.name === d.processName);
         return {
           ...d,
@@ -49,7 +49,7 @@ router.get('/:id/processes', async (req: AuthRequest, res: Response): Promise<vo
 
       res.json({ processes: processesWithStatus });
     } else {
-      const processesWithUrls = deployments.map((d) => ({
+      const processesWithUrls = deployments.map((d: any) => ({
         ...d,
         url: `http://${vps?.host}:${d.port}`,
       }));

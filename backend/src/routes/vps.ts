@@ -3,6 +3,7 @@ import prisma from '../utils/prisma';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { encrypt } from '../utils/crypto';
 import { sshManager } from '../services/SSHManager';
+import { createVpsSchema, updateVpsSchema } from '../utils/validators';
 
 const router = Router();
 
@@ -33,7 +34,7 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
     });
 
     // Attach live connection status
-    const profilesWithStatus = profiles.map((p) => ({
+    const profilesWithStatus = profiles.map((p: any) => ({
       ...p,
       isConnected: sshManager.isConnected(p.id),
     }));

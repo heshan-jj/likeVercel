@@ -74,7 +74,7 @@ router.get('/:id/files', async (req: AuthRequest, res: Response): Promise<void> 
         return;
       }
 
-      const files = list.map((item) => ({
+      const files = list.map((item: any) => ({
         name: item.filename,
         path: path.posix.join(remotePath, item.filename),
         isDirectory: item.attrs.isDirectory(),
