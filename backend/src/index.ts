@@ -2,6 +2,8 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import path from 'path';
+import fs from 'fs';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import { config } from './config';
@@ -90,6 +92,22 @@ app.get('/api/health', async (_req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+// Serve static files in production
+if (config.nodeEnv === 'production') {
+  const distPath = path.resolve(__dirname, '../../frontend/dist');
+  if (fs.existsSync(distPath)) {
+    app.use(express.static(distPath));
+    // Index path for SPA routing
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api')) return next();
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+    console.log(`[Server] Production mode: Serving frontend from ${distPath}`);
+  } else {
+    console.warn(`[Server] Production mode: frontend/dist not found at ${distPath}`);
+  }
+}
 
 // Error handler
 app.use(errorHandler);
