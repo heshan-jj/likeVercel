@@ -9,8 +9,7 @@ import {
   Globe2,
   Settings as SettingsIcon,
   Zap,
-  Server,
-  Loader2
+  Server
 } from 'lucide-react';
 import api from '../utils/api';
 import XtermTerminal from '../components/Terminal/XtermTerminal';
