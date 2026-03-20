@@ -460,9 +460,8 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
                 </div>
               );
             })}
-
-            )}
           </div>
+        )}
 
           {/* Unmanaged Processes - Outside the managed deployments check */}
           {unmanaged.filter(p => 
