@@ -374,7 +374,7 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
             <tbody className="divide-y divide-border-light">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="py-20 text-center text-xs font-bold text-text-muted">
+                  <td colSpan={5} className="py-20 text-center text-xs font-bold text-text-muted">
                     <div className="flex flex-col items-center">
                       <Loader2 size={32} className="text-blue-500 animate-spin mb-4" />
                       <span className="uppercase tracking-widest">Reading Storage...</span>
@@ -383,7 +383,7 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
                 </tr>
               ) : filteredFiles.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-20 text-center text-xs font-bold text-text-muted uppercase tracking-widest">
+                  <td colSpan={5} className="py-20 text-center text-xs font-bold text-text-muted uppercase tracking-widest">
                     Directory is empty
                   </td>
                 </tr>

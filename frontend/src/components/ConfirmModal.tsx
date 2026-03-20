@@ -24,7 +24,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
       onClick={onCancel}
     >
       <div
-        className="bg-bg-primary w-full max-w-md rounded-[28px] border border-border-light shadow-[0_0_80px_rgba(0,0,0,0.4)] p-8 animate-in zoom-in-95 duration-200"
+        className="bg-bg-primary w-full max-w-md rounded-[32px] border border-border-light shadow-[0_0_80px_rgba(0,0,0,0.4)] p-8 animate-in zoom-in-95 duration-200"
         onClick={e => e.stopPropagation()}
       >
         {/* Icon + Header */}

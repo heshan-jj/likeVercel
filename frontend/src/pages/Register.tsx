@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
-import { UserPlus, UserCheck, Lock, Mail, Loader2, ShieldCheck } from 'lucide-react';
+import { UserPlus, UserCheck, Lock, Mail, Loader2, ShieldCheck, ShieldAlert } from 'lucide-react';
 
 const Register: React.FC = () => {
   const [name, setName] = useState('');
@@ -53,10 +53,15 @@ const Register: React.FC = () => {
           <p className="mt-2 text-text-muted font-bold tracking-[0.1em] uppercase text-[10px] opacity-60">Create a new account</p>
         </div>
 
-        <div className="glass-effect p-10 rounded-[40px] border border-black/10 shadow-2xl relative">
+        <div className="glass-effect p-10 rounded-[32px] border border-border-light shadow-2xl relative">
           <div className="mb-10 text-left">
-            <h3 className="text-2xl font-bold text-text-primary tracking-tight mb-1.5">Sign up</h3>
-            <p className="text-text-secondary text-xs font-medium opacity-80">Fill in the form below to get started.</p>
+            <h3 className="text-2xl font-bold text-text-primary tracking-tight mb-1.5">Local Admin Setup</h3>
+            <p className="text-text-secondary text-xs font-medium opacity-80">Create the primary admin account for your local app.</p>
+          </div>
+
+          <div className="mb-8 p-4 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-2xl text-[11px] font-bold flex items-start space-x-3 animate-in slide-in-from-top-2 duration-300">
+            <ShieldAlert size={16} className="mt-0.5 flex-shrink-0" />
+            <span className="leading-relaxed">Warning: This app runs entirely on your local machine. Your deployment configurations and keys are stored locally. Do not share your database file.</span>
           </div>
 
           {error && (
@@ -75,7 +80,7 @@ const Register: React.FC = () => {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-bg-primary/50 border border-black/10 focus:border-emerald-500/50 rounded-2xl px-12 py-3.5 text-text-primary text-xs font-bold outline-none transition-all focus:ring-8 focus:ring-emerald-500/[0.04]"
+                  className="w-full bg-bg-primary/50 border border-border-light focus:border-emerald-500/50 rounded-2xl px-12 py-3.5 text-text-primary text-xs font-bold outline-none transition-all focus:ring-8 focus:ring-emerald-500/[0.04]"
                   placeholder="Your name"
                   disabled={loading}
                 />
@@ -90,7 +95,7 @@ const Register: React.FC = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-bg-primary/50 border border-black/10 focus:border-emerald-500/50 rounded-2xl px-12 py-3.5 text-text-primary text-xs font-bold outline-none transition-all focus:ring-8 focus:ring-emerald-500/[0.04]"
+                  className="w-full bg-bg-primary/50 border border-border-light focus:border-emerald-500/50 rounded-2xl px-12 py-3.5 text-text-primary text-xs font-bold outline-none transition-all focus:ring-8 focus:ring-emerald-500/[0.04]"
                   placeholder="email@example.com"
                   disabled={loading}
                 />
@@ -105,7 +110,7 @@ const Register: React.FC = () => {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-bg-primary/50 border border-black/10 focus:border-emerald-500/50 rounded-2xl px-12 py-3.5 text-text-primary text-xs font-bold outline-none transition-all focus:ring-8 focus:ring-emerald-500/[0.04]"
+                  className="w-full bg-bg-primary/50 border border-border-light focus:border-emerald-500/50 rounded-2xl px-12 py-3.5 text-text-primary text-xs font-bold outline-none transition-all focus:ring-8 focus:ring-emerald-500/[0.04]"
                   placeholder="••••••••"
                   disabled={loading}
                 />
@@ -121,7 +126,7 @@ const Register: React.FC = () => {
             </button>
           </form>
 
-          <div className="mt-10 pt-8 border-t border-black/5 text-center">
+          <div className="mt-10 pt-8 border-t border-border-light text-center">
             <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">
               Already have an account? <Link to="/login" className="text-emerald-600 hover:text-emerald-700 transition-colors ml-1 font-black">Login here</Link>
             </p>

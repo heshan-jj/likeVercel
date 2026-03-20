@@ -16,6 +16,23 @@ model User {
   updatedAt DateTime @updatedAt
 
   vpsProfiles VpsProfile[]
+  sshKeys     SshKey[]
+}
+
+model SshKey {
+  id                   String   @id @default(cuid())
+  userId               String
+  label                String
+  publicKey            String
+  fingerprint          String
+  encryptedPrivateKey  String
+  iv                   String
+  authTag              String
+  createdAt            DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model VpsProfile {

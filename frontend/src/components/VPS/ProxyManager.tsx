@@ -125,7 +125,7 @@ const ProxyManager: React.FC<ProxyManagerProps> = ({ vpsId }) => {
   if (!loading && !nginxInstalled) {
     return (
       <div className="flex flex-col items-center justify-center h-full py-20 px-8 text-center animate-in fade-in duration-500">
-         <div className="p-10 bg-bg-secondary/80 backdrop-blur-xl border border-border-light rounded-[40px] shadow-2xl relative max-w-lg">
+         <div className="p-10 bg-bg-secondary/80 backdrop-blur-xl border border-border-light rounded-[32px] shadow-2xl relative max-w-lg">
             <div className="absolute -top-12 left-1/2 -translate-x-1/2 p-6 bg-blue-600 rounded-3xl shadow-2xl shadow-blue-600/40">
                <Globe size={48} className="text-white" />
             </div>
@@ -297,7 +297,7 @@ const ProxyManager: React.FC<ProxyManagerProps> = ({ vpsId }) => {
             <span className="text-text-muted font-bold uppercase tracking-widest text-[10px]">Syncing proxy cluster...</span>
           </div>
         ) : configs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 px-8 border border-dashed border-border-light rounded-[40px] bg-bg-secondary/10">
+          <div className="flex flex-col items-center justify-center py-24 px-8 border border-dashed border-border-light rounded-[32px] bg-bg-secondary/10">
             <div className="p-8 bg-bg-secondary rounded-3xl mb-8 border border-border-light shadow-inner">
               <Globe size={56} className="text-text-muted/30" />
             </div>

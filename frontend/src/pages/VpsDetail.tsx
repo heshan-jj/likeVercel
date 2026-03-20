@@ -98,7 +98,7 @@ const VpsDetail: React.FC = () => {
   return (
     <div className="flex flex-col h-full bg-bg-primary">
       {/* Detail Header */}
-      <div className="px-8 py-6 border-b border-black/30 bg-bg-secondary/20">
+      <div className="px-8 py-6 border-b border-border-light bg-bg-secondary/20">
         <button 
           onClick={() => navigate('/dashboard')}
           className="flex items-center space-x-2 text-text-secondary hover:text-text-primary transition-colors mb-5 group text-xs font-bold tracking-tight"
@@ -132,7 +132,7 @@ const VpsDetail: React.FC = () => {
           <div className="flex items-center space-x-3">
             <button 
               onClick={() => navigate(`/vps/${id}/edit`)}
-              className="flex items-center space-x-2 px-6 py-3 bg-bg-secondary hover:bg-bg-tertiary text-text-primary font-bold text-xs rounded-xl border border-black/10 transition-all shadow-sm active:scale-95 group h-[42px]"
+              className="flex items-center space-x-2 px-6 py-3 bg-bg-secondary hover:bg-bg-tertiary text-text-primary font-bold text-xs rounded-xl border border-border-light transition-all shadow-sm active:scale-95 group h-[42px]"
             >
               <SettingsIcon size={16} className="text-text-muted group-hover:text-blue-500 transition-colors" />
               <span>Edit Settings</span>
@@ -140,9 +140,9 @@ const VpsDetail: React.FC = () => {
           </div>
         </div>
 
-        {/* Live Resource Charts — only visible when connected */}
-        {profile.isConnected && (
-          <div className="mt-6 pt-5 border-t border-black/10">
+          {/* Live Resource Charts — only visible when connected */}
+          {profile.isConnected && (
+            <div className="mt-6 pt-5 border-t border-border-light">
             <ResourceChart vpsId={profile.id} isConnected={profile.isConnected} />
           </div>
         )}
@@ -150,7 +150,7 @@ const VpsDetail: React.FC = () => {
 
       {/* Main Tab Area */}
       <div className="flex-1 flex flex-col min-h-0">
-        <div className="px-8 border-b border-black/10 bg-bg-secondary/10 flex space-x-8 overflow-x-auto no-scrollbar">
+        <div className="px-8 border-b border-border-light bg-bg-secondary/10 flex space-x-8 overflow-x-auto no-scrollbar">
           {tabs.map(tab => (
             <button
               key={tab.id}

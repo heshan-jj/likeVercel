@@ -143,7 +143,7 @@ const Dashboard: React.FC = () => {
     <>  
     <div className="flex flex-col h-full bg-bg-primary overflow-y-auto custom-scrollbar">
       {/* Refined Header */}
-      <header className="sticky top-0 z-30 px-8 py-8 flex items-center justify-between border-b border-black/20 bg-bg-primary/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-30 px-8 py-8 flex items-center justify-between border-b border-border-light bg-bg-primary/80 backdrop-blur-xl">
         <div>
           <div className="flex items-center space-x-2 text-[10px] font-bold uppercase tracking-[0.2em] text-blue-500 mb-1.5">
              <div className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
@@ -187,7 +187,7 @@ const Dashboard: React.FC = () => {
             };
             
             return (
-              <div key={metric.label} className="glass-effect p-8 rounded-[32px] border border-black/20 relative overflow-hidden group hover:bg-bg-secondary/40 transition-all duration-300 shadow-2xl">
+              <div key={metric.label} className="glass-effect p-8 rounded-[32px] border border-border-light relative overflow-hidden group hover:bg-bg-secondary/40 transition-all duration-300 shadow-2xl">
                  <div className="flex items-center justify-between mb-6">
                     <span className="text-xs font-bold text-text-secondary tracking-widest uppercase">{metric.label}</span>
                     <div className={`p-3 ${colorClasses[metric.color] || 'bg-bg-tertiary text-text-muted'} rounded-xl shadow-inner`}>
@@ -236,7 +236,7 @@ const Dashboard: React.FC = () => {
             {(() => {
               const visibleProfiles = showOnlineOnly ? profiles.filter(p => p.isConnected) : profiles;
               return visibleProfiles.length === 0 ? (
-              <div className="col-span-full py-24 px-8 glass-effect rounded-[40px] border border-dashed border-border-primary text-center flex flex-col items-center">
+               <div className="col-span-full py-24 px-8 glass-effect rounded-[32px] border border-dashed border-border-light text-center flex flex-col items-center">
                  <div className="p-8 bg-bg-secondary rounded-full mb-8 border border-border-light shadow-inner">
                     <Server size={48} className="text-text-muted/30" />
                  </div>
@@ -253,7 +253,7 @@ const Dashboard: React.FC = () => {
               <article 
                 key={vps.id} 
                 onClick={() => navigate(`/vps/${vps.id}`)}
-                className="group relative glass-effect rounded-[32px] border border-black/20 p-8 transition-all duration-300 hover:bg-bg-secondary/40 cursor-pointer shadow-2xl overflow-hidden"
+                className="group relative glass-effect rounded-[32px] border border-border-light p-8 transition-all duration-300 hover:bg-bg-secondary/40 cursor-pointer shadow-2xl overflow-hidden"
               >
                 <div className="flex flex-col h-full">
                   <div className="flex items-start justify-between mb-8">
@@ -295,7 +295,7 @@ const Dashboard: React.FC = () => {
                   </div>
 
                   {/* Refined Specs Section */}
-                  <div className="grid grid-cols-4 gap-4 py-6 mb-8 border-y border-black/10 bg-bg-secondary/5 rounded-2xl px-2">
+                  <div className="grid grid-cols-4 gap-4 py-6 mb-8 border-y border-border-light bg-bg-secondary/5 rounded-2xl px-2">
                     {[
                       { label: 'Kernel', value: specs[vps.id]?.os, icon: <Activity className="text-blue-500" size={14} /> },
                       { label: 'Cores', value: specs[vps.id]?.cpu, icon: <Cpu className="text-emerald-500" size={14} /> },

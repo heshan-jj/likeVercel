@@ -21,7 +21,7 @@ const Sidebar: React.FC = () => {
   
   return (
     <aside 
-      className={`${collapsed ? 'w-16' : 'w-64'} h-full flex-shrink-0 flex flex-col border-r border-black/30 bg-bg-primary transition-all duration-300 shadow-2xl z-20 relative`} 
+      className={`${collapsed ? 'w-16' : 'w-64'} h-full flex-shrink-0 flex flex-col border-r border-border-light bg-bg-primary transition-all duration-300 shadow-2xl z-20 relative`} 
       id="sidebar"
     >
       {/* Brand Header + Collapse Toggle */}
@@ -48,7 +48,7 @@ const Sidebar: React.FC = () => {
       </div>
 
       <div className="px-4 py-4">
-        <div className="h-px w-full bg-black/40" />
+        <div className="h-px w-full bg-border-light" />
       </div>
 
       {/* Navigation */}
@@ -87,7 +87,7 @@ const Sidebar: React.FC = () => {
           {!collapsed && (
             <p className="px-3 text-xs font-bold text-text-muted uppercase tracking-[0.1em] mb-3 opacity-70">General</p>
           )}
-          {collapsed && <div className="h-px w-full bg-black/20 mb-3" />}
+          {collapsed && <div className="h-px w-full bg-border-light mb-3" />}
            
           <NavLink 
             to="/settings" 
@@ -105,7 +105,7 @@ const Sidebar: React.FC = () => {
       </nav>
 
       {/* User Footer Area */}
-      <div className={`p-4 border-t border-black/20 bg-bg-secondary/20 ${collapsed ? 'flex flex-col items-center space-y-3' : ''}`}>
+      <div className={`p-4 border-t border-border-light bg-bg-secondary/20 ${collapsed ? 'flex flex-col items-center space-y-3' : ''}`}>
         {!collapsed ? (
           <>
             <div className="flex items-center space-x-4 mb-4 group cursor-pointer">

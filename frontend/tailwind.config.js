@@ -13,7 +13,6 @@ export default {
         'text-primary': 'var(--text-primary)',
         'text-secondary': 'var(--text-secondary)',
         'text-muted': 'var(--text-muted)',
-        'border-primary': 'var(--border-color)',
         'border-light': 'var(--border-light)',
       }
     },

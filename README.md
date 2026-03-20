@@ -41,6 +41,11 @@ Manage your server's public gateway.
 - **Port Auditor**: Scan your VPS for active listening ports and filter them based on what's authorized.
 - **Domain Proxies**: Maps your public domain names (like `app.example.com`) to internal ports on your server.
 
+### 🔑 Local Authentication & Security
+likeVercel is designed as a secure local dashboard.
+- **Single Admin Lock**: Only one admin account can be registered. Further registrations are blocked.
+- **Password Recovery**: Because there is no central server to send a reset email, forgetting your password requires a factory reset. Stop the backend, delete `backend/prisma/dev.db`, and run `npm run db:push` to wipe the DB and create a new account.
+
 ## 🛠 Tech Stack
 
 ### 💅 Frontend

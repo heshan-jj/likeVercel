@@ -1,196 +1,365 @@
-import React, { useState } from 'react';
-import { KeyRound, Download, Copy, Check, Server, Loader2, ShieldCheck, AlertTriangle, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  KeyRound, Plus, Trash2, Copy, Check, Server, Loader2,
+  ShieldCheck, AlertTriangle, ChevronDown, X, Eye, EyeOff,
+} from 'lucide-react';
 import api from '../utils/api';
 import { useToast } from '../context/ToastContext';
 
-interface GeneratedKey {
-  privateKey: string;
+interface SshKey {
+  id: string;
+  label: string;
   publicKey: string;
+  fingerprint: string;
+  createdAt: string;
+}
+
+interface VpsOption {
+  id: string;
+  name: string;
+  host: string;
+  isConnected: boolean;
 }
 
 const KeyManager: React.FC = () => {
   const { showToast } = useToast();
-  const [generating, setGenerating] = useState(false);
-  const [generatedKey, setGeneratedKey] = useState<GeneratedKey | null>(null);
-  const [copied, setCopied] = useState<'private' | 'public' | null>(null);
-  const [privateDownloaded, setPrivateDownloaded] = useState(false);
 
-  // For installing key on a VPS (user pastes VPS ID)
+  /* ── Saved keys ── */
+  const [keys, setKeys] = useState<SshKey[]>([]);
+  const [loadingKeys, setLoadingKeys] = useState(true);
+
+  /* ── Add key form ── */
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addLabel, setAddLabel] = useState('');
+  const [addPrivateKey, setAddPrivateKey] = useState('');
+  const [addPublicKey, setAddPublicKey] = useState('');
+  const [showPrivate, setShowPrivate] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  /* ── Install to VPS ── */
+  const [vps, setVps] = useState<VpsOption[]>([]);
+  const [installKeyId, setInstallKeyId] = useState('');
   const [installVpsId, setInstallVpsId] = useState('');
   const [installing, setInstalling] = useState(false);
-  const [installStatus, setInstallStatus] = useState<{ ok: boolean; msg: string } | null>(null);
 
-  const handleGenerate = async () => {
-    setGenerating(true);
-    setGeneratedKey(null);
-    setPrivateDownloaded(false);
-    setInstallStatus(null);
+  /* ── UI misc ── */
+  const [copied, setCopied] = useState<string | null>(null); // keyId
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  const fetchKeys = useCallback(async () => {
+    setLoadingKeys(true);
     try {
-      const { data } = await api.post('/vps/keys/generate');
-      setGeneratedKey(data);
-      showToast('Ed25519 keypair generated', 'success');
-    } catch (err: any) {
-      showToast(err.response?.data?.error || 'Key generation failed', 'error');
+      const { data } = await api.get('/keys');
+      setKeys(data.keys);
+    } catch {
+      showToast('Failed to load SSH keys', 'error');
     } finally {
-      setGenerating(false);
+      setLoadingKeys(false);
+    }
+  }, []);
+
+  const fetchVps = useCallback(async () => {
+    try {
+      const { data } = await api.get('/vps');
+      setVps(data.profiles);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    fetchKeys();
+    fetchVps();
+  }, [fetchKeys, fetchVps]);
+
+  const handleSave = async () => {
+    if (!addLabel.trim() || !addPrivateKey.trim()) {
+      showToast('Label and Private Key are required', 'error');
+      return;
+    }
+    setSaving(true);
+    try {
+      await api.post('/keys', {
+        label: addLabel.trim(),
+        privateKey: addPrivateKey.trim(),
+        publicKey: addPublicKey.trim() || undefined,
+      });
+      showToast('SSH key saved', 'success');
+      setShowAddForm(false);
+      setAddLabel('');
+      setAddPrivateKey('');
+      setAddPublicKey('');
+      fetchKeys();
+    } catch (err: any) {
+      showToast(err.response?.data?.error || 'Failed to save key', 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleCopy = async (type: 'private' | 'public', value: string) => {
-    await navigator.clipboard.writeText(value);
-    setCopied(type);
-    setTimeout(() => setCopied(null), 2000);
-    showToast(`${type === 'public' ? 'Public' : 'Private'} key copied`, 'success');
+  const handleDelete = async (id: string) => {
+    setDeleting(id);
+    try {
+      await api.delete(`/keys/${id}`);
+      showToast('SSH key deleted', 'success');
+      setKeys(prev => prev.filter(k => k.id !== id));
+    } catch (err: any) {
+      showToast(err.response?.data?.error || 'Failed to delete key', 'error');
+    } finally {
+      setDeleting(null);
+    }
   };
 
-  const handleDownload = (type: 'private' | 'public', value: string) => {
-    const blob = new Blob([value], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = type === 'private' ? 'likeVercel_ed25519.pem' : 'likeVercel_ed25519.pub';
-    a.click();
-    URL.revokeObjectURL(url);
-    if (type === 'private') setPrivateDownloaded(true);
-    showToast(`${type === 'private' ? 'Private' : 'Public'} key downloaded`, 'success');
+  const handleCopy = async (key: SshKey) => {
+    await navigator.clipboard.writeText(key.publicKey);
+    setCopied(key.id);
+    setTimeout(() => setCopied(null), 2000);
+    showToast('Public key copied', 'success');
   };
 
   const handleInstall = async () => {
-    if (!generatedKey || !installVpsId.trim()) return;
+    if (!installKeyId || !installVpsId) return;
     setInstalling(true);
-    setInstallStatus(null);
     try {
-      await api.post(`/vps/${installVpsId.trim()}/keys/install`, { publicKey: generatedKey.publicKey });
-      setInstallStatus({ ok: true, msg: 'Key installed to ~/.ssh/authorized_keys on the remote server.' });
+      await api.post(`/keys/${installKeyId}/install`, { vpsId: installVpsId });
       showToast('Public key installed on VPS', 'success');
+      setInstallKeyId('');
+      setInstallVpsId('');
     } catch (err: any) {
-      const msg = err.response?.data?.error || 'Install failed';
-      setInstallStatus({ ok: false, msg });
-      showToast(msg, 'error');
+      showToast(err.response?.data?.error || 'Install failed', 'error');
     } finally {
       setInstalling(false);
     }
   };
 
+  const connectedVps = vps.filter(v => v.isConnected);
+
   return (
     <div className="flex flex-col h-full bg-bg-primary overflow-y-auto custom-scrollbar">
       {/* Header */}
-      <header className="sticky top-0 z-30 px-8 py-8 flex items-center justify-between border-b border-black/20 bg-bg-primary/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-30 px-8 py-8 flex items-center justify-between border-b border-border-light bg-bg-primary/80 backdrop-blur-xl">
         <div>
           <h1 className="text-2xl font-bold tracking-tighter text-text-primary mb-1">SSH Key Manager</h1>
-          <p className="text-sm text-text-muted font-medium">Generate Ed25519 keypairs and deploy them to your servers</p>
+          <p className="text-sm text-text-muted font-medium">Save your SSH keys and deploy them to servers</p>
         </div>
-        <div className="flex items-center space-x-2 px-4 py-2 bg-blue-600/10 border border-blue-600/20 rounded-2xl">
-          <ShieldCheck size={16} className="text-blue-500" />
-          <span className="text-xs font-bold text-blue-500 uppercase tracking-widest">Ed25519</span>
-        </div>
+        <button
+          onClick={() => setShowAddForm(v => !v)}
+          className="flex items-center space-x-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-blue-600/20 active:scale-95"
+        >
+          {showAddForm ? <X size={14} /> : <Plus size={14} />}
+          <span>{showAddForm ? 'Cancel' : 'Add Key'}</span>
+        </button>
       </header>
 
       <div className="p-8 space-y-8 max-w-3xl">
-        {/* Generate Card */}
-        <div className="glass-effect border border-border-light rounded-[32px] p-8 space-y-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-text-primary tracking-tight mb-1">Generate New Keypair</h2>
-              <p className="text-xs text-text-muted font-medium">
-                Creates a secure Ed25519 keypair. Save your private key immediately — it will not be stored.
-              </p>
+
+        {/* Add Key Form */}
+        {showAddForm && (
+          <div className="glass-effect border border-border-light rounded-[32px] p-8 space-y-6 animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="flex items-start space-x-3">
+              <div className="p-3 bg-blue-600/10 rounded-2xl border border-blue-600/20">
+                <KeyRound size={20} className="text-blue-500" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-text-primary tracking-tight">Add New SSH Key</h2>
+                <p className="text-xs text-text-muted mt-0.5">Paste your private key — it's stored encrypted. Public key is derived automatically.</p>
+              </div>
             </div>
-            <div className="p-3 bg-bg-secondary rounded-2xl border border-border-light">
-              <KeyRound size={24} className="text-blue-500" />
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-text-muted mb-2 uppercase tracking-widest">Key Label</label>
+                <input
+                  type="text"
+                  value={addLabel}
+                  onChange={e => setAddLabel(e.target.value)}
+                  placeholder="e.g. My MacBook Pro Key"
+                  className="w-full bg-bg-secondary border border-border-light rounded-xl px-4 py-3 text-text-primary outline-none focus:border-blue-500/50 transition-all text-sm font-bold"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-bold text-text-muted uppercase tracking-widest">Private Key</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowPrivate(v => !v)}
+                    className="flex items-center space-x-1 text-xs text-text-muted hover:text-text-primary transition-colors"
+                  >
+                    {showPrivate ? <EyeOff size={12} /> : <Eye size={12} />}
+                    <span>{showPrivate ? 'Hide' : 'Show'}</span>
+                  </button>
+                </div>
+                <textarea
+                  value={addPrivateKey}
+                  onChange={e => setAddPrivateKey(e.target.value)}
+                  rows={showPrivate ? 8 : 3}
+                  placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;...&#10;-----END OPENSSH PRIVATE KEY-----"
+                  className="w-full bg-bg-secondary border border-border-light rounded-xl px-4 py-3 text-xs text-red-400 outline-none focus:border-blue-500/50 transition-all font-mono leading-relaxed resize-none"
+                  style={{ filter: showPrivate ? 'none' : 'blur(3px)' }}
+                />
+                {!showPrivate && (
+                  <p className="text-xs text-text-muted mt-1">Key is blurred — click Show to edit</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-text-muted mb-2 uppercase tracking-widest">
+                  Public Key <span className="normal-case font-normal">(optional — auto-derived if omitted)</span>
+                </label>
+                <textarea
+                  value={addPublicKey}
+                  onChange={e => setAddPublicKey(e.target.value)}
+                  rows={2}
+                  placeholder="ssh-ed25519 AAAA..."
+                  className="w-full bg-bg-secondary border border-border-light rounded-xl px-4 py-3 text-xs text-emerald-400 outline-none focus:border-blue-500/50 transition-all font-mono leading-relaxed resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-3 pt-2">
+              <div className="flex items-center space-x-2 text-amber-500/80 flex-1">
+                <AlertTriangle size={13} />
+                <p className="text-xs font-medium">Private keys are encrypted at rest using AES-256-GCM.</p>
+              </div>
+              <button
+                onClick={handleSave}
+                disabled={saving || !addLabel.trim() || !addPrivateKey.trim()}
+                className="flex items-center space-x-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all active:scale-95 shadow-lg shadow-blue-600/20"
+              >
+                {saving ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
+                <span>{saving ? 'Saving...' : 'Save Key'}</span>
+              </button>
             </div>
           </div>
+        )}
 
-          <button
-            onClick={handleGenerate}
-            disabled={generating}
-            className="w-full flex items-center justify-center space-x-3 py-4 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-sm rounded-2xl transition-all active:scale-95 shadow-xl shadow-blue-600/20"
-          >
-            {generating ? <Loader2 size={18} className="animate-spin" /> : <KeyRound size={18} />}
-            <span className="uppercase tracking-widest">{generating ? 'Generating...' : 'Generate Keypair'}</span>
-          </button>
+        {/* Saved Keys List */}
+        <div className="glass-effect border border-border-light rounded-[32px] p-8 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold text-text-primary tracking-tight">Saved Keys</h2>
+            <span className="text-xs text-text-muted font-bold px-3 py-1 bg-bg-tertiary rounded-full border border-border-light">
+              {keys.length} {keys.length === 1 ? 'key' : 'keys'}
+            </span>
+          </div>
+
+          {loadingKeys ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 size={20} className="animate-spin text-text-muted" />
+            </div>
+          ) : keys.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 space-y-3 text-text-muted">
+              <KeyRound size={32} className="opacity-30" />
+              <p className="text-sm font-bold">No SSH keys saved yet</p>
+              <p className="text-xs">Click "Add Key" to get started</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {keys.map(key => (
+                <div
+                  key={key.id}
+                  className="flex items-start justify-between p-4 bg-bg-secondary border border-border-light rounded-2xl hover:border-blue-500/20 transition-all group"
+                >
+                  <div className="flex items-start space-x-3 min-w-0">
+                    <div className="p-2 bg-bg-tertiary rounded-xl border border-border-light mt-0.5 shrink-0">
+                      <KeyRound size={14} className="text-blue-500" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-text-primary truncate">{key.label}</p>
+                      <p className="text-xs text-text-muted font-mono mt-0.5">
+                        MD5:{key.fingerprint}
+                      </p>
+                      <p className="text-xs text-text-muted mt-0.5 truncate opacity-60">
+                        {key.publicKey.length > 60
+                          ? key.publicKey.slice(0, 60) + '…'
+                          : key.publicKey}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2 ml-4 shrink-0">
+                    <button
+                      onClick={() => handleCopy(key)}
+                      className="flex items-center space-x-1.5 px-3 py-1.5 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-muted hover:text-text-primary rounded-xl text-xs font-bold transition-all border border-border-light"
+                    >
+                      {copied === key.id ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                      <span>{copied === key.id ? 'Copied' : 'Copy pub'}</span>
+                    </button>
+                    <button
+                      onClick={() => handleDelete(key.id)}
+                      disabled={deleting === key.id}
+                      className="flex items-center space-x-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl text-xs font-bold transition-all border border-red-500/20 disabled:opacity-50"
+                    >
+                      {deleting === key.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Keys Display */}
-        {generatedKey && (
+        {/* Install to VPS */}
+        {keys.length > 0 && (
           <div className="glass-effect border border-border-light rounded-[32px] p-8 space-y-6">
-            <div className="flex items-center space-x-3 text-amber-500">
-              <AlertTriangle size={16} />
-              <p className="text-xs font-bold">Save your private key now — this is the only time it will be shown.</p>
+            <div className="flex items-center space-x-3">
+              <div className="p-3 bg-bg-secondary rounded-2xl border border-border-light">
+                <Server size={20} className="text-text-muted" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-text-primary tracking-tight">Deploy Public Key to Server</h2>
+                <p className="text-xs text-text-muted mt-0.5">Appends the public key to <code className="font-mono">~/.ssh/authorized_keys</code></p>
+              </div>
             </div>
 
-            {/* Public Key */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-text-secondary uppercase tracking-widest">Public Key</span>
-                <div className="flex space-x-2">
-                  <button onClick={() => handleCopy('public', generatedKey.publicKey)} className="flex items-center space-x-1.5 px-3 py-1.5 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-muted hover:text-text-primary rounded-xl text-xs font-bold transition-all border border-border-light">
-                    {copied === 'public' ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
-                    <span>{copied === 'public' ? 'Copied' : 'Copy'}</span>
-                  </button>
-                  <button onClick={() => handleDownload('public', generatedKey.publicKey)} className="flex items-center space-x-1.5 px-3 py-1.5 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-muted hover:text-text-primary rounded-xl text-xs font-bold transition-all border border-border-light">
-                    <Download size={12} /><span>.pub</span>
-                  </button>
+            {connectedVps.length === 0 ? (
+              <p className="text-xs text-text-muted py-2">No connected servers. Connect a VPS from the Dashboard first.</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-text-muted mb-2 uppercase tracking-widest">Select Key</label>
+                  <div className="relative">
+                    <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+                    <select
+                      value={installKeyId}
+                      onChange={e => setInstallKeyId(e.target.value)}
+                      className="w-full appearance-none bg-bg-secondary border border-border-light rounded-xl px-4 py-3 text-xs text-text-primary outline-none focus:border-blue-500/50 transition-all font-bold cursor-pointer"
+                    >
+                      <option value="">— pick a key —</option>
+                      {keys.map(k => (
+                        <option key={k.id} value={k.id}>{k.label}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
-              <pre className="bg-bg-secondary border border-border-light rounded-2xl p-4 text-xs text-emerald-400 font-mono break-all whitespace-pre-wrap select-all leading-relaxed">
-                {generatedKey.publicKey}
-              </pre>
-            </div>
 
-            {/* Private Key */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-text-secondary uppercase tracking-widest">Private Key</span>
-                <div className="flex space-x-2">
-                  <button onClick={() => handleCopy('private', generatedKey.privateKey)} className="flex items-center space-x-1.5 px-3 py-1.5 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-muted hover:text-text-primary rounded-xl text-xs font-bold transition-all border border-border-light">
-                    {copied === 'private' ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
-                    <span>{copied === 'private' ? 'Copied' : 'Copy'}</span>
-                  </button>
-                  <button onClick={() => handleDownload('private', generatedKey.privateKey)} className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${privateDownloaded ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 'bg-blue-600 hover:bg-blue-500 border-blue-500 text-white shadow-lg shadow-blue-600/20'}`}>
-                    {privateDownloaded ? <Check size={12} /> : <Download size={12} />}
-                    <span>{privateDownloaded ? 'Downloaded' : 'Download .pem'}</span>
-                  </button>
+                <div>
+                  <label className="block text-xs font-bold text-text-muted mb-2 uppercase tracking-widest">Select Server</label>
+                  <div className="relative">
+                    <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+                    <select
+                      value={installVpsId}
+                      onChange={e => setInstallVpsId(e.target.value)}
+                      className="w-full appearance-none bg-bg-secondary border border-border-light rounded-xl px-4 py-3 text-xs text-text-primary outline-none focus:border-blue-500/50 transition-all font-bold cursor-pointer"
+                    >
+                      <option value="">— pick a server —</option>
+                      {connectedVps.map(v => (
+                        <option key={v.id} value={v.id}>{v.name} ({v.host})</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
-              <pre className="bg-bg-secondary border border-red-500/20 rounded-2xl p-4 text-xs text-red-400 font-mono break-all whitespace-pre-wrap select-all leading-relaxed">
-                {generatedKey.privateKey}
-              </pre>
-            </div>
 
-            {/* Install to VPS */}
-            <div className="border-t border-border-light pt-6 space-y-4">
-              <div className="flex items-center space-x-2">
-                <Server size={16} className="text-text-muted" />
-                <h3 className="text-sm font-bold text-text-primary">Deploy to Server</h3>
-              </div>
-              <p className="text-xs text-text-muted">The target VPS must already be connected in the Dashboard.</p>
-              <div className="flex space-x-3">
-                <div className="relative flex-1">
-                  <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
-                  <input
-                    type="text"
-                    placeholder="Paste VPS ID (from Dashboard URL)"
-                    value={installVpsId}
-                    onChange={e => setInstallVpsId(e.target.value)}
-                    className="w-full bg-bg-secondary border border-border-light rounded-xl px-4 py-3 text-xs text-text-primary outline-none focus:border-blue-500/50 transition-all font-mono"
-                  />
+                <div className="col-span-2 flex justify-end">
+                  <button
+                    onClick={handleInstall}
+                    disabled={installing || !installKeyId || !installVpsId}
+                    className="flex items-center space-x-2 px-6 py-3 bg-bg-secondary hover:bg-bg-tertiary disabled:opacity-50 text-text-primary font-bold text-xs uppercase tracking-widest rounded-xl transition-all border border-border-light active:scale-95"
+                  >
+                    {installing ? <Loader2 size={14} className="animate-spin" /> : <Server size={14} />}
+                    <span>{installing ? 'Installing...' : 'Install Key'}</span>
+                  </button>
                 </div>
-                <button
-                  onClick={handleInstall}
-                  disabled={installing || !installVpsId.trim()}
-                  className="flex items-center space-x-2 px-6 py-3 bg-bg-secondary hover:bg-bg-tertiary disabled:opacity-50 text-text-primary font-bold text-xs rounded-xl transition-all border border-border-light"
-                >
-                  {installing ? <Loader2 size={14} className="animate-spin" /> : <Server size={14} />}
-                  <span className="uppercase tracking-widest">Install</span>
-                </button>
               </div>
-              {installStatus && (
-                <div className={`p-3 rounded-xl border text-xs font-bold ${installStatus.ok ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
-                  {installStatus.msg}
-                </div>
-              )}
-            </div>
+            )}
           </div>
         )}
       </div>
