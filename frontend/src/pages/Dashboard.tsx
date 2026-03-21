@@ -143,7 +143,7 @@ const Dashboard: React.FC = () => {
   );
 
   return (
-    <div className="p-8 max-w-[1600px] mx-auto space-y-10 animate-in fade-in duration-500">
+    <div className="p-8 max-w-[1600px] mx-auto space-y-10">
       {/* Page Header */}
       <div>
         <h1 className="text-2xl font-black text-slate-900 tracking-tight mb-1">Overview</h1>
