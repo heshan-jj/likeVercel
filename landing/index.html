@@ -180,19 +180,25 @@
         </div>
     </section>
 
-    <section class="deploy-strip">
+
+
+    <section id="get-started" class="cta">
         <div class="container">
-            <div class="deploy-card">
-                <div class="deploy-info">
-                    <div class="deploy-badge">QUICK DEPLOY</div>
-                    <h3>Run in one command</h3>
-                    <p>Launch the laboratory suite instantly using Docker Compose.</p>
+            <div class="cta-card">
+                <div class="cta-content">
+                    <div class="badge">Open Source</div>
+                    <h2>Ready to take command?</h2>
+                    <p>Launch your private orchestration suite instantly using Docker Compose.</p>
                 </div>
-                <div class="deploy-code-box">
-                    <pre><code>git clone https://github.com/hheshanj/likeVercel && cd likeVercel && docker compose up -d</code></pre>
-                    <button class="copy-button" onclick="copyDeployCommand()" id="copyBtn">
-                        <i data-lucide="copy"></i>
-                    </button>
+                
+                <div class="deploy-box">
+                    <div class="deploy-label">QUICK DEPLOY</div>
+                    <div class="deploy-code-box">
+                        <pre><code>git clone https://github.com/hheshanj/likeVercel && cd likeVercel && docker compose up -d</code></pre>
+                        <button class="copy-button" onclick="copyDeployCommand()" id="copyBtn">
+                            <i data-lucide="copy"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -223,14 +229,6 @@
                     <p>Security is our priority. We use AES-GCM encryption for credential storage, implement strict input sanitization, and follow a single-admin registration policy for safety.</p>
                 </div>
             </div>
-        </div>
-    </section>
-
-    <section class="cta">
-        <div class="container">
-            <h2>Ready to take command?</h2>
-            <p>Deploy likeVercel and start orchestrating your infrastructure today.</p>
-            <a href="/frontend" class="btn btn-primary btn-lg">Get Started Free</a>
         </div>
     </section>
 
