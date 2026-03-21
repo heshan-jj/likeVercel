@@ -1,4 +1,4 @@
-import { Client, ConnectConfig, ClientChannel } from 'ssh2';
+import { Client, ConnectConfig, ClientChannel, SFTPWrapper } from 'ssh2';
 import { EventEmitter } from 'events';
 import { decrypt } from '../utils/crypto';
 
@@ -217,6 +217,20 @@ export class SSHManager extends EventEmitter {
           resolve(stream);
         }
       );
+    });
+  }
+
+  async getSftp(vpsId: string): Promise<SFTPWrapper> {
+    const client = this.getConnection(vpsId);
+    if (!client) {
+      throw new Error(`No active connection for VPS ${vpsId}`);
+    }
+
+    return new Promise((resolve, reject) => {
+      client.sftp((err, sftp) => {
+        if (err) return reject(err);
+        resolve(sftp);
+      });
     });
   }
 

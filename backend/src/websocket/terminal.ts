@@ -118,7 +118,6 @@ export function setupTerminalWebSocket(io: SocketIOServer): void {
 
     // Receive input from client
     socket.on('terminal-input', async (data: string | Buffer) => {
-      console.log(`[WS] Received terminal-input: ${JSON.stringify(data)}, activeShell: ${!!activeShell}, activeVpsId: ${activeVpsId}, userId: ${socket.userId}`);
       if (activeShell && activeVpsId && socket.userId) {
         // Optional: Periodic ownership re-verification (Fix 20)
         // For performance, we trust the established stream unless VPS is deleted/transferred

@@ -46,13 +46,13 @@ const Settings: React.FC = () => {
           {feedback.message}
         </div>
       )}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-black/10 pb-8">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-border-light pb-8">
         <div>
            <div className="flex items-center space-x-2 text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">
              <SettingsIcon size={14} />
              <span>System Preferences</span>
            </div>
-           <h1 className="text-4xl font-bold text-text-primary tracking-tighter">Authority Settings</h1>
+           <h1 className="text-4xl font-bold text-text-primary tracking-tighter">Account Settings</h1>
         </div>
         <button 
           onClick={logout}
@@ -96,8 +96,9 @@ const Settings: React.FC = () => {
           </div>
 
           <button 
-            onClick={() => setFeedback({ type: 'error', message: 'Identity protocol editing is not yet implemented' })}
-            className="w-full py-4 bg-bg-primary hover:bg-bg-tertiary transition-all text-sm font-bold rounded-2xl border border-black/5 active:scale-[0.98]"
+            disabled
+            title="Coming soon"
+            className="w-full py-4 bg-bg-primary transition-all text-sm font-bold rounded-2xl border border-border-light opacity-50 cursor-not-allowed"
           >
             Edit Identity Protocol
           </button>
@@ -113,14 +114,14 @@ const Settings: React.FC = () => {
               <div className="space-y-3">
                  <button 
                   onClick={handleRotateToken}
-                  className="w-full flex items-center justify-between p-5 bg-white border border-black/5 rounded-2xl hover:bg-bg-primary transition-all group"
+                  className="w-full flex items-center justify-between p-5 bg-bg-secondary border border-border-light rounded-2xl hover:bg-bg-primary transition-all group"
                  >
                     <span className="text-xs font-bold text-text-primary">Rotate Access Token</span>
                     <Lock size={16} className="text-text-muted group-hover:text-blue-500 transition-colors" />
                  </button>
                  <button 
                   onClick={() => setFeedback({ type: 'error', message: 'SSH key management is not yet implemented' })}
-                  className="w-full flex items-center justify-between p-5 bg-white border border-black/5 rounded-2xl hover:bg-bg-primary transition-all group"
+                  className="w-full flex items-center justify-between p-5 bg-bg-secondary border border-border-light rounded-2xl hover:bg-bg-primary transition-all group"
                  >
                     <span className="text-xs font-bold text-text-primary">Manage Authorized SSH Keys</span>
                     <Fingerprint size={16} className="text-text-muted group-hover:text-blue-500 transition-colors" />

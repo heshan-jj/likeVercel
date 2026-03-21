@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  Terminal as TerminalIcon, 
-  Folder, 
-  Activity, 
-  ExternalLink, 
+import {
+  ArrowLeft,
+  Terminal as TerminalIcon,
+  Folder,
+  Activity,
+  ExternalLink,
   Globe2,
   Settings as SettingsIcon,
+  PlugZap,
   Zap,
   Server
 } from 'lucide-react';
@@ -17,6 +18,26 @@ import FileManager from '../components/VPS/FileManager';
 import ProcessManager from '../components/VPS/ProcessManager';
 import PortManager from '../components/VPS/PortManager';
 import ProxyManager from '../components/VPS/ProxyManager';
+import ResourceChart from '../components/VPS/ResourceChart';
+
+// Shared offline state shown on all tabs when VPS is disconnected
+const OfflineState: React.FC<{ label: string; onNavigate: () => void }> = ({ label, onNavigate }) => (
+  <div className="glass-effect rounded-[32px] p-16 text-center border border-border-light flex flex-col items-center space-y-6 h-full justify-center">
+    <div className="p-5 bg-bg-secondary rounded-full border border-border-light">
+      <PlugZap size={36} className="text-text-muted/30" />
+    </div>
+    <div>
+      <p className="text-sm font-bold text-text-primary mb-2">{label}</p>
+      <p className="text-xs text-text-muted font-medium">This VPS must be connected to access this feature.</p>
+    </div>
+    <button
+      onClick={onNavigate}
+      className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all active:scale-95 shadow-xl shadow-blue-600/20"
+    >
+      Go to Dashboard to Connect
+    </button>
+  </div>
+);
 
 type Tab = 'terminal' | 'files' | 'processes' | 'ports' | 'domains';
 
@@ -35,6 +56,7 @@ const VpsDetail: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [profile, setProfile] = useState<VpsProfile | null>(null);
+  const [specs, setSpecs] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   
   const queryParams = new URLSearchParams(location.search);
@@ -48,10 +70,19 @@ const VpsDetail: React.FC = () => {
       try {
         const { data } = await api.get(`/vps/${id}`);
         setProfile(data.profile);
+        if (data.profile.isConnected) fetchSpecs();
       } catch (err) {
         navigate('/dashboard');
       } finally {
         setLoading(false);
+      }
+    };
+    const fetchSpecs = async () => {
+      try {
+        const { data } = await api.get(`/vps/${id}/specs`);
+        setSpecs(data);
+      } catch (err) {
+        console.error('Failed to fetch specs', err);
       }
     };
     if (id) fetchProfile();
@@ -77,7 +108,7 @@ const VpsDetail: React.FC = () => {
   return (
     <div className="flex flex-col h-full bg-bg-primary">
       {/* Detail Header */}
-      <div className="px-8 py-6 border-b border-black/30 bg-bg-secondary/20">
+      <div className="px-8 py-6 border-b border-border-light bg-bg-secondary/20">
         <button 
           onClick={() => navigate('/dashboard')}
           className="flex items-center space-x-2 text-text-secondary hover:text-text-primary transition-colors mb-5 group text-xs font-bold tracking-tight"
@@ -104,14 +135,20 @@ const VpsDetail: React.FC = () => {
                   </span>
                 )}
               </div>
-              <p className="mt-1 text-text-muted font-mono text-xs font-bold tracking-tight">{profile.username}@{profile.host}:{profile.port}</p>
+              <p className="mt-1 text-text-muted font-mono text-xs font-bold tracking-tight">
+                {profile.username}@{profile.host}:{profile.port} 
+                {specs?.region && <span className="ml-3 text-blue-500 opacity-80 uppercase tracking-widest">• {specs.region}</span>}
+              </p>
             </div>
           </div>
           
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-4">
+            {profile.isConnected && (
+              <ResourceChart vpsId={profile.id} isConnected={profile.isConnected} compact={true} />
+            )}
             <button 
               onClick={() => navigate(`/vps/${id}/edit`)}
-              className="flex items-center space-x-2 px-6 py-3 bg-bg-secondary hover:bg-bg-tertiary text-text-primary font-bold text-xs rounded-xl border border-black/10 transition-all shadow-sm active:scale-95 group h-[42px]"
+              className="flex items-center space-x-2 px-6 py-3 bg-bg-secondary hover:bg-bg-tertiary text-text-primary font-bold text-xs rounded-xl border border-border-light transition-all shadow-sm active:scale-95 group h-[42px]"
             >
               <SettingsIcon size={16} className="text-text-muted group-hover:text-blue-500 transition-colors" />
               <span>Edit Settings</span>
@@ -122,7 +159,7 @@ const VpsDetail: React.FC = () => {
 
       {/* Main Tab Area */}
       <div className="flex-1 flex flex-col min-h-0">
-        <div className="px-8 border-b border-black/10 bg-bg-secondary/10 flex space-x-8">
+        <div className="px-8 border-b border-border-light bg-bg-secondary/10 flex space-x-8 overflow-x-auto no-scrollbar">
           {tabs.map(tab => (
             <button
               key={tab.id}
@@ -158,8 +195,12 @@ const VpsDetail: React.FC = () => {
                   </button>
                 </div>
               ) : (
-                <div className="h-full rounded-2xl overflow-hidden border border-border-light shadow-2xl bg-black">
-                  <XtermTerminal vpsId={profile.id} />
+                <div className="h-full rounded-2xl overflow-hidden border border-border-light shadow-2xl">
+                  <XtermTerminal
+                    vpsId={profile.id}
+                    vpsHost={profile.host}
+                    vpsUsername={profile.username}
+                  />
                 </div>
               )}
             </div>
@@ -169,9 +210,7 @@ const VpsDetail: React.FC = () => {
                 {profile.isConnected ? (
                   <FileManager vpsId={profile.id} />
                 ) : (
-                  <div className="h-full flex items-center justify-center text-text-muted glass-effect rounded-[32px] border border-border-light font-bold text-xs tracking-wide">
-                    Storage Access Restricted
-                  </div>
+                  <OfflineState label="Storage Access Restricted" onNavigate={() => navigate('/dashboard')} />
                 )}
               </div>
             )}
@@ -181,9 +220,7 @@ const VpsDetail: React.FC = () => {
                 {profile.isConnected ? (
                   <ProcessManager vpsId={profile.id} />
                 ) : (
-                  <div className="glass-effect rounded-[32px] p-20 text-center text-text-muted border border-border-light font-bold text-xs tracking-wide">
-                     Workload manager dormant.
-                  </div>
+                  <OfflineState label="Workload Manager Dormant" onNavigate={() => navigate('/dashboard')} />
                 )}
               </div>
             )}
@@ -193,9 +230,7 @@ const VpsDetail: React.FC = () => {
                 {profile.isConnected ? (
                   <PortManager vpsId={profile.id} />
                 ) : (
-                  <div className="glass-effect rounded-[32px] p-20 text-center text-text-muted border border-border-light font-bold text-xs tracking-wide h-full flex items-center justify-center">
-                     Core connectivity offline.
-                  </div>
+                  <OfflineState label="Core Connectivity Offline" onNavigate={() => navigate('/dashboard')} />
                 )}
               </div>
             )}
@@ -205,9 +240,7 @@ const VpsDetail: React.FC = () => {
                 {profile.isConnected ? (
                   <ProxyManager vpsId={profile.id} />
                 ) : (
-                  <div className="glass-effect rounded-[32px] p-20 text-center text-text-muted border border-border-light font-bold text-xs tracking-wide h-full flex items-center justify-center">
-                     Proxy service unavailable.
-                  </div>
+                  <OfflineState label="Proxy Service Unavailable" onNavigate={() => navigate('/dashboard')} />
                 )}
               </div>
             )}

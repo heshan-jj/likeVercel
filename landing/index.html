@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>likeVercel | Infrastructure Orchestration at Laboratory Scale</title>
+    <meta name="description" content="A robust, full-stack management suite for remote servers. Manage nodes, terminal, files, and deployments from a single interface.">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="grid-overlay"></div>
+
+    <nav class="navbar">
+        <div class="container">
+            <div class="logo">
+                <div class="icon-grad-blue">
+                    <i data-lucide="box" size="20"></i>
+                </div>
+                <span class="logo-text">likeVercel</span>
+            </div>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#security">Security</a>
+                <a href="#faq">FAQ</a>
+                <a href="https://github.com/hheshanj/likeVercel" target="_blank" class="github-link">
+                    <i data-lucide="github" style="width: 16px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i>
+                    GitHub
+                </a>
+                <a href="/frontend" class="btn btn-primary">Get Started</a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="badge">Laboratory Grade</div>
+                <h1>Infrastructure Orchestration at <span class="gradient-text">Laboratory Scale</span></h1>
+                <p>A robust, full-stack management suite for remote servers. Orchestrate your infrastructure with professional-grade precision and real-time telemetry.</p>
+                <div class="hero-actions">
+                    <a href="/frontend" class="btn btn-primary btn-lg">Deploy Now</a>
+                    <a href="https://github.com/hheshanj/likeVercel" target="_blank" class="btn btn-secondary btn-lg">
+                        <i data-lucide="github" style="width: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+                        View on GitHub
+                    </a>
+                </div>
+            </div>
+            <div class="hero-preview">
+                <div class="app-window">
+                    <div class="app-sidebar">
+                        <div class="logo">
+                            <div class="icon-grad-blue small">
+                                <i data-lucide="box" style="width: 16px;"></i>
+                            </div>
+                            <span class="logo-text">likeVercel</span>
+                        </div>
+                        <div class="sidebar-sub">INFRASTRUCTURE V2.1</div>
+                        <div class="new-instance-btn">
+                            <i data-lucide="plus" style="width: 14px;"></i>
+                            <span>New Instance</span>
+                        </div>
+                        <div class="sidebar-nav">
+                            <div class="nav-item active">
+                                <i data-lucide="layout-dashboard" style="width: 18px;"></i>
+                                <span>Dashboard</span>
+                            </div>
+                            <div class="nav-item">
+                                <i data-lucide="key" style="width: 18px;"></i>
+                                <span>SSH Keys</span>
+                            </div>
+                            <div class="nav-item">
+                                <i data-lucide="settings" style="width: 18px;"></i>
+                                <span>Settings</span>
+                            </div>
+                        </div>
+                        <div class="sidebar-user">
+                            <div class="user-avatar">
+                                <i data-lucide="user" style="width: 16px;"></i>
+                            </div>
+                            <div class="user-info">
+                                <div class="user-name">Test User</div>
+                                <div class="user-role">Admin Access</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="app-main">
+                        <div class="main-header">
+                            <h2>Overview</h2>
+                            <p>Real-time status of your global infrastructure clusters.</p>
+                        </div>
+                        <div class="metrics-stack">
+                            <div class="real-metric-card">
+                                <div class="card-header">
+                                    <div class="circle-icon blue"><i data-lucide="server" style="width: 18px;"></i></div>
+                                    <span class="corner-lab">ALL REGIONS</span>
+                                </div>
+                                <div class="card-val">0</div>
+                                <div class="card-lab">TOTAL SERVERS</div>
+                            </div>
+                            <div class="real-metric-card">
+                                <div class="card-header">
+                                    <div class="circle-icon emerald"><i data-lucide="zap" style="width: 18px;"></i></div>
+                                    <span class="corner-lab">ACTIVE</span>
+                                </div>
+                                <div class="card-val">0</div>
+                                <div class="card-lab">ONLINE NODES</div>
+                            </div>
+                            <div class="real-metric-card">
+                                <div class="card-header">
+                                    <div class="circle-icon rose"><i data-lucide="x" style="width: 18px;"></i></div>
+                                    <span class="corner-lab">CRITICAL</span>
+                                </div>
+                                <div class="card-val">0</div>
+                                <div class="card-lab">OFFLINE NODES</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <section id="features" class="features">
+        <div class="container">
+            <div class="section-header">
+                <h2>The Kinetic Suite</h2>
+                <p>Every tool you need to manage your fleet with surgical precision.</p>
+            </div>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <i data-lucide="layout-dashboard"></i>
+                    <h3>Unified Dashboard</h3>
+                    <p>Visualize your overall server health. Real-time status indicators and fast access to every node.</p>
+                </div>
+                <div class="feature-card">
+                    <i data-lucide="terminal"></i>
+                    <h3>Persistent Terminal</h3>
+                    <p>A high-performance, browser-aware SSH client. Connections stay alive even when you swap tabs.</p>
+                </div>
+                <div class="feature-card">
+                    <i data-lucide="folder-tree"></i>
+                    <h3>SFTP Explorer</h3>
+                    <p>Visual file management with drag-and-drop uploads. Browse, rename, and move files effortlessly.</p>
+                </div>
+                <div class="feature-card">
+                    <i data-lucide="zap"></i>
+                    <h3>PM2 Orchestrator</h3>
+                    <p>Graphical layer for application management. Auto-detect projects and view live logs instantly.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="security" class="security">
+        <div class="container">
+            <div class="security-card glass-card">
+                <div class="security-content">
+                    <div class="badge badge-error">Military Grade</div>
+                    <h2>Data Integrity & Security</h2>
+                    <p>likeVercel is designed with a zero-trust mindset for local orchestration.</p>
+                    <ul class="security-list">
+                        <li><i data-lucide="shield-check"></i> <strong>AES-256-GCM:</strong> Credentials encrypted before storage.</li>
+                        <li><i data-lucide="lock"></i> <strong>Single Admin Lock:</strong> Exclusive perimeter access security.</li>
+                        <li><i data-lucide="database"></i> <strong>Local Metadata:</strong> No metrics ever leave your network.</li>
+                    </ul>
+                </div>
+                <div class="security-visual">
+                    <i data-lucide="shield" class="shield-icon"></i>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+
+    <section id="get-started" class="cta">
+        <div class="container">
+            <div class="cta-card">
+                <div class="cta-content">
+                    <div class="badge">Open Source</div>
+                    <h2>Ready to take command?</h2>
+                    <p>Launch your private orchestration suite instantly using Docker Compose.</p>
+                </div>
+                
+                <div class="deploy-box">
+                    <div class="deploy-label">QUICK DEPLOY</div>
+                    <div class="deploy-code-box">
+                        <pre><code>git clone https://github.com/hheshanj/likeVercel && cd likeVercel && docker compose up -d</code></pre>
+                        <button class="copy-button" onclick="copyDeployCommand()" id="copyBtn">
+                            <i data-lucide="copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="faq" class="faq">
+        <div class="container text-center">
+            <h2 class="section-title">Frequently Asked Questions</h2>
+            <div class="faq-grid">
+                <div class="faq-item">
+                    <h3>What is likeVercel?</h3>
+                    <p>likeVercel is a lightweight VPS management suite designed for individual developers. It provides a graphical dashboard for managing Node.js processes, static sites, and server configurations from a single interface.</p>
+                </div>
+                <div class="faq-item">
+                    <h3>Does it require a special OS?</h3>
+                    <p>No, it works with any Ubuntu or Debian-based VPS that offers standard SSH access. No agent installation is required on your remote servers.</p>
+                </div>
+                <div class="faq-item">
+                    <h3>Is it open source?</h3>
+                    <p>Yes, likeVercel is fully open source. You can view the source code and contribute on our <a href="https://github.com/hheshanj/likeVercel" target="_blank">GitHub repository</a>.</p>
+                </div>
+                <div class="faq-item">
+                    <h3>Can I host multiple apps?</h3>
+                    <p>Yes, likeVercel manages multiple PM2 processes and automatically handles Nginx reverse proxy configurations for each of your deployments.</p>
+                </div>
+                <div class="faq-item">
+                    <h3>How secure is it?</h3>
+                    <p>Security is our priority. We use AES-GCM encryption for credential storage, implement strict input sanitization, and follow a single-admin registration policy for safety.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="footer-top">
+                <div class="logo">
+                    <div class="icon-grad-blue">
+                        <i data-lucide="box" size="20"></i>
+                    </div>
+                    <span class="logo-text">likeVercel</span>
+                </div>
+                <p>Professional server management. Laboratory precision.</p>
+            </div>
+            <div class="footer-bottom">
+                <p>© 2026 likeVercel. Created by <a href="https://github.com/hheshanj" target="_blank">Heshan Jayakody</a>.</p>
+                <div class="footer-links">
+                    <a href="#">Documentation</a>
+                    <a href="https://github.com/hheshanj/likeVercel" target="_blank">GitHub</a>
+                    <a href="#">Twitter</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        function copyDeployCommand() {
+            const command = "git clone https://github.com/hheshanj/likeVercel && cd likeVercel && docker compose up -d";
+            navigator.clipboard.writeText(command);
+            
+            const btn = document.getElementById('copyBtn');
+            const icon = btn.querySelector('i');
+            
+            // Success state feedback
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="check"></i>';
+            lucide.createIcons();
+            btn.style.borderColor = "#3b82f6";
+            btn.style.color = "#3b82f6";
+            
+            setTimeout(() => {
+                btn.innerHTML = originalHTML;
+                lucide.createIcons();
+                btn.style.borderColor = "rgba(255, 255, 255, 0.1)";
+                btn.style.color = "white";
+            }, 2000);
+        }
+
+        // Smooth scroll for nav links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>

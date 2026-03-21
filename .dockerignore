@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# Build outputs
+backend/dist/
+frontend/dist/
+
+# Database files — persisted via Docker volume instead
+backend/prisma/*.db
+backend/prisma/*.db-journal
+
+# Environment files — never bake secrets into the image
+.env
+backend/.env
+
+# Logs & OS noise
+*.log
+.DS_Store
+Thumbs.db

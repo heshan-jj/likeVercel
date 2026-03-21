@@ -1,90 +1,82 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { 
+  LayoutDashboard, 
+  Key, 
   Settings, 
-  LogOut, 
-  Zap,
-  LayoutDashboard
+  Plus,
+  Box,
+  User
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const Sidebar: React.FC = () => {
-  const { user, logout } = useAuth();
-  
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const navItems = [
+    { icon: <LayoutDashboard size={20} />, label: 'Dashboard', path: '/dashboard' },
+    { icon: <Key size={20} />, label: 'SSH Keys', path: '/keys' },
+    { icon: <Settings size={20} />, label: 'Settings', path: '/settings' },
+  ];
+
   return (
-    <aside className="w-64 h-full flex-shrink-0 flex flex-col border-r border-black/30 bg-bg-primary transition-all duration-300 shadow-2xl z-20" id="sidebar">
+    <div className="w-64 h-full bg-white border-r border-slate-200 flex flex-col z-40 shrink-0">
       {/* Brand Header */}
-      <div className="p-8 pb-4 flex items-center space-x-3">
-        <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-600/20">
-          <Zap size={24} className="text-white" fill="currentColor" />
+      <div className="p-8 pb-6">
+        <div className="flex items-center space-x-3 mb-1 cursor-pointer group" onClick={() => navigate('/dashboard')}>
+          <div className="p-2 icon-grad-blue rounded-lg text-white shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform">
+            <Box size={20} />
+          </div>
+          <span className="text-xl font-black tracking-tighter text-slate-900 bg-clip-text">likeVercel</span>
         </div>
-        <div className="flex flex-col">
-          <span className="text-xl font-bold tracking-tighter text-text-primary">likeVercel</span>
-          <span className="text-xs font-bold text-text-muted tracking-[0.1em] -mt-1 ml-1 uppercase opacity-60">v2.0 Beta</span>
-        </div>
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Infrastructure V2.1</p>
       </div>
 
-      <div className="px-6 py-4">
-        <div className="h-px w-full bg-black/40" />
+      {/* Action Button */}
+      <div className="px-6 mb-8">
+        <button 
+          onClick={() => navigate('/vps/add')}
+          className="w-full py-3 icon-grad-blue hover:opacity-90 text-white rounded-xl text-xs font-bold shadow-xl shadow-blue-600/20 transition-all active:scale-95 flex items-center justify-center space-x-2 border border-blue-400/20"
+        >
+          <Plus size={16} />
+          <span>New Instance</span>
+        </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 space-y-1 overflow-y-auto custom-scrollbar py-2">
-        <p className="px-3 text-xs font-bold text-text-muted uppercase tracking-[0.1em] mb-3 mt-4 opacity-70">System Menu</p>
-        
-        <NavLink 
-          to="/dashboard" 
-          className={({ isActive }) => `group flex items-center px-4 py-2.5 text-sm font-bold rounded-xl transition-all ${
-            isActive 
-            ? 'sidebar-active text-blue-500 bg-blue-500/10' 
-            : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary shadow-sm'
-          }`}
-        >
-          <LayoutDashboard className="mr-3 h-4 w-4" />
-          <span>Dashboard</span>
-        </NavLink>
-
-        <div className="py-6">
-           <p className="px-3 text-xs font-bold text-text-muted uppercase tracking-[0.1em] mb-3 opacity-70">General</p>
-           
-            <NavLink 
-              to="/settings" 
-              className={({ isActive }) => `group flex items-center px-4 py-2.5 text-sm font-bold rounded-xl transition-all ${
+      <nav className="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar">
+        {navItems.map((item) => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            className={({ isActive }) => 
+              `flex items-center space-x-3 px-4 py-3 rounded-xl transition-all text-sm font-bold ${
                 isActive 
-                ? 'sidebar-active text-blue-500 bg-blue-500/10' 
-                : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary shadow-sm'
-              }`}
-            >
-              <Settings className="mr-3 h-4 w-4" />
-              <span>Settings</span>
-            </NavLink>
-        </div>
+                ? 'bg-blue-50 text-blue-600 shadow-sm border border-blue-100/50 shadow-blue-500/5' 
+                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+              }`
+            }
+          >
+            {item.icon}
+            <span>{item.label}</span>
+          </NavLink>
+        ))}
       </nav>
 
-      {/* User Footer Area */}
-      <div className="p-6 border-t border-black/20 bg-bg-secondary/20">
-        <div className="flex items-center space-x-4 mb-5 group cursor-pointer">
-          <div className="relative">
-             <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center font-bold text-white text-lg shadow-lg group-hover:scale-105 transition-transform">
-               {user?.name?.charAt(0).toUpperCase() || 'U'}
-             </div>
-             <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 bg-emerald-500 rounded-full border-2 border-bg-primary shadow-emerald-500/50 shadow-lg"></div>
+      {/* User Support & Profile */}
+      <div className="p-4 mt-auto border-t border-slate-100 bg-slate-50/50">
+        <div className="flex items-center space-x-3 p-3 bg-white border border-slate-200 rounded-2xl shadow-sm">
+          <div className="w-9 h-9 bg-orange-100 rounded-xl flex items-center justify-center text-orange-600">
+            <User size={18} />
           </div>
-          <div className="overflow-hidden">
-            <p className="text-sm font-bold text-text-primary truncate">{user?.name || 'Authorized User'}</p>
-            <p className="text-[11px] text-text-muted truncate font-bold tracking-tight opacity-70">{user?.email || 'unidentified_identity'}</p>
+          <div className="flex-1 min-w-0 text-left">
+            <p className="text-xs font-bold text-slate-900 truncate">{user?.name || 'Admin'}</p>
+            <p className="text-[10px] text-slate-400 font-medium">Admin Access</p>
           </div>
         </div>
-        
-        <button 
-          onClick={logout} 
-          className="w-full flex items-center justify-center space-x-2 px-4 py-2.5 text-xs font-bold text-text-secondary bg-bg-tertiary/40 hover:bg-red-500/10 hover:text-red-500 rounded-xl transition-all active:scale-95"
-        >
-          <LogOut size={16} />
-          <span>Logout</span>
-        </button>
       </div>
-    </aside>
+    </div>
   );
 };
 

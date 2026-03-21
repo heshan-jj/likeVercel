@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Loader2, Save, Terminal, Shield, Trash2 } from 'lucide-react';
+import { useNavigate, useParams, Link } from 'react-router-dom';
+import { ArrowLeft, Loader2, Save, Terminal, Shield, Trash2, KeyRound, ChevronDown } from 'lucide-react';
 import api from '../utils/api';
 
 const EditVps: React.FC = () => {
@@ -20,6 +20,11 @@ const EditVps: React.FC = () => {
     privateKey: '',
     passphrase: ''
   });
+
+  /* Saved keys */
+  const [savedKeys, setSavedKeys] = useState<{ id: string; label: string; fingerprint: string }[]>([]);
+  const [selectedKeyId, setSelectedKeyId] = useState('');
+  const [loadingKey, setLoadingKey] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -44,6 +49,20 @@ const EditVps: React.FC = () => {
     };
     fetchProfile();
   }, [id]);
+
+  useEffect(() => {
+    api.get('/keys').then(({ data }) => setSavedKeys(data.keys)).catch(() => {});
+  }, []);
+
+  const handleSelectKey = async (keyId: string) => {
+    setSelectedKeyId(keyId);
+    if (!keyId) { setFormData(prev => ({ ...prev, privateKey: '' })); return; }
+    setLoadingKey(true);
+    try {
+      const { data } = await api.post(`/keys/${keyId}/use`);
+      setFormData(prev => ({ ...prev, privateKey: data.privateKey }));
+    } catch {} finally { setLoadingKey(false); }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -125,7 +144,7 @@ const EditVps: React.FC = () => {
         </button>
       </div>
 
-      <div className="glass-effect rounded-[32px] overflow-hidden p-8 border border-black/10 shadow-2xl relative">
+      <div className="glass-effect rounded-[32px] overflow-hidden p-8 border border-border-light shadow-2xl relative">
         <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
           <Terminal size={120} className="text-text-primary" />
         </div>
@@ -145,7 +164,7 @@ const EditVps: React.FC = () => {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full bg-bg-primary/50 border border-black/10 focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-8 focus:ring-blue-500/5 font-bold" 
+                className="w-full bg-bg-primary/50 border border-border-light focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-8 focus:ring-blue-500/5 font-bold" 
                 placeholder="e.g. Production Web Server" 
                 required 
               />
@@ -157,7 +176,7 @@ const EditVps: React.FC = () => {
                 name="host"
                 value={formData.host}
                 onChange={handleChange}
-                className="w-full bg-bg-primary/50 border border-black/10 focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-8 focus:ring-blue-500/5 font-mono text-sm" 
+                className="w-full bg-bg-primary/50 border border-border-light focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-8 focus:ring-blue-500/5 font-mono text-sm" 
                 placeholder="192.168.1.100" 
                 required 
               />
@@ -169,7 +188,7 @@ const EditVps: React.FC = () => {
                 type="number"
                 value={formData.port}
                 onChange={handleChange}
-                className="w-full bg-bg-primary/50 border border-black/10 focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-8 focus:ring-blue-500/5 font-mono text-sm" 
+                className="w-full bg-bg-primary/50 border border-border-light focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-8 focus:ring-blue-500/5 font-mono text-sm" 
                 required 
               />
             </div>
@@ -180,7 +199,7 @@ const EditVps: React.FC = () => {
                 name="username"
                 value={formData.username}
                 onChange={handleChange}
-                className="w-full bg-bg-primary/50 border border-black/10 focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-8 focus:ring-blue-500/5 font-bold" 
+                className="w-full bg-bg-primary/50 border border-border-light focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-8 focus:ring-blue-500/5 font-bold" 
                 placeholder="root" 
                 required 
               />
@@ -193,7 +212,7 @@ const EditVps: React.FC = () => {
                   className={`cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-center space-y-2 transition-all ${
                     formData.authType === 'password' 
                     ? 'border-blue-500 bg-blue-500/10 text-blue-500 shadow-xl shadow-blue-500/5' 
-                    : 'border-black/5 bg-bg-primary text-text-muted hover:border-text-secondary'
+                    : 'border-border-light bg-bg-primary text-text-muted hover:border-text-secondary'
                   }`}
                 >
                   <input type="radio" name="authType" value="password" checked={formData.authType === 'password'} onChange={handleChange} className="hidden" />
@@ -206,7 +225,7 @@ const EditVps: React.FC = () => {
                   className={`cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-center space-y-2 transition-all ${
                     formData.authType === 'privateKey' 
                     ? 'border-blue-500 bg-blue-500/10 text-blue-500 shadow-xl shadow-blue-500/5' 
-                    : 'border-black/5 bg-bg-primary text-text-muted hover:border-text-secondary'
+                    : 'border-border-light bg-bg-primary text-text-muted hover:border-text-secondary'
                   }`}
                 >
                   <input type="radio" name="authType" value="privateKey" checked={formData.authType === 'privateKey'} onChange={handleChange} className="hidden" />
@@ -231,7 +250,7 @@ const EditVps: React.FC = () => {
                   type="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full bg-bg-primary/50 border border-black/10 focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-8 focus:ring-blue-500/5 font-bold" 
+                  className="w-full bg-bg-primary/50 border border-border-light focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-8 focus:ring-blue-500/5 font-bold" 
                   placeholder="Leave blank to keep current" 
                 />
               </div>
@@ -239,14 +258,48 @@ const EditVps: React.FC = () => {
 
             {formData.authType === 'privateKey' && (
               <div className="md:col-span-2 space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                {/* Saved key picker */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-bold text-text-muted uppercase tracking-widest">Use Saved Key</label>
+                    <Link to="/keys" className="flex items-center space-x-1 text-xs text-blue-500 hover:text-blue-400 font-bold transition-colors">
+                      <KeyRound size={11} />
+                      <span>Manage Keys</span>
+                    </Link>
+                  </div>
+                  {savedKeys.length === 0 ? (
+                    <p className="text-xs text-text-muted py-2">No saved keys — <Link to="/keys" className="text-blue-500 hover:underline">add one in Key Manager</Link> or paste below.</p>
+                  ) : (
+                    <div className="relative">
+                      <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+                      <select
+                        value={selectedKeyId}
+                        onChange={e => handleSelectKey(e.target.value)}
+                        className="w-full appearance-none bg-bg-primary/50 border border-border-light focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all font-bold text-sm cursor-pointer"
+                      >
+                        <option value="">— select a saved key or paste below —</option>
+                        {savedKeys.map(k => (
+                          <option key={k.id} value={k.id}>{k.label} (MD5:{k.fingerprint})</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  {loadingKey && (
+                    <div className="flex items-center space-x-2 mt-2 text-xs text-text-muted">
+                      <Loader2 size={12} className="animate-spin" />
+                      <span>Loading key...</span>
+                    </div>
+                  )}
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold text-text-muted mb-2 uppercase tracking-widest">New Private Key Content</label>
                   <textarea 
                     name="privateKey"
                     value={formData.privateKey}
                     onChange={handleChange}
-                    className="w-full bg-bg-primary/50 border border-black/10 focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-8 focus:ring-blue-500/5 font-mono text-xs leading-relaxed" 
-                    rows={8}
+                    className="w-full bg-bg-primary/50 border border-border-light focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-8 focus:ring-blue-500/5 font-mono text-xs leading-relaxed" 
+                    rows={6}
                     placeholder="Leave blank to keep current" 
                   />
                 </div>
@@ -257,14 +310,14 @@ const EditVps: React.FC = () => {
                     type="password"
                     value={formData.passphrase}
                     onChange={handleChange}
-                    className="w-full bg-bg-primary/50 border border-black/10 focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-8 focus:ring-blue-500/5 font-bold" 
+                    className="w-full bg-bg-primary/50 border border-border-light focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-8 focus:ring-blue-500/5 font-bold" 
                   />
                 </div>
               </div>
             )}
           </div>
 
-          <div className="flex items-center justify-end space-x-4 pt-8 border-t border-black/10 mt-8">
+          <div className="flex items-center justify-end space-x-4 pt-8 border-t border-border-light mt-8">
             <button 
               type="button" 
               onClick={() => navigate(`/vps/${id}`)}

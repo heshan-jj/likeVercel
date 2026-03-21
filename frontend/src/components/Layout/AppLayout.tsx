@@ -1,20 +1,17 @@
 import React from 'react';
 import Sidebar from './Sidebar';
-import TopProgressBar from '../TopProgressBar';
 
-interface LayoutProps {
+interface AppLayoutProps {
   children: React.ReactNode;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
-
+const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   return (
-    <div className="flex h-screen bg-[#f8fafc] overflow-hidden w-full">
-      <TopProgressBar />
+    <div className="flex h-screen bg-[#f8fafc] overflow-hidden">
       <Sidebar />
       
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        {/* Page Content */}
+        {/* Main Content Area */}
         <main className="flex-1 overflow-y-auto custom-scrollbar relative">
           {children}
         </main>
@@ -23,4 +20,4 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   );
 };
 
-export default Layout;
+export default AppLayout;

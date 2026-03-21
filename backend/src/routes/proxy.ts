@@ -1,15 +1,14 @@
 import { Router, Response } from 'express';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { sshManager } from '../services/SSHManager';
-import { verifyVps } from '../utils/helpers';
+import { verifyVps, escapeShellArg } from '../utils/helpers';
 
 const router = Router();
 router.use(authMiddleware);
 
-// Helper: escape single quotes for shell
-function shellEscape(str: string): string {
-  return str.replace(/'/g, "'\\''");
-}
+const DOMAIN_REGEX = /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
+
+
 
 // Generate Nginx server block config
 function generateNginxConfig(domain: string, port: number, ssl: boolean = false): string {
@@ -89,7 +88,7 @@ router.get('/:id/proxy', async (req: AuthRequest, res: Response): Promise<void> 
       for (const filePath of files) {
         const fileName = filePath.split('/').pop() || '';
         try {
-          const content = await sshManager.executeCommand(vpsId, `cat '${shellEscape(filePath)}'`);
+          const content = await sshManager.executeCommand(vpsId, `cat ${escapeShellArg(filePath)}`);
 
           // Parse domain from server_name
           const domainMatch = content.match(/server_name\s+([^\s;]+)/);
@@ -101,7 +100,7 @@ router.get('/:id/proxy', async (req: AuthRequest, res: Response): Promise<void> 
           // Check if enabled (symlink exists in sites-enabled)
           let enabled = false;
           try {
-            await sshManager.executeCommand(vpsId, `test -L /etc/nginx/sites-enabled/${shellEscape(fileName)}`);
+            await sshManager.executeCommand(vpsId, `test -L /etc/nginx/sites-enabled/${escapeShellArg(fileName)}`);
             enabled = true;
           } catch {
             enabled = false;
@@ -150,8 +149,7 @@ router.post('/:id/proxy', async (req: AuthRequest, res: Response): Promise<void>
     }
 
     // Validate domain format (allows subdomains like api.example.com)
-    const domainRegex = /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
-    if (!domainRegex.test(domain)) {
+    if (!DOMAIN_REGEX.test(domain)) {
       res.status(400).json({ error: 'Invalid domain format' });
       return;
     }
@@ -163,13 +161,13 @@ router.post('/:id/proxy', async (req: AuthRequest, res: Response): Promise<void>
     const configBase64 = Buffer.from(config).toString('base64');
     await sshManager.executeCommand(
       vpsId,
-      `echo '${configBase64}' | base64 -d | sudo tee /etc/nginx/sites-available/${fileName} > /dev/null`
+      `echo '${configBase64}' | base64 -d | sudo tee /etc/nginx/sites-available/${escapeShellArg(fileName)} > /dev/null`
     );
 
     // Enable it (symlink to sites-enabled)
     await sshManager.executeCommand(
       vpsId,
-      `sudo ln -sf /etc/nginx/sites-available/${fileName} /etc/nginx/sites-enabled/${fileName}`
+      `sudo ln -sf /etc/nginx/sites-available/${escapeShellArg(fileName)} /etc/nginx/sites-enabled/${escapeShellArg(fileName)}`
     );
 
     // Test nginx config
@@ -177,7 +175,7 @@ router.post('/:id/proxy', async (req: AuthRequest, res: Response): Promise<void>
       await sshManager.executeCommand(vpsId, 'sudo nginx -t 2>&1');
     } catch (testErr: any) {
       // Rollback on failure
-      await sshManager.executeCommand(vpsId, `sudo rm -f /etc/nginx/sites-enabled/${fileName} /etc/nginx/sites-available/${fileName}`);
+      await sshManager.executeCommand(vpsId, `sudo rm -f /etc/nginx/sites-enabled/${escapeShellArg(fileName)} /etc/nginx/sites-available/${escapeShellArg(fileName)}`);
       res.status(400).json({ error: `Nginx config test failed: ${testErr.message}` });
       return;
     }
@@ -198,7 +196,7 @@ router.post('/:id/proxy', async (req: AuthRequest, res: Response): Promise<void>
         // Run certbot
         await sshManager.executeCommand(
           vpsId,
-          `sudo certbot --nginx -d ${domain} --non-interactive --agree-tos --register-unsafely-without-email --redirect`,
+          `sudo certbot --nginx -d ${escapeShellArg(domain)} --non-interactive --agree-tos --register-unsafely-without-email --redirect`,
           120000
         );
       } catch (certErr: any) {
@@ -232,12 +230,16 @@ router.delete('/:id/proxy/:domain', async (req: AuthRequest, res: Response): Pro
     if (!vpsId) return;
 
     const domain = req.params.domain as string;
+    if (!DOMAIN_REGEX.test(domain)) {
+      res.status(400).json({ error: 'Invalid domain format' });
+      return;
+    }
     const fileName = `vdp-${domain.replace(/\./g, '-')}`;
 
     // Remove symlink and config
     await sshManager.executeCommand(
       vpsId,
-      `sudo rm -f /etc/nginx/sites-enabled/${fileName} /etc/nginx/sites-available/${fileName}`
+      `sudo rm -f /etc/nginx/sites-enabled/${escapeShellArg(fileName)} /etc/nginx/sites-available/${escapeShellArg(fileName)}`
     );
 
     // Reload nginx
@@ -255,7 +257,11 @@ router.post('/:id/proxy/:domain/ssl', async (req: AuthRequest, res: Response): P
     const vpsId = await verifyVps(req, res);
     if (!vpsId) return;
 
-    const domain = req.params.domain;
+    const domain = req.params.domain as string;
+    if (!DOMAIN_REGEX.test(domain)) {
+      res.status(400).json({ error: 'Invalid domain format' });
+      return;
+    }
 
     // Install certbot if not present
     await sshManager.executeCommand(
@@ -267,7 +273,7 @@ router.post('/:id/proxy/:domain/ssl', async (req: AuthRequest, res: Response): P
     // Run certbot
     await sshManager.executeCommand(
       vpsId,
-      `sudo certbot --nginx -d ${domain} --non-interactive --agree-tos --register-unsafely-without-email --redirect`,
+      `sudo certbot --nginx -d ${escapeShellArg(domain)} --non-interactive --agree-tos --register-unsafely-without-email --redirect`,
       120000
     );
 

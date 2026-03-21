@@ -30,3 +30,48 @@ export async function verifyVps(req: AuthRequest, res: Response): Promise<string
 
   return vpsId;
 }
+
+/**
+ * Escapes a string for use in a shell command.
+ * Implements the POSIX sh single-quote escaping pattern.
+ */
+export function escapeShellArg(arg: string): string {
+  // Replace single quotes with '\''
+  // and wrap the entire string in single quotes
+  return `'${arg.replace(/'/g, "'\\''")}'`;
+}
+
+/**
+ * Simple shell tokenizer that respects quotes but splits by space otherwise.
+ */
+export function splitShellTokens(cmd: string): string[] {
+  const tokens: string[] = [];
+  let currentToken = '';
+  let inQuote = false;
+  let quoteChar = '';
+
+  for (let i = 0; i < cmd.length; i++) {
+    const char = cmd[i];
+    if (inQuote) {
+      if (char === quoteChar) {
+        inQuote = false;
+      } else {
+        currentToken += char;
+      }
+    } else {
+      if (char === "'" || char === '"') {
+        inQuote = true;
+        quoteChar = char;
+      } else if (char === ' ') {
+        if (currentToken.length > 0) {
+          tokens.push(currentToken);
+          currentToken = '';
+        }
+      } else {
+        currentToken += char;
+      }
+    }
+  }
+  if (currentToken.length > 0) tokens.push(currentToken);
+  return tokens;
+}

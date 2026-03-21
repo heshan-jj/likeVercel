@@ -19,6 +19,7 @@ import fileRoutes from './routes/files';
 import processRoutes from './routes/processes';
 import portRoutes from './routes/ports';
 import proxyRoutes from './routes/proxy';
+import keyRoutes from './routes/keys';
 
 const app = express();
 const httpServer = createServer(app);
@@ -54,7 +55,7 @@ app.use(express.urlencoded({ extended: true }));
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  max: 5000, // Increased for polling dashboard
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please try again later' },
@@ -64,7 +65,7 @@ app.use('/api/', limiter);
 // Auth routes have more lenient rate limiting
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 100, // Increased for frequent login/refresh
   message: { error: 'Too many auth attempts, please try again later' },
 });
 
@@ -75,6 +76,7 @@ app.use('/api/vps', fileRoutes);
 app.use('/api/vps', processRoutes);
 app.use('/api/vps', portRoutes);
 app.use('/api/vps', proxyRoutes);
+app.use('/api/keys', keyRoutes);
 
 // Health check with DB ping (Fix 18)
 app.get('/api/health', async (_req, res) => {

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -7,8 +7,11 @@ import VpsDetail from './pages/VpsDetail';
 import Settings from './pages/Settings';
 import AddVps from './pages/AddVps';
 import EditVps from './pages/EditVps';
+import KeyManager from './pages/KeyManager';
 import Layout from './components/Layout/Layout';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { ToastProvider } from './context/ToastContext';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
@@ -19,21 +22,37 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     </div>
   );
   
-  return user ? <Layout>{children}</Layout> : <Navigate to="/login" />;
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return <Layout>{children}</Layout>;
+};
+
+const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading } = useAuth();
+  
+  if (loading) return (
+    <div className="h-screen w-full flex items-center justify-center bg-bg-primary text-text-primary font-bold uppercase tracking-widest text-xs">
+      Initializing Security Protocol...
+    </div>
+  );
+  
+  if (user) return <Navigate to="/dashboard" replace />;
+  
+  
+  return <>{children}</>;
 };
 
 const App: React.FC = () => {
-  useEffect(() => {
-    // Ensure the app stays in light theme
-    document.documentElement.setAttribute('data-theme', 'light');
-    localStorage.setItem('vps-deploy-theme', 'light');
-  }, []);
 
   return (
-    <AuthProvider>
+    <ThemeProvider>
+      <ToastProvider>
+        <AuthProvider>
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={<AuthRoute><Login /></AuthRoute>} />
+        <Route path="/register" element={<AuthRoute><Register /></AuthRoute>} />
         <Route 
           path="/dashboard" 
           element={
@@ -74,9 +93,19 @@ const App: React.FC = () => {
             </PrivateRoute>
           } 
         />
+        <Route 
+          path="/keys" 
+          element={
+            <PrivateRoute>
+              <KeyManager />
+            </PrivateRoute>
+          } 
+        />
         <Route path="/" element={<Navigate to="/dashboard" />} />
       </Routes>
-    </AuthProvider>
+      </AuthProvider>
+      </ToastProvider>
+    </ThemeProvider>
   );
 };
 

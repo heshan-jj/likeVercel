@@ -5,8 +5,6 @@ import {
   RotateCcw,
   Trash2,
   ScrollText,
-  Cpu,
-  HardDrive,
   Plus,
   X,
   Loader2,
@@ -21,6 +19,8 @@ import {
   Maximize2
 } from 'lucide-react';
 import api from '../../utils/api';
+import ConfirmModal from '../ConfirmModal';
+import { useToast } from '../../context/ToastContext';
 
 interface Deployment {
   id: string;
@@ -44,16 +44,14 @@ interface UnmanagedProcess {
   status: string;
   cpu: number;
   memory: number;
-  pm_id: number;
+  pm_id?: number;
+  port?: number;
+  pid?: number;
+  type?: 'pm2' | 'port';
 }
 
 interface ProcessManagerProps {
   vpsId: string;
-}
-
-function formatMemory(bytes: number): string {
-  if (!bytes) return '0 MB';
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
 function getStatusClasses(status: string): string {
@@ -85,18 +83,21 @@ function getDotColor(status: string): string {
 }
 
 const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
+  const { showToast } = useToast();
+  const logBodyRef = useRef<HTMLDivElement>(null);
   const [deployments, setDeployments] = useState<Deployment[]>([]);
+  const [unmanaged, setUnmanaged] = useState<UnmanagedProcess[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showDeploy, setShowDeploy] = useState(false);
-  const [deployForm, setDeployForm] = useState({ projectPath: '', port: '', command: '' });
-  const [unmanaged, setUnmanaged] = useState<UnmanagedProcess[]>([]);
-  const [deploying, setDeploying] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [logModal, setLogModal] = useState<{ id: string; name: string; logs: string } | null>(null);
   const [logLoading, setLogLoading] = useState(false);
+  const [showDeploy, setShowDeploy] = useState(false);
+  const [deployForm, setDeployForm] = useState({ projectPath: '', port: '', command: '', processName: '' });
+  const [deploying, setDeploying] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const isFetching = useRef(false);
 
@@ -132,10 +133,11 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
       const body: any = { projectPath: deployForm.projectPath };
       if (deployForm.port) body.port = parseInt(deployForm.port);
       if (deployForm.command) body.command = deployForm.command;
+      if (deployForm.processName) body.processName = deployForm.processName;
 
       await api.post(`/vps/${vpsId}/processes/start`, body);
       setShowDeploy(false);
-      setDeployForm({ projectPath: '', port: '', command: '' });
+      setDeployForm({ projectPath: '', port: '', command: '', processName: '' });
       setShowAdvanced(false);
       fetchProcesses();
     } catch (err: any) {
@@ -146,22 +148,34 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
   };
 
   const handleAction = async (deploymentId: string, action: 'stop' | 'restart' | 'delete') => {
+    if (action === 'delete') {
+      setConfirmDeleteId(deploymentId);
+      return;
+    }
     setActionLoading(`${deploymentId}-${action}`);
     try {
-      if (action === 'delete') {
-        if (!confirm('Delete this deployment? The PM2 process will be removed.')) {
-          setActionLoading(null);
-          return;
-        }
-        await api.delete(`/vps/${vpsId}/processes/${deploymentId}`);
-      } else {
-        await api.post(`/vps/${vpsId}/processes/${deploymentId}/${action}`);
-      }
+      await api.post(`/vps/${vpsId}/processes/${deploymentId}/${action}`);
+      showToast(`Process ${action}ed`, 'success');
       fetchProcesses();
     } catch (err: any) {
       setError(err.response?.data?.error || `Failed to ${action}`);
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const confirmDeleteDeployment = async () => {
+    if (!confirmDeleteId) return;
+    setActionLoading(`${confirmDeleteId}-delete`);
+    try {
+      await api.delete(`/vps/${vpsId}/processes/${confirmDeleteId}`);
+      showToast('Deployment removed', 'success');
+      fetchProcesses();
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to delete');
+    } finally {
+      setActionLoading(null);
+      setConfirmDeleteId(null);
     }
   };
 
@@ -179,6 +193,32 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
       setLogLoading(false);
     }
   };
+
+  const handleAdopt = async (proc: UnmanagedProcess) => {
+    const actionKey = proc.pm_id ? `adopt-${proc.pm_id}` : `adopt-${proc.port}`;
+    setActionLoading(actionKey);
+    try {
+      await api.post(`/vps/${vpsId}/processes/adopt`, {
+        pm_id: proc.pm_id,
+        processName: proc.processName,
+        port: proc.port,
+        pid: proc.pid,
+        type: proc.type,
+      });
+      showToast('Process adopted successfully', 'success');
+      fetchProcesses();
+    } catch (err: any) {
+      showToast(err.response?.data?.error || 'Adoption failed', 'error');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  useEffect(() => {
+    if (logBodyRef.current && logModal?.logs) {
+      logBodyRef.current.scrollTop = logBodyRef.current.scrollHeight;
+    }
+  }, [logModal?.logs]);
 
   const filteredDeployments = deployments.filter(d => 
     d.processName.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -304,183 +344,146 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
             <Loader2 size={32} className="text-blue-500 animate-spin mb-4" />
             <span className="text-text-muted font-bold uppercase tracking-widest text-[10px]">Scanning Workloads...</span>
           </div>
-        ) : filteredDeployments.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 px-8 border border-dashed border-border-light rounded-[32px] bg-bg-secondary/10">
-            <div className="p-6 bg-bg-secondary rounded-full mb-6 border border-border-light">
-              <Rocket size={48} className="text-text-muted/30" />
-            </div>
-            <h3 className="text-lg font-bold text-text-primary mb-2 tracking-tight">No Active Deploys</h3>
-            <p className="text-text-muted text-center max-w-sm mb-10 text-xs font-medium leading-relaxed">Initialize application clusters on target host to begin orchestration.</p>
-            <button onClick={() => setShowDeploy(true)} className="px-10 py-4 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-primary font-bold text-xs rounded-2xl transition-all border border-border-light shadow-xl">
-              Initialize Protocol
-            </button>
-          </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4">
-            {filteredDeployments.map((dep) => {
-              const status = dep.actualStatus || dep.status;
-              const isOnline = status === 'online' || status === 'running';
-              
-              return (
-                <div key={dep.id} className="group glass-effect rounded-[24px] border border-border-light hover:border-blue-500/20 transition-all duration-300 overflow-hidden shadow-xl">
-                  <div className="p-5 flex flex-col xl:flex-row xl:items-center justify-between gap-5">
-                    <div className="flex items-center space-x-4">
-                      <div className={`p-4 rounded-2xl ${status === 'online' ? 'bg-emerald-500/10' : 'bg-bg-tertiary'} transition-all shadow-inner`}>
-                         <Activity size={24} className={status === 'online' ? 'text-emerald-500' : 'text-text-muted'} />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center space-x-3 mb-1.5">
-                          <h5 className="font-bold text-text-primary truncate max-w-[150px] sm:max-w-xs tracking-tight text-[13px]">{dep.processName}</h5>
-                          <div className={`flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full border ${getStatusClasses(status)}`}>
-                             <div className={`h-1.5 w-1.5 rounded-full ${getDotColor(status)} ${isOnline ? 'animate-pulse' : ''}`} />
-                             <span className="text-[9px] font-bold uppercase tracking-widest">{status}</span>
+          <>
+            {filteredDeployments.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 px-8 border border-dashed border-border-light rounded-[32px] bg-bg-secondary/10">
+                <div className="p-6 bg-bg-secondary rounded-full mb-6 border border-border-light">
+                  <Rocket size={48} className="text-text-muted/30" />
+                </div>
+                <h3 className="text-lg font-bold text-text-primary mb-2 tracking-tight">No Active Deploys</h3>
+                <p className="text-text-muted text-center max-w-sm mb-10 text-xs font-medium leading-relaxed">Initialize application clusters on target host to begin orchestration.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                {filteredDeployments.map((dep) => {
+                  const status = dep.actualStatus || dep.status;
+                  const isOnline = status === 'online' || status === 'running';
+                  
+                  return (
+                    <div key={dep.id} className="group premium-card glass-effect rounded-[24px] border border-border-light hover:border-blue-500/30 transition-all duration-300 overflow-hidden shadow-xl">
+                      <div className="p-5 flex flex-col xl:flex-row xl:items-center justify-between gap-5">
+                        <div className="flex items-center space-x-4">
+                          <div className={`p-4 rounded-2xl ${status === 'online' ? 'icon-grad-blue shadow-[0_0_20px_rgba(59,130,246,0.2)]' : 'bg-bg-tertiary'} transition-all shadow-inner`}>
+                             <Activity size={24} className={status === 'online' ? 'text-white' : 'text-text-muted'} />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center space-x-3 mb-1.5">
+                              <h5 className="font-bold text-text-primary truncate max-w-[150px] sm:max-w-xs tracking-tight text-[13px]">{dep.processName}</h5>
+                              <div className={`flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full border ${getStatusClasses(status)} shadow-sm`}>
+                                 <div className={`h-1.5 w-1.5 rounded-full ${getDotColor(status)} ${isOnline ? 'animate-pulse-soft shadow-[0_0_8px_currentColor]' : ''}`} />
+                                 <span className="text-[9px] font-bold uppercase tracking-widest">{status}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-4 text-[10px] font-medium text-text-muted tracking-wide">
+                               <span className="flex items-center space-x-2"><FolderOpen size={10} /> <span className="truncate max-w-[150px]">{dep.projectPath}</span></span>
+                               <span className="flex items-center space-x-2"><ExternalLink size={10} /> <span>Port: {dep.port}</span></span>
+                            </div>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-4 text-[10px] font-medium text-text-muted tracking-wide">
-                           <span className="flex items-center space-x-2"><FolderOpen size={10} /> <span className="truncate max-w-[150px]">{dep.projectPath}</span></span>
-                           <span className="flex items-center space-x-2"><ExternalLink size={10} /> <span>Port: {dep.port}</span></span>
-                        </div>
-                      </div>
-                    </div>
 
-                    <div className="flex items-center justify-between xl:justify-end gap-3 pt-4 xl:pt-0 border-t xl:border-t-0 border-border-light">
-                      {isOnline && (
-                        <div className="flex items-center space-x-6 mr-6 hidden 2xl:flex">
-                           <div className="text-center">
-                              <p className="text-[9px] font-bold text-text-muted uppercase tracking-widest mb-1">CPU Usage</p>
-                              <div className="flex items-center justify-center space-x-2 text-emerald-500 font-bold text-[12px]">
-                                 <Cpu size={14} />
-                                 <span>{(dep.cpu || 0).toFixed(1)}%</span>
-                              </div>
-                           </div>
-                           <div className="text-center">
-                              <p className="text-[9px] font-bold text-text-muted uppercase tracking-widest mb-1">Memory Usage</p>
-                              <div className="flex items-center justify-center space-x-2 text-emerald-500 font-bold text-[12px]">
-                                 <HardDrive size={14} />
-                                 <span>{formatMemory(dep.memory || 0)}</span>
-                              </div>
-                           </div>
-                        </div>
-                      )}
-
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => handleViewLogs(dep.id, dep.processName)}
-                          className="p-3 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-secondary rounded-xl transition-all border border-border-light"
-                          title="View Logs"
-                        >
-                          <ScrollText size={18} />
-                        </button>
-                        
-                        {!isOnline ? (
+                        <div className="flex items-center space-x-2">
                           <button
-                            onClick={() => handleAction(dep.id, 'restart')}
-                            className="p-3 bg-emerald-600 text-white hover:bg-emerald-500 rounded-xl transition-all shadow-lg shadow-emerald-600/10"
-                            disabled={actionLoading === `${dep.id}-restart`}
+                            onClick={() => handleViewLogs(dep.id, dep.processName)}
+                            className="p-3 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-secondary rounded-xl transition-all border border-border-light"
+                            title="View Logs"
                           >
-                            {actionLoading === `${dep.id}-restart` ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} fill="currentColor" />}
+                            <ScrollText size={18} />
                           </button>
-                        ) : (
-                          <>
+                          
+                          {!isOnline ? (
                             <button
                               onClick={() => handleAction(dep.id, 'restart')}
-                              className="p-3 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-secondary rounded-xl transition-all border border-border-light"
+                              className="p-3 bg-emerald-600 text-white hover:bg-emerald-500 rounded-xl transition-all shadow-lg shadow-emerald-600/10"
                               disabled={actionLoading === `${dep.id}-restart`}
-                              title="Restart"
                             >
-                              {actionLoading === `${dep.id}-restart` ? <Loader2 size={18} className="animate-spin" /> : <RotateCcw size={18} />}
+                              {actionLoading === `${dep.id}-restart` ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} fill="currentColor" />}
                             </button>
-                            <button
-                              onClick={() => handleAction(dep.id, 'stop')}
-                              className="p-3 bg-red-500/10 hover:bg-red-500 hover:text-white text-red-500 rounded-xl transition-all border border-red-500/20"
-                              disabled={actionLoading === `${dep.id}-stop`}
-                              title="Stop"
-                            >
-                              {actionLoading === `${dep.id}-stop` ? <Loader2 size={18} className="animate-spin" /> : <Square size={18} fill="currentColor" />}
-                            </button>
-                          </>
-                        )}
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => handleAction(dep.id, 'restart')}
+                                className="p-3 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-secondary rounded-xl transition-all border border-border-light"
+                                disabled={actionLoading === `${dep.id}-restart`}
+                                title="Restart"
+                              >
+                                {actionLoading === `${dep.id}-restart` ? <Loader2 size={18} className="animate-spin" /> : <RotateCcw size={18} />}
+                              </button>
+                              <button
+                                onClick={() => handleAction(dep.id, 'stop')}
+                                className="p-3 bg-red-500/10 hover:bg-red-500 hover:text-white text-red-500 rounded-xl transition-all border border-red-500/20"
+                                disabled={actionLoading === `${dep.id}-stop`}
+                                title="Stop"
+                              >
+                                {actionLoading === `${dep.id}-stop` ? <Loader2 size={18} className="animate-spin" /> : <Square size={18} fill="currentColor" />}
+                              </button>
+                            </>
+                          )}
 
-                        <div className="w-px h-6 bg-border-light mx-1" />
+                          <div className="w-px h-6 bg-border-light mx-1" />
 
-                        <button
-                          onClick={() => handleAction(dep.id, 'delete')}
-                          className="p-3 bg-bg-tertiary hover:bg-red-500 hover:text-white text-text-muted rounded-xl transition-all border border-border-light"
-                          disabled={actionLoading === `${dep.id}-delete`}
-                        >
-                          {actionLoading === `${dep.id}-delete` ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
-                        </button>
+                          <button
+                            onClick={() => handleAction(dep.id, 'delete')}
+                            className="p-3 bg-bg-tertiary hover:bg-red-500 hover:text-white text-text-muted rounded-xl transition-all border border-border-light"
+                            disabled={actionLoading === `${dep.id}-delete`}
+                          >
+                            {actionLoading === `${dep.id}-delete` ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            )}
 
-            {/* Unmanaged Processes */}
-            {unmanaged.length > 0 && (
+            {/* Unmanaged Processes - Outside the managed deployments check */}
+            {unmanaged.filter(p => 
+              p.processName.toLowerCase().includes(searchTerm.toLowerCase())
+            ).length > 0 && (
               <>
                 <div className="flex items-center space-x-3 mt-10 mb-4 px-1">
                   <Activity className="text-amber-500" size={18} />
                   <h3 className="text-[11px] font-bold text-text-muted tracking-tight uppercase tracking-widest">External Workloads detected</h3>
                 </div>
-                {unmanaged.map((proc) => (
-                  <div key={proc.pm_id} className="group glass-effect rounded-[24px] border border-border-light bg-amber-500/[0.02] hover:border-amber-500/20 transition-all duration-300 overflow-hidden shadow-xl">
+                {unmanaged.filter(p => 
+                  p.processName.toLowerCase().includes(searchTerm.toLowerCase())
+                ).map((proc) => (
+                  <div key={proc.pm_id || `port-${proc.port}`} className="group premium-card glass-effect rounded-[24px] border border-border-light bg-amber-500/[0.02] hover:border-amber-500/30 transition-all duration-300 overflow-hidden shadow-xl">
                     <div className="p-5 flex flex-col xl:flex-row xl:items-center justify-between gap-5">
                       <div className="flex items-center space-x-4">
-                        <div className="p-4 rounded-2xl bg-amber-500/5 transition-all shadow-inner">
-                          <Activity size={24} className="text-amber-500" />
+                        <div className={`p-4 rounded-2xl ${proc.type === 'port' ? 'icon-grad-amber shadow-[0_0_20px_rgba(245,158,11,0.2)]' : 'icon-grad-indigo shadow-[0_0_20px_rgba(79,70,229,0.2)]'} transition-all shadow-inner`}>
+                          <Activity size={24} className="text-white" />
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center space-x-3 mb-1.5">
                             <h5 className="font-bold text-text-primary tracking-tight text-[13px]">{proc.processName}</h5>
                             <div className="px-2.5 py-0.5 rounded-full border bg-amber-500/10 border-amber-500/20 text-amber-500 text-[9px] font-bold uppercase tracking-widest">
-                               UNMANAGED
+                               {proc.type === 'port' ? 'RAW PORT' : 'UNMANAGED'}
                             </div>
                           </div>
                           <p className="text-[10px] font-medium text-text-muted tracking-wide flex items-center space-x-2">
-                             <span className={`h-1.5 w-1.5 rounded-full ${proc.status === 'online' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                             <span className={`h-1.5 w-1.5 rounded-full ${proc.status === 'online' || proc.status === 'running' ? 'bg-emerald-500' : 'bg-red-500'}`} />
                              <span>Status: {proc.status}</span>
                              <span className="opacity-30">|</span>
-                             <span>ID: {proc.pm_id}</span>
+                             <span>{proc.pm_id ? `PM2 ID: ${proc.pm_id}` : `PORT: ${proc.port}`}</span>
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between xl:justify-end gap-10 pt-4 xl:pt-0 border-t xl:border-t-0 border-border-light">
-                        <div className="flex items-center space-x-6">
-                           <div className="text-center">
-                              <p className="text-[9px] font-bold text-text-muted uppercase tracking-widest mb-1">CPU Usage</p>
-                              <div className="flex items-center justify-center space-x-2 text-amber-500 font-bold text-[12px]">
-                                 <Cpu size={14} />
-                                 <span>{proc.cpu.toFixed(1)}%</span>
-                              </div>
-                           </div>
-                           <div className="text-center">
-                              <p className="text-[9px] font-bold text-text-muted uppercase tracking-widest mb-1">Memory Usage</p>
-                              <div className="flex items-center justify-center space-x-2 text-amber-500 font-bold text-[12px]">
-                                 <HardDrive size={14} />
-                                 <span>{formatMemory(proc.memory)}</span>
-                              </div>
-                           </div>
-                        </div>
-                        
-                        <button 
-                         onClick={() => {
-                           setShowDeploy(true);
-                           setDeployForm({ ...deployForm, projectPath: '/var/www/...', command: `pm2 interact ${proc.processName}` });
-                         }}
-                         className="px-6 py-2.5 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-muted hover:text-text-primary font-bold text-[10px] rounded-xl transition-all border border-border-light uppercase tracking-widest"
-                        >
-                          Adopt Process
-                        </button>
-                      </div>
+                      <button 
+                       onClick={() => handleAdopt(proc)}
+                       disabled={actionLoading === (proc.pm_id ? `adopt-${proc.pm_id}` : `adopt-${proc.port}`)}
+                       className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] rounded-xl transition-all border border-blue-600 shadow-xl shadow-blue-600/10 uppercase tracking-widest disabled:opacity-50 flex items-center space-x-2"
+                      >
+                        {actionLoading === (proc.pm_id ? `adopt-${proc.pm_id}` : `adopt-${proc.port}`) ? <Loader2 size={14} className="animate-spin" /> : <span>Take Control</span>}
+                      </button>
                     </div>
                   </div>
                 ))}
               </>
             )}
-          </div>
+          </>
         )}
       </div>
 
@@ -512,7 +515,7 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
               </div>
             </div>
             
-            <div className="flex-1 bg-black p-8 overflow-auto custom-scrollbar font-mono text-xs leading-relaxed text-slate-300 selection:bg-blue-500/30">
+            <div ref={logBodyRef} className="flex-1 bg-black p-8 overflow-auto custom-scrollbar font-mono text-xs leading-relaxed text-slate-300 selection:bg-blue-500/30">
                {logLoading ? (
                  <div className="h-full flex flex-col items-center justify-center space-y-4">
                    <Loader2 size={40} className="text-blue-500 animate-spin opacity-50" />
@@ -537,6 +540,17 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
             </div>
           </div>
         </div>
+      )}
+      {/* Confirm Delete Deployment Modal */}
+      {confirmDeleteId && (
+        <ConfirmModal
+          title="Delete Deployment"
+          message="Remove this PM2 process permanently? The app will stop and the managed entry will be deleted."
+          confirmLabel="Delete"
+          danger
+          onConfirm={confirmDeleteDeployment}
+          onCancel={() => setConfirmDeleteId(null)}
+        />
       )}
     </div>
   );

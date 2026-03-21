@@ -4,6 +4,7 @@ import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { encrypt } from '../utils/crypto';
 import { sshManager } from '../services/SSHManager';
 import { createVpsSchema, updateVpsSchema } from '../utils/validators';
+import { escapeShellArg } from '../utils/helpers';
 
 const router = Router();
 
@@ -27,6 +28,7 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
         port: true,
         username: true,
         authType: true,
+        region: true,
         lastConnectedAt: true,
         createdAt: true,
       },
@@ -63,6 +65,7 @@ router.get('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
         port: true,
         username: true,
         authType: true,
+        region: true,
         lastConnectedAt: true,
         createdAt: true,
         deployments: {
@@ -303,10 +306,24 @@ router.post('/:id/connect', async (req: AuthRequest, res: Response): Promise<voi
       profile.authTag
     );
 
-    // Update last connected timestamp
+    // Update last connected timestamp and region if missing
+    const updateData: any = { lastConnectedAt: new Date() };
+    if (!(profile as any).region) {
+      try {
+        // Use HTTPS (ipapi.co) to prevent unencrypted IP leaks
+        const city = await sshManager.executeCommand(profile.id, "curl -s https://ipapi.co/city/");
+        const country = await sshManager.executeCommand(profile.id, "curl -s https://ipapi.co/country/");
+        if (city.trim() && country.trim()) {
+          updateData.region = `${city.trim()},${country.trim()}`.toUpperCase();
+        }
+      } catch (err) {
+        console.error('[VPS] Get region failed on connect:', err);
+      }
+    }
+
     await prisma.vpsProfile.update({
       where: { id: profile.id },
-      data: { lastConnectedAt: new Date() },
+      data: updateData,
     });
 
     res.json({ message: 'Connected successfully', isConnected: true });
@@ -369,12 +386,13 @@ router.get('/:id/specs', async (req: AuthRequest, res: Response): Promise<void> 
       const cpuCores = parseInt(cpuStr, 10) || 'Unknown';
       const ramStr = await sshManager.executeCommand(profile.id, "free -h | awk '/^Mem:/{print $2}'");
       const diskStr = await sshManager.executeCommand(profile.id, "df -h / | awk 'NR==2 {print $2}'");
-
+      
       res.json({
         os: osVersion.trim(),
         cpu: `${cpuCores} Cores`,
         ram: ramStr.trim(),
-        disk: diskStr.trim()
+        disk: diskStr.trim(),
+        region: (profile as any).region || 'Unknown'
       });
     } catch (cmdErr: any) {
       console.error('[VPS] Specs cmd error:', cmdErr);
@@ -406,6 +424,129 @@ router.get('/:id/status', async (req: AuthRequest, res: Response): Promise<void>
     res.json({ isConnected: sshManager.isConnected(profile.id) });
   } catch (error) {
     res.status(500).json({ error: 'Failed to get status' });
+  }
+});
+
+// GET /api/vps/:id/usage — live CPU% and RAM% via procfs
+router.get('/:id/usage', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.userId) { res.status(401).json({ error: 'Unauthorized' }); return; }
+
+    const profile = await prisma.vpsProfile.findFirst({
+      where: { id: req.params.id as string, userId: req.userId },
+    });
+    if (!profile) { res.status(404).json({ error: 'VPS not found' }); return; }
+    if (!sshManager.isConnected(profile.id)) { res.status(400).json({ error: 'Not connected' }); return; }
+
+    // Two /proc/stat samples, 500ms apart for accurate CPU delta
+    const stat1 = await sshManager.executeCommand(profile.id, "cat /proc/stat | head -1");
+    await new Promise(r => setTimeout(r, 500));
+    const stat2 = await sshManager.executeCommand(profile.id, "cat /proc/stat | head -1");
+
+    const parse = (line: string) => line.split(/\s+/).slice(1).map(Number);
+    const s1 = parse(stat1), s2 = parse(stat2);
+    const idle1 = s1[3], idle2 = s2[3];
+    const total1 = s1.reduce((a, b) => a + b, 0), total2 = s2.reduce((a, b) => a + b, 0);
+    const cpuPercent = Math.round((1 - (idle2 - idle1) / (total2 - total1)) * 100);
+
+    const memStr = await sshManager.executeCommand(profile.id, "free | grep Mem | awk '{print $2,$3}'");
+    const [totalMem, usedMem] = memStr.split(' ').map(Number);
+    const ramPercent = Math.round((usedMem / totalMem) * 100);
+
+    res.json({ cpu: cpuPercent, ram: ramPercent });
+  } catch (error) {
+    console.error('[VPS] Usage error:', error);
+    res.status(500).json({ error: 'Failed to get usage stats' });
+  }
+});
+
+// POST /api/vps/keys/generate — generate an Ed25519 SSH keypair server-side
+router.post('/keys/generate', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.userId) { res.status(401).json({ error: 'Unauthorized' }); return; }
+
+    const { generateKeyPairSync } = await import('crypto');
+    const { privateKey, publicKey } = generateKeyPairSync('ed25519', {
+      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+      publicKeyEncoding: { type: 'spki', format: 'pem' },
+    });
+
+    // Build OpenSSH public key line from spki PEM
+    const { execSync } = await import('child_process');
+    const os = await import('os');
+    const path = await import('path');
+    const fs = await import('fs');
+
+    const tmpDir = os.default.tmpdir();
+    const keyFile = path.default.join(tmpDir, `likeVercel_${Date.now()}`);
+
+    fs.default.writeFileSync(keyFile, privateKey, { mode: 0o600 });
+
+    let sshPublicKey = '';
+    try {
+      sshPublicKey = execSync(`ssh-keygen -y -f "${keyFile}"`, { encoding: 'utf-8' }).trim();
+      sshPublicKey += ` likeVercel-generated`;
+    } catch {
+      // fallback: return raw spki PEM if ssh-keygen not available
+      sshPublicKey = publicKey;
+    } finally {
+      try { fs.default.unlinkSync(keyFile); } catch {}
+    }
+
+    res.json({ privateKey, publicKey: sshPublicKey });
+  } catch (error: any) {
+    console.error('[Keys] Generate error:', error);
+    res.status(500).json({ error: `Key generation failed: ${error.message}` });
+  }
+});
+
+// POST /api/vps/:id/keys/install — install a public key on a connected VPS
+router.post('/:id/keys/install', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.userId) { res.status(401).json({ error: 'Unauthorized' }); return; }
+
+    const { publicKey } = req.body as { publicKey: string };
+    if (!publicKey || !publicKey.trim()) {
+      res.status(400).json({ error: 'publicKey is required' });
+      return;
+    }
+
+    const profile = await prisma.vpsProfile.findFirst({
+      where: { id: req.params.id as string, userId: req.userId },
+    });
+    if (!profile) { res.status(404).json({ error: 'VPS not found' }); return; }
+    if (!sshManager.isConnected(profile.id)) { res.status(400).json({ error: 'VPS is not connected' }); return; }
+
+    const publicKeyLine = publicKey.trim() + '\n';
+    const sftp = await sshManager.getSftp(profile.id);
+    
+    try {
+      // Ensure .ssh exists
+      await new Promise((resolve, reject) => {
+        sftp.mkdir('.ssh', { mode: 0o700 }, (err) => {
+          // Ignore error if directory already exists
+          resolve(true);
+        });
+      });
+
+      // Append to authorized_keys
+      await new Promise((resolve, reject) => {
+        const stream = sftp.createWriteStream('.ssh/authorized_keys', { 
+          flags: 'a',
+          mode: 0o600 
+        });
+        stream.on('error', reject);
+        stream.on('close', resolve);
+        stream.end(publicKeyLine);
+      });
+    } finally {
+      sftp.end();
+    }
+
+    res.json({ message: 'Public key installed successfully' });
+  } catch (error: any) {
+    console.error('[Keys] Install error:', error);
+    res.status(500).json({ error: `Key install failed: ${error.message}` });
   }
 });
 
