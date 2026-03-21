@@ -1,5 +1,5 @@
 import React from 'react';
-import { Server } from 'lucide-react';
+import Logo from '../Logo';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -20,8 +20,8 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitle }) =>
 
         <div className="relative z-10">
           <div className="flex items-center space-x-3 mb-16">
-            <div className="p-2.5 bg-blue-600/5 rounded-2xl border border-blue-600/10 blue-glow">
-              <Server size={24} className="text-[#2563eb]" />
+            <div className="p-2 bg-blue-600/5 rounded-2xl border border-blue-600/10 blue-glow flex items-center justify-center overflow-hidden">
+               <Logo size={32} />
             </div>
             <span className="text-xl font-bold tracking-tighter text-[#0f172a]">likeVercel</span>
           </div>

@@ -313,8 +313,17 @@ router.post('/:id/connect', async (req: AuthRequest, res: Response): Promise<voi
         // Use HTTPS (ipapi.co) to prevent unencrypted IP leaks
         const city = await sshManager.executeCommand(profile.id, "curl -s https://ipapi.co/city/");
         const country = await sshManager.executeCommand(profile.id, "curl -s https://ipapi.co/country/");
-        if (city.trim() && country.trim()) {
-          updateData.region = `${city.trim()},${country.trim()}`.toUpperCase();
+        
+        const cityTrim = city.trim();
+        const countryTrim = country.trim();
+
+        // Check if the response looks like an error message or rate limit JSON
+        const isError = (str: string) => str.startsWith('{') || str.includes('RATELIMITED') || str.includes('ERROR');
+
+        if (cityTrim && countryTrim && !isError(cityTrim) && !isError(countryTrim)) {
+          updateData.region = `${cityTrim},${countryTrim}`.toUpperCase();
+        } else {
+          console.warn('[VPS] Region detection skipped: rate limited or invalid response');
         }
       } catch (err) {
         console.error('[VPS] Get region failed on connect:', err);

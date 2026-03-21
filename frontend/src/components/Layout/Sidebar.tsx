@@ -5,9 +5,9 @@ import {
   Key, 
   Settings, 
   Plus,
-  Box,
   User
 } from 'lucide-react';
+import Logo from '../Logo';
 import { useAuth } from '../../context/AuthContext';
 
 const Sidebar: React.FC = () => {
@@ -25,8 +25,8 @@ const Sidebar: React.FC = () => {
       {/* Brand Header */}
       <div className="p-8 pb-6">
         <div className="flex items-center space-x-3 mb-1 cursor-pointer group" onClick={() => navigate('/dashboard')}>
-          <div className="p-2 icon-grad-blue rounded-lg text-white shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform">
-            <Box size={20} />
+          <div className="p-1.5 icon-grad-blue rounded-lg text-white shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform">
+            <Logo size={24} />
           </div>
           <span className="text-xl font-black tracking-tighter text-slate-900 bg-clip-text">likeVercel</span>
         </div>
