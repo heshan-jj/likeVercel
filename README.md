@@ -1,106 +1,224 @@
-# ⚡️ likeVercel (formerly VDP)
+# ⚡ likeVercel
 
-A robust, full-stack management suite for remote servers. Orchestrate your infrastructure with a professional, laboratory-grade interface. 🧪✨
+A self-hosted, full-stack VPS management dashboard. Connect to your remote servers over SSH and manage everything — terminal, files, processes, ports, and domain proxies — from a single browser-based interface.
 
-![likeVercel Dashboard](https://via.placeholder.com/800x450.png?text=likeVercel+Platform+Dashboard)
+> Built with React, Node.js, Prisma, Socket.io, and SSH2. Runs entirely on your own machine or server. No cloud account required.
 
-## 🚀 Key Capabilities & Functions
+---
 
-### 🖥 Unified Dashboard
-The command center of your hosting fleet.
-- **Monitoring**: Visualize your overall server health.
-- **Node Overview**: Lists all your connected VPS instances with real-time status indicators (Online/Dormant).
-- **Fast Access**: Jump directly into any node's console or files from one screen.
+## Features
 
-### 🐚 Remote Terminal (Interactive Shell)
-A high-performance, browser-aware SSH client.
-- **Persistence**: Swapping tabs doesn't sever your connection. Your terminal stays alive in the background.
-- **WebSocket Streaming**: Real-time terminal output with low-latency input using Xterm.js.
-- **Full Shell Access**: Run standard linux commands (ls, cd, nano, etc.) directly in your browser.
+- **Interactive Terminal** — Full browser-based SSH shell powered by Xterm.js and WebSockets. Tabs stay alive when you switch between them.
+- **File Manager** — Browse, rename, move, and delete remote files via SFTP. Drag-and-drop upload up to 100MB.
+- **Process Manager** — A graphical PM2 interface. Deploy Node.js, Python, or static apps with auto-detection. View live logs and errors per process. Auto-discovers existing PM2 processes on connection.
+- **Live Resource Monitor** — Real-time CPU and RAM usage polled directly from `/proc/stat`.
+- **Port Auditor** — Scan your VPS for all active listening ports and manage which ones are exposed.
+- **Domain Proxy Manager** — Map public domains (e.g. `app.example.com`) to internal ports on your server.
+- **SSH Key Manager** — Generate Ed25519 keypairs server-side, install public keys directly onto connected VPS instances, and store private keys encrypted at rest.
+- **Credential Vault** — All passwords and private keys are encrypted with AES-256-GCM before being stored in the database.
+- **Single-Admin Lock** — Only one account can be registered. All further registrations are blocked.
 
-### 🛡 Node Management & Security
-Securely orchestrate your hardware.
-- **Credential Vault**: Encrypts your passwords and Private Keys using military-grade AES-256-GCM before storing them in the database.
-- **SSH Manager**: A unified service that pools and maintains active SSH connections, meaning you only authenticate once.
+---
 
-### 📂 File System Explorer
-A visual SFTP manager for your remote storage.
-- **File Operations**: Browse, rename, move, and delete files without typing a single command.
-- **Drag & Drop Upload**: Upload project files up to 100MB directly to your server.
-- **Secure Download**: Download your remote project files to your local machine instantly.
+## Tech Stack
 
-### 📦 App Deployment (Process Manager)
-A graphical layer on top of PM2 for application orchestration.
-- **Auto-Detect**: Scans your project path and guesses if it’s a Node.js, Python, or Static project.
-- **Launch Protocol**: Automatically runs `npm install` and `pm2 start` to get your web-apps online.
-- **Live Logs**: View standard output (logs) and error buffers for any running process in real-time.
-- **🔍 Auto-Discovery**: Scanned a pre-existing VPS? likeVercel finds any existing PM2 processes and lets you "adopt" them into your dashboard.
+| Layer | Technology |
+|---|---|
+| Frontend | React 19, Vite, Tailwind CSS, Xterm.js, Socket.io-client |
+| Backend | Node.js, Express, TypeScript, Socket.io |
+| Database | SQLite via Prisma ORM |
+| SSH/SFTP | ssh2 |
+| Security | JWT, Bcrypt, AES-256-GCM, Helmet |
 
-### 🔌 Connectivity & Networking
-Manage your server's public gateway.
-- **Port Auditor**: Scan your VPS for active listening ports and filter them based on what's authorized.
-- **Domain Proxies**: Maps your public domain names (like `app.example.com`) to internal ports on your server.
+---
 
-### 🔑 Local Authentication & Security
-likeVercel is designed as a secure local dashboard.
-- **Single Admin Lock**: Only one admin account can be registered. Further registrations are blocked.
-- **Password Recovery**: Because there is no central server to send a reset email, forgetting your password requires a factory reset. Stop the backend, delete `backend/prisma/dev.db`, and run `npm run db:push` to wipe the DB and create a new account.
+## Getting Started
 
-## 🛠 Tech Stack
+### Prerequisites
 
-### 💅 Frontend
-- **Framework**: React 18 + Vite
-- **Styling**: Vanilla CSS (Custom "Laboratory" Theme)
-- **Icons**: Lucide React
-- **Terminal**: Xterm.js + Socket.io-client
+- [Docker](https://www.docker.com/products/docker-desktop) (recommended)
+- Or: Node.js 20+ for running locally
 
-### ⚙️ Backend
-- **Runtime**: Node.js + Express
-- **Database**: SQLite (via Prisma ORM)
-- **Communication**: Socket.io (WebSockets)
-- **SSH/SFTP**: SSH2
-- **Security**: JWT, Bcrypt, AES-256-GCM, Helmet
+---
 
-## 🏁 Getting Started
+### Option A — Docker (Recommended)
 
-### 📦 1. Installation
-Install dependencies for the entire workspace:
+The easiest way to run likeVercel. One command spins up the full stack.
+
+**1. Clone the repo**
+
+```bash
+git clone https://github.com/your-username/likeVercel.git
+cd likeVercel
+```
+
+**2. Set up your environment**
+
+```bash
+cp .env.example .env
+```
+
+Open `.env` and fill in the required secrets:
+
+```env
+JWT_SECRET=your-long-random-string
+JWT_REFRESH_SECRET=another-long-random-string
+ENCRYPTION_KEY=a-64-character-hex-string
+```
+
+To generate a valid `ENCRYPTION_KEY` on Windows (PowerShell):
+```powershell
+-join ((1..64) | ForEach-Object { '{0:x}' -f (Get-Random -Max 16) })
+```
+
+On macOS / Linux:
+```bash
+openssl rand -hex 32
+```
+
+**3. Build and run**
+
+```bash
+docker compose up --build
+```
+
+The app will be live at **http://localhost:3001**
+
+**Useful Docker commands:**
+
+```bash
+# Run in the background
+docker compose up --build -d
+
+# View live logs
+docker compose logs -f
+
+# Stop the app
+docker compose down
+
+# Full reset (wipes the database)
+docker compose down -v
+```
+
+---
+
+### Option B — Local Development
+
+**1. Install dependencies**
 
 ```bash
 npm run install:all
 ```
 
-### 🔨 2. Database Initialization
+**2. Set up environment variables**
+
+```bash
+cp .env.example .env
+# Fill in JWT_SECRET, JWT_REFRESH_SECRET, and ENCRYPTION_KEY
+```
+
+**3. Initialize the database**
+
 ```bash
 cd backend
 npm run db:push
 ```
 
-### 🚀 3. Run Development
-Run both frontend and backend concurrently:
+**4. Start the dev servers**
 
 ```bash
+# From the project root
 npm run dev
 ```
 
-- **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:3001
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:3001
 
-## 🚢 Production Deployment
+---
 
-To deploy likeVercel to your own VPS:
+## Environment Variables
 
-1. Build the project:
-   ```bash
-   npm run build
-   ```
-2. Set `NODE_ENV=production` in your `.env`.
-3. Start the backend with PM2:
-   ```bash
-   pm2 start backend/dist/index.js --name "likeVercel"
-   ```
+| Variable | Required | Description |
+|---|---|---|
+| `JWT_SECRET` | ✅ | Secret for signing access tokens |
+| `JWT_REFRESH_SECRET` | ✅ | Secret for signing refresh tokens |
+| `ENCRYPTION_KEY` | ✅ | 64-character hex key for AES-256-GCM credential encryption |
+| `PORT` | ❌ | Backend port (default: `3001`) |
+| `NODE_ENV` | ❌ | `development` or `production` |
+| `JWT_EXPIRES_IN` | ❌ | Access token TTL (default: `15m`) |
+| `JWT_REFRESH_EXPIRES_IN` | ❌ | Refresh token TTL (default: `7d`) |
+| `FRONTEND_URL` | ❌ | Used for CORS (default: `http://localhost:5173` in dev, `http://localhost:3001` in Docker) |
+| `DATABASE_URL` | ❌ | Prisma DB path (default: `file:./dev.db`) |
 
-The backend is configured to serve the frontend static files automatically in production mode. 🌐
+---
 
-## ⚖️ License
-MIT License. Created by Heshan Jayakody. 👨‍💻
+## Production Deployment
+
+To deploy likeVercel on a VPS:
+
+**1. Build the project**
+
+```bash
+npm run build
+```
+
+**2. Set environment variables**
+
+Set `NODE_ENV=production` in your `.env`. In production mode, the backend automatically serves the compiled frontend from `frontend/dist`.
+
+**3. Start with PM2**
+
+```bash
+pm2 start backend/dist/index.js --name "likevercel"
+```
+
+Or use Docker on the server:
+
+```bash
+docker compose up -d
+```
+
+---
+
+## Resetting Your Account
+
+likeVercel only allows one admin account. If you forget your password, you need to wipe the database manually:
+
+**Docker:**
+```bash
+docker compose down -v
+docker compose up
+```
+
+**Local:**
+```bash
+# Stop the backend, then:
+cd backend
+rm prisma/dev.db
+npm run db:push
+```
+
+---
+
+## Health Check
+
+```
+GET /api/health
+```
+
+Returns server uptime and database status:
+
+```json
+{
+  "status": "ok",
+  "database": "ok",
+  "uptime": 123.45,
+  "timestamp": "2025-01-01T00:00:00.000Z"
+}
+```
+
+---
+
+## License
+
+MIT License. Created by Heshan Jayakody.

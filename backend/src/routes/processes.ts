@@ -3,7 +3,7 @@ import prisma from '../utils/prisma';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { sshManager } from '../services/SSHManager';
 import { processStartSchema } from '../utils/validators';
-import { verifyVps } from '../utils/helpers';
+import { verifyVps, escapeShellArg, splitShellTokens } from '../utils/helpers';
 
 const router = Router();
 
@@ -143,12 +143,7 @@ router.get('/:id/processes', async (req: AuthRequest, res: Response): Promise<vo
   }
 });
 
-/**
- * Escapes a string for use in a shell command.
- */
-function escapeShellArg(arg: string): string {
-  return `'${arg.replace(/'/g, "'\\''")}'`;
-}
+
 
 // POST /api/vps/:id/processes/start — detect project & start process
 router.post('/:id/processes/start', async (req: AuthRequest, res: Response): Promise<void> => {
@@ -180,10 +175,20 @@ router.post('/:id/processes/start', async (req: AuthRequest, res: Response): Pro
     const fileList = files.split('\n').map(f => f.trim());
 
     if (data.command) {
-      // Custom command — escape the entire command string safely
+      // Custom command — escape each part of the command safely
       processName = `custom-${port}`;
-      const escapedCmd = escapeShellArg(data.command);
-      startCommand = `cd ${escapedPath} && pm2 start ${escapedCmd} --name ${escapeShellArg(processName)}`;
+      const tokens = splitShellTokens(data.command);
+      if (tokens.length === 0) {
+        res.status(400).json({ error: 'Command cannot be empty' });
+        return;
+      }
+      
+      const escapedScript = escapeShellArg(tokens[0]);
+      const escapedArgs = tokens.slice(1).map(arg => escapeShellArg(arg)).join(' ');
+      const escapedProcessName = escapeShellArg(processName);
+      
+      // Use -- to separate pm2 options from the user command/arguments
+      startCommand = `cd ${escapedPath} && pm2 start ${escapedScript} --name ${escapedProcessName} ${escapedArgs ? '-- ' + escapedArgs : ''}`;
       projectType = 'custom';
     } else if (fileList.includes('package.json')) {
       processName = `node-${port}`;
@@ -350,7 +355,8 @@ router.get('/:id/processes/:deploymentId/logs', async (req: AuthRequest, res: Re
       return;
     }
 
-    const lines = parseInt(req.query.lines as string) || 100;
+    const rawLines = parseInt(req.query.lines as string);
+    const lines = isNaN(rawLines) ? 100 : Math.max(1, Math.min(1000, rawLines));
     const logs = await sshManager.executeCommand(
       vpsId,
       `pm2 logs ${escapeShellArg(deployment.processName)} --nostream --lines ${lines} 2>&1`
@@ -386,7 +392,7 @@ router.post('/:id/processes/adopt', async (req: AuthRequest, res: Response): Pro
     if (type === 'port' && pid) {
       // Try to discover CWD using pwdx
       try {
-        const pwdxOut = await sshManager.executeCommand(vpsId, `pwdx ${pid}`);
+        const pwdxOut = await sshManager.executeCommand(vpsId, `pwdx ${escapeShellArg(pid)}`);
         // Output: "1024: /home/user/app"
         const pathPart = pwdxOut.split(': ')[1];
         if (pathPart && !finalPath) finalPath = pathPart.trim();
@@ -397,7 +403,7 @@ router.post('/:id/processes/adopt', async (req: AuthRequest, res: Response): Pro
     } else if (pm_id) {
       // PM2 adoption logic
       try {
-        const pm2Desc = await sshManager.executeCommand(vpsId, `pm2 describe ${pm_id} --format json`);
+        const pm2Desc = await sshManager.executeCommand(vpsId, `pm2 describe ${escapeShellArg(pm_id)} --format json`);
         const details = JSON.parse(pm2Desc);
         if (details && details.length > 0) {
           const proc = details[0];

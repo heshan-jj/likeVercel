@@ -22,8 +22,12 @@ router.post('/register', async (req: AuthRequest, res: Response): Promise<void> 
   try {
     const data = registerSchema.parse(req.body);
 
-
-    // Check if user already exists
+    // Enforce single-user policy: block registration if a user already exists
+    const userCount = await prisma.user.count();
+    if (userCount > 0) {
+      res.status(403).json({ error: 'Registration is closed. Only one administrator is allowed.' });
+      return;
+    }
     const existingUser = await prisma.user.findUnique({ where: { email: data.email } });
     if (existingUser) {
       res.status(400).json({ error: 'User with this email already exists' });

@@ -4,6 +4,7 @@ import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { encrypt } from '../utils/crypto';
 import { sshManager } from '../services/SSHManager';
 import { createVpsSchema, updateVpsSchema } from '../utils/validators';
+import { escapeShellArg } from '../utils/helpers';
 
 const router = Router();
 
@@ -309,8 +310,12 @@ router.post('/:id/connect', async (req: AuthRequest, res: Response): Promise<voi
     const updateData: any = { lastConnectedAt: new Date() };
     if (!(profile as any).region) {
       try {
-        const loc = await sshManager.executeCommand(profile.id, "curl -s http://ip-api.com/line?fields=city,countryCode | tr '\\n' ',' | sed 's/,$//'");
-        if (loc.trim()) updateData.region = loc.trim().toUpperCase();
+        // Use HTTPS (ipapi.co) to prevent unencrypted IP leaks
+        const city = await sshManager.executeCommand(profile.id, "curl -s https://ipapi.co/city/");
+        const country = await sshManager.executeCommand(profile.id, "curl -s https://ipapi.co/country/");
+        if (city.trim() && country.trim()) {
+          updateData.region = `${city.trim()},${country.trim()}`.toUpperCase();
+        }
       } catch (err) {
         console.error('[VPS] Get region failed on connect:', err);
       }
@@ -512,11 +517,31 @@ router.post('/:id/keys/install', async (req: AuthRequest, res: Response): Promis
     if (!profile) { res.status(404).json({ error: 'VPS not found' }); return; }
     if (!sshManager.isConnected(profile.id)) { res.status(400).json({ error: 'VPS is not connected' }); return; }
 
-    const safeKey = publicKey.trim().replace(/'/g, "'\\''");
-    await sshManager.executeCommand(
-      profile.id,
-      `mkdir -p ~/.ssh && chmod 700 ~/.ssh && echo '${safeKey}' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys`
-    );
+    const publicKeyLine = publicKey.trim() + '\n';
+    const sftp = await sshManager.getSftp(profile.id);
+    
+    try {
+      // Ensure .ssh exists
+      await new Promise((resolve, reject) => {
+        sftp.mkdir('.ssh', { mode: 0o700 }, (err) => {
+          // Ignore error if directory already exists
+          resolve(true);
+        });
+      });
+
+      // Append to authorized_keys
+      await new Promise((resolve, reject) => {
+        const stream = sftp.createWriteStream('.ssh/authorized_keys', { 
+          flags: 'a',
+          mode: 0o600 
+        });
+        stream.on('error', reject);
+        stream.on('close', resolve);
+        stream.end(publicKeyLine);
+      });
+    } finally {
+      sftp.end();
+    }
 
     res.json({ message: 'Public key installed successfully' });
   } catch (error: any) {

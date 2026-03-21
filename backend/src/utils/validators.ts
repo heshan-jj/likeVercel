@@ -18,12 +18,12 @@ export const loginSchema = z.object({
 
 const baseVpsSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
-  host: z.string().min(1, 'Host is required'),
+  host: z.string().min(1, 'Host is required').max(253),
   port: z.number().int().min(1).max(65535).default(22),
-  username: z.string().min(1, 'Username is required'),
+  username: z.string().min(1, 'Username is required').max(64),
   authType: z.enum(['password', 'privateKey']),
-  password: z.string().optional(),
-  privateKey: z.string().optional().refine(
+  password: z.string().max(1024).optional(),
+  privateKey: z.string().max(16384).optional().refine(
     (val) => {
       if (!val) return true;
       return val.includes('-----BEGIN') && val.includes('-----END');

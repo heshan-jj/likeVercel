@@ -5,11 +5,12 @@ import api from '../../utils/api';
 interface ResourceChartProps {
   vpsId: string;
   isConnected: boolean;
+  compact?: boolean;
 }
 
 const POLL_MS = 3000;
 
-const ResourceChart: React.FC<ResourceChartProps> = ({ vpsId, isConnected }) => {
+const ResourceChart: React.FC<ResourceChartProps> = ({ vpsId, isConnected, compact = false }) => {
   const [latest, setLatest] = useState<{ cpu: number; ram: number } | null>(null);
   const [error, setError] = useState('');
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -34,8 +35,28 @@ const ResourceChart: React.FC<ResourceChartProps> = ({ vpsId, isConnected }) => 
   if (!isConnected) return null;
 
   if (error) return (
-    <div className="text-xs text-text-muted text-center py-4 opacity-60">{error}</div>
+    <div className="text-[10px] font-bold text-red-500/60 uppercase tracking-widest">{error}</div>
   );
+
+  if (compact) {
+    return (
+      <div className="flex items-center space-x-4 bg-white/50 backdrop-blur-sm border border-slate-200 rounded-2xl px-4 py-2 shadow-sm">
+        <div className="flex items-center space-x-2">
+          <Cpu size={14} className="text-blue-500" />
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">CPU</span>
+          <span className="text-xs font-black text-slate-900">{latest ? `${latest.cpu}%` : '--%'}</span>
+        </div>
+        <div className="w-px h-3 bg-slate-200" />
+        <div className="flex items-center space-x-2">
+          <MemoryStick size={14} className="text-emerald-500" />
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">RAM</span>
+          <span className="text-xs font-black text-slate-900">{latest ? `${latest.ram}%` : '--%'}</span>
+        </div>
+        <div className="w-px h-3 bg-slate-200" />
+        <Activity size={12} className="text-blue-500 animate-pulse" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-8">

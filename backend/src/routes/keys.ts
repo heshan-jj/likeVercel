@@ -4,6 +4,7 @@ import prisma from '../utils/prisma';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { encrypt, decrypt } from '../utils/crypto';
 import { sshManager } from '../services/SSHManager';
+import { escapeShellArg } from '../utils/helpers';
 
 const router = Router();
 router.use(authMiddleware);
@@ -157,11 +158,30 @@ router.post('/:id/install', async (req: AuthRequest, res: Response): Promise<voi
     if (!profile) { res.status(404).json({ error: 'VPS not found' }); return; }
     if (!sshManager.isConnected(profile.id)) { res.status(400).json({ error: 'VPS is not connected' }); return; }
 
-    const safeKey = key.publicKey.trim().replace(/'/g, "'\\''");
-    await sshManager.executeCommand(
-      profile.id,
-      `mkdir -p ~/.ssh && chmod 700 ~/.ssh && echo '${safeKey}' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys`
-    );
+    const publicKeyLine = key.publicKey.trim() + '\n';
+    const sftp = await sshManager.getSftp(profile.id);
+    
+    try {
+      // Ensure .ssh exists
+      await new Promise((resolve, reject) => {
+        sftp.mkdir('.ssh', { mode: 0o700 }, (err) => {
+          resolve(true);
+        });
+      });
+
+      // Append to authorized_keys
+      await new Promise((resolve, reject) => {
+        const stream = sftp.createWriteStream('.ssh/authorized_keys', { 
+          flags: 'a',
+          mode: 0o600 
+        });
+        stream.on('error', reject);
+        stream.on('close', resolve);
+        stream.end(publicKeyLine);
+      });
+    } finally {
+      sftp.end();
+    }
 
     res.json({ message: 'Public key installed successfully' });
   } catch (error: any) {

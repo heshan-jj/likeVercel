@@ -5,7 +5,7 @@ import path from 'path';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { sshManager } from '../services/SSHManager';
 import { SFTPWrapper } from 'ssh2';
-import { verifyVps } from '../utils/helpers';
+import { verifyVps, escapeShellArg } from '../utils/helpers';
 
 const router = Router();
 
@@ -33,29 +33,36 @@ router.use(authMiddleware);
 // Helper to sanitize remote paths
 function sanitizePath(remotePath: string): string {
   if (!remotePath) return '/';
-  // Decode URI components to catch encoded path traversal
-  let decoded = decodeURIComponent(remotePath);
-  // Remove null bytes (poison null byte attack)
-  decoded = decoded.replace(/\0/g, '');
-  // Prevent path traversal — remove all .. segments
-  const cleaned = decoded.replace(/\.\./g, '').replace(/\.\./g, '');
-  return cleaned.startsWith('/') ? cleaned : '/' + cleaned;
-}
-
-// Helper to get SFTP session
-function getSftp(vpsId: string): Promise<SFTPWrapper> {
-  const client = sshManager.getConnection(vpsId);
-  if (!client) {
-    throw new Error('VPS not connected');
+  
+  // 1. Decode URI components to catch encoded path traversal
+  let decoded = remotePath;
+  try {
+    decoded = decodeURIComponent(remotePath);
+  } catch (e) {
+    // If decoding fails, continue with original string
   }
-
-  return new Promise((resolve, reject) => {
-    client.sftp((err, sftp) => {
-      if (err) return reject(err);
-      resolve(sftp);
-    });
-  });
+  
+  // 2. Remove null bytes (poison null byte attack)
+  decoded = decoded.replace(/\0/g, '');
+  
+  // 3. Force it to be an absolute path relative to system root
+  const prepended = decoded.startsWith('/') ? decoded : '/' + decoded;
+  
+  // 4. Normalize (resolves .. segments)
+  const normalized = path.posix.normalize(prepended);
+  
+  // 5. Ensure it didn't collapse into something that tries to go above root
+  // path.posix.normalize('/../etc/passwd') returns '/etc/passwd' which is safe 
+  // because we are in a VPS manager where / is the root.
+  // But we block any literal ".." segments that remain if they managed to sneak through
+  if (normalized.includes('..')) {
+    return '/'; // Fallback to safe default
+  }
+  
+  return normalized;
 }
+
+
 
 // GET /api/vps/:id/files?path=/ — list directory contents
 router.get('/:id/files', async (req: AuthRequest, res: Response): Promise<void> => {
@@ -65,7 +72,7 @@ router.get('/:id/files', async (req: AuthRequest, res: Response): Promise<void> 
     if (!vpsId) return;
 
     const remotePath = sanitizePath((req.query.path as string) || '/');
-    sftp = await getSftp(vpsId);
+    sftp = await sshManager.getSftp(vpsId);
 
     sftp.readdir(remotePath, (err, list) => {
       if (sftp) sftp.end();
@@ -115,7 +122,7 @@ router.post(
 
       const remotePath = sanitizePath(req.body.path || '/');
       const remoteFilePath = path.posix.join(remotePath, req.file.originalname);
-      sftp = await getSftp(vpsId);
+      sftp = await sshManager.getSftp(vpsId);
 
       const writeStream = sftp.createWriteStream(remoteFilePath);
 
@@ -156,7 +163,7 @@ router.get('/:id/files/download', async (req: AuthRequest, res: Response): Promi
       return;
     }
 
-    sftp = await getSftp(vpsId);
+    sftp = await sshManager.getSftp(vpsId);
     const filename = path.posix.basename(remotePath);
 
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -197,7 +204,7 @@ router.post('/:id/files/mkdir', async (req: AuthRequest, res: Response): Promise
       return;
     }
 
-    sftp = await getSftp(vpsId);
+    sftp = await sshManager.getSftp(vpsId);
     sftp.mkdir(remotePath, (err) => {
       if (sftp) sftp.end();
       if (err) {
@@ -227,7 +234,7 @@ router.delete('/:id/files', async (req: AuthRequest, res: Response): Promise<voi
     }
 
     // Use SSH command for recursive delete
-    await sshManager.executeCommand(vpsId, `rm -rf "${remotePath.replace(/"/g, '\\"')}"`);
+    await sshManager.executeCommand(vpsId, `rm -rf ${escapeShellArg(remotePath)}`);
     res.json({ message: 'Deleted', path: remotePath });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -247,7 +254,7 @@ router.put('/:id/files/rename', async (req: AuthRequest, res: Response): Promise
       return;
     }
 
-    sftp = await getSftp(vpsId);
+    sftp = await sshManager.getSftp(vpsId);
     sftp.rename(sanitizePath(oldPath), sanitizePath(newPath), (err) => {
       if (sftp) sftp.end();
       if (err) {

@@ -142,7 +142,10 @@ const VpsDetail: React.FC = () => {
             </div>
           </div>
           
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-4">
+            {profile.isConnected && (
+              <ResourceChart vpsId={profile.id} isConnected={profile.isConnected} compact={true} />
+            )}
             <button 
               onClick={() => navigate(`/vps/${id}/edit`)}
               className="flex items-center space-x-2 px-6 py-3 bg-bg-secondary hover:bg-bg-tertiary text-text-primary font-bold text-xs rounded-xl border border-border-light transition-all shadow-sm active:scale-95 group h-[42px]"
@@ -152,13 +155,6 @@ const VpsDetail: React.FC = () => {
             </button>
           </div>
         </div>
-
-          {/* Live Resource Charts — only visible when connected */}
-          {profile.isConnected && (
-            <div className="mt-6 pt-5 border-t border-border-light">
-            <ResourceChart vpsId={profile.id} isConnected={profile.isConnected} />
-          </div>
-        )}
       </div>
 
       {/* Main Tab Area */}
