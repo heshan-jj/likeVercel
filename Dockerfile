@@ -3,13 +3,18 @@
 # ─────────────────────────────────────────
 FROM node:20-alpine AS frontend-builder
 
-WORKDIR /app/frontend
+WORKDIR /app
 
-COPY frontend/package*.json ./
-RUN npm install -f
+# Copy workspace configuration and lock file
+COPY package*.json ./
+COPY frontend/package*.json ./frontend/
 
-COPY frontend/ ./
-RUN npm run build
+# Install only frontend dependencies
+RUN npm install --workspace=frontend
+
+# Copy frontend source and build
+COPY frontend/ ./frontend/
+RUN npm run build --workspace=frontend
 
 
 # ─────────────────────────────────────────
@@ -17,19 +22,25 @@ RUN npm run build
 # ─────────────────────────────────────────
 FROM node:20-alpine AS backend-builder
 
-WORKDIR /app/backend
+# Install build dependencies for native modules like bcrypt
+RUN apk add --no-cache python3 make g++
 
-COPY backend/package*.json ./
-COPY backend/prisma ./prisma
+WORKDIR /app
 
-# Install all deps
-RUN npm install -f
+# Copy workspace configuration and lock file
+COPY package*.json ./
+COPY backend/package*.json ./backend/
+COPY backend/prisma ./backend/prisma
 
-# Generate Prisma client BEFORE compiling so it exists in node_modules
-RUN npx prisma generate
+# Install backend dependencies
+RUN npm install --workspace=backend
 
-# Compile TypeScript
-RUN npm run build
+# Generate Prisma client
+RUN npx prisma generate --schema=backend/prisma/schema.prisma
+
+# Copy backend source and build
+COPY backend/ ./backend/
+RUN npm run build --workspace=backend
 
 
 # ─────────────────────────────────────────
@@ -39,19 +50,24 @@ FROM node:20-alpine AS production
 
 RUN apk add --no-cache openssl
 
-WORKDIR /app/backend
+WORKDIR /app
+
+# Copy package files for production install
+COPY package*.json ./
+COPY backend/package*.json ./backend/
+COPY backend/prisma ./backend/prisma
 
 # Install production deps only
-COPY backend/package*.json ./
-COPY backend/prisma ./prisma
-RUN npm install --omit=dev
+RUN npm install --omit=dev --workspace=backend
+
+WORKDIR /app/backend
 
 # Copy compiled backend from builder
 COPY --from=backend-builder /app/backend/dist ./dist
 
-# Copy the generated Prisma client from builder (includes .prisma & @prisma/client)
-COPY --from=backend-builder /app/backend/node_modules/.prisma ./node_modules/.prisma
-COPY --from=backend-builder /app/backend/node_modules/@prisma/client ./node_modules/@prisma/client
+# Copy the generated Prisma client from builder
+COPY --from=backend-builder /app/node_modules/.prisma ../node_modules/.prisma
+COPY --from=backend-builder /app/node_modules/@prisma/client ../node_modules/@prisma/client
 
 # Copy built frontend where Express expects it
 COPY --from=frontend-builder /app/frontend/dist ../frontend/dist
@@ -63,3 +79,5 @@ VOLUME ["/app/backend/prisma/data"]
 EXPOSE 3001
 
 CMD ["sh", "-c", "DATABASE_URL=file:/app/backend/prisma/data/prod.db npx prisma db push --skip-generate && node dist/index.js"]
+
+
