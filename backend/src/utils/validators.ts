@@ -81,4 +81,5 @@ export const processStartSchema = z.object({
     .refine((val) => val.startsWith('/'), 'Absolute path is required'),
   port: z.number().int().min(1024).max(65535).optional(),
   command: z.string().optional(),
+  processName: z.string().min(1).max(50).optional(),
 });

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Server, Loader2 } from 'lucide-react';
+import Skeleton from '../Skeleton';
 
 interface VPSProfile {
   id: string;
@@ -20,13 +21,14 @@ interface ServerSpecs {
 interface VpsListViewProps {
   profiles: VPSProfile[];
   specs: Record<string, ServerSpecs>;
+  fetchingSpecs: Set<string>;
   connecting: string | null;
   onNavigate: (id: string) => void;
   onConnect: (id: string, e: React.MouseEvent) => void;
   onDisconnect: (id: string, e: React.MouseEvent) => void;
 }
 
-const VpsListView: React.FC<VpsListViewProps> = ({ profiles, specs, connecting, onNavigate, onConnect, onDisconnect }) => {
+const VpsListView: React.FC<VpsListViewProps> = ({ profiles, specs, fetchingSpecs, connecting, onNavigate, onConnect, onDisconnect }) => {
   return (
     <div className="bg-white border border-slate-200 rounded-[24px] overflow-hidden shadow-sm">
       <table className="w-full text-left">
@@ -75,12 +77,18 @@ const VpsListView: React.FC<VpsListViewProps> = ({ profiles, specs, connecting, 
               <td className="px-6 py-5 text-right w-48">
                 <div className="flex items-center justify-end space-x-3">
                   <div className="flex-1 max-w-[100px] h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full rounded-full transition-all duration-1000 ${vps.isConnected ? 'bg-blue-600' : 'bg-slate-300'}`}
-                      style={{ width: `${vps.isConnected ? (specs[vps.id]?.cpuLoad || 0) : 0}%` }}
-                    />
+                    {fetchingSpecs.has(vps.id) ? (
+                      <Skeleton className="h-full w-full" />
+                    ) : (
+                      <div 
+                        className={`h-full rounded-full transition-all duration-1000 ${vps.isConnected ? 'bg-blue-600' : 'bg-slate-300'}`}
+                        style={{ width: `${vps.isConnected ? (specs[vps.id]?.cpuLoad || 0) : 0}%` }}
+                      />
+                    )}
                   </div>
-                  <span className="text-xs font-bold text-slate-900 w-8">{vps.isConnected ? `${specs[vps.id]?.cpuLoad || 0}%` : '0%'}</span>
+                  <span className="text-xs font-bold text-slate-900 w-8">
+                    {fetchingSpecs.has(vps.id) ? <Skeleton className="h-3 w-6" /> : (vps.isConnected ? `${specs[vps.id]?.cpuLoad || 0}%` : '0%')}
+                  </span>
                 </div>
               </td>
               <td className="px-6 py-5 text-right">

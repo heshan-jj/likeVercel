@@ -6,3 +6,5 @@ dist/
 Thumbs.db
 backend/.env
 frontend/.env
+build_error.log
+fixes.md

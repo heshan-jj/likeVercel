@@ -1,5 +1,6 @@
 import React from 'react';
 import { Server, Trash2, Activity, Loader2, Power, PowerOff } from 'lucide-react';
+import Skeleton from '../Skeleton';
 
 interface VPSProfile {
   id: string;
@@ -20,6 +21,7 @@ interface ServerSpecs {
 interface VpsGridViewProps {
   profiles: VPSProfile[];
   specs: Record<string, ServerSpecs>;
+  fetchingSpecs: Set<string>;
   connecting: string | null;
   onNavigate: (id: string) => void;
   onConnect: (id: string, e: React.MouseEvent) => void;
@@ -27,7 +29,7 @@ interface VpsGridViewProps {
   onDelete: (id: string, name: string, e: React.MouseEvent) => void;
 }
 
-const VpsGridView: React.FC<VpsGridViewProps> = ({ profiles, specs, connecting, onNavigate, onConnect, onDisconnect, onDelete }) => {
+const VpsGridView: React.FC<VpsGridViewProps> = ({ profiles, specs, fetchingSpecs, connecting, onNavigate, onConnect, onDisconnect, onDelete }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {profiles.map((vps) => (
@@ -60,7 +62,11 @@ const VpsGridView: React.FC<VpsGridViewProps> = ({ profiles, specs, connecting, 
                 {vps.isConnected && (
                   <div className="flex items-center space-x-1.5 mr-2">
                     <Activity size={14} className="text-blue-600" />
-                    <span className="text-xs font-bold text-slate-900">{specs[vps.id]?.cpuLoad || 0}%</span>
+                    {fetchingSpecs.has(vps.id) ? (
+                      <Skeleton className="h-3 w-8" />
+                    ) : (
+                      <span className="text-xs font-bold text-slate-900">{specs[vps.id]?.cpuLoad || 0}%</span>
+                    )}
                   </div>
                 )}
                 {!vps.isConnected ? (

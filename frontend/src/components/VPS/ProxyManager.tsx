@@ -24,6 +24,7 @@ interface ProxyConfig {
   ssl: boolean;
   enabled: boolean;
   fileName: string;
+  managed: boolean;
 }
 
 interface ProxyManagerProps {
@@ -127,6 +128,22 @@ const ProxyManager: React.FC<ProxyManagerProps> = ({ vpsId }) => {
     }
   };
 
+  const handleAdopt = async (cfg: ProxyConfig) => {
+    setActionLoading(`adopt-${cfg.domain}`);
+    try {
+      await api.post(`/vps/${vpsId}/proxy/adopt`, {
+        domain: cfg.domain,
+        fileName: cfg.fileName,
+      });
+      fetchConfigs();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } } };
+      setError(error.response?.data?.error || 'Failed to adopt proxy');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   if (!loading && !nginxInstalled) {
     return (
       <div className="flex flex-col items-center justify-center h-full py-20 px-8 text-center animate-in fade-in duration-500">
@@ -154,6 +171,9 @@ const ProxyManager: React.FC<ProxyManagerProps> = ({ vpsId }) => {
     );
   }
 
+  const managedConfigs = configs.filter(c => c.managed);
+  const externalConfigs = configs.filter(c => !c.managed);
+
   return (
     <div className="flex flex-col h-full space-y-6">
       {/* Header Area */}
@@ -163,7 +183,7 @@ const ProxyManager: React.FC<ProxyManagerProps> = ({ vpsId }) => {
              <div className="h-1 w-1 rounded-full bg-blue-500 animate-pulse" />
              <span>Edge Gateway Suite</span>
           </div>
-          <h3 className="text-xl font-bold text-text-primary tracking-tight">External Proxies</h3>
+          <h3 className="text-xl font-bold text-text-primary tracking-tight">Proxy Cluster</h3>
         </div>
         
         <div className="flex items-center space-x-3 w-full sm:w-auto">
@@ -310,7 +330,7 @@ const ProxyManager: React.FC<ProxyManagerProps> = ({ vpsId }) => {
             <Loader2 size={32} className="text-blue-500 animate-spin mb-4" />
             <span className="text-text-muted font-bold uppercase tracking-widest text-[10px]">Syncing proxy cluster...</span>
           </div>
-        ) : configs.length === 0 ? (
+        ) : managedConfigs.length === 0 && externalConfigs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 px-8 border border-dashed border-border-light rounded-[32px] bg-bg-secondary/10">
             <div className="p-8 bg-bg-secondary rounded-3xl mb-8 border border-border-light shadow-inner">
               <Globe size={56} className="text-text-muted/30" />
@@ -319,72 +339,115 @@ const ProxyManager: React.FC<ProxyManagerProps> = ({ vpsId }) => {
             <p className="text-text-muted text-center max-w-sm mb-12 text-xs font-bold leading-relaxed">Map custom domains to internal host ports with automatic TLS protocols.</p>
           </div>
         ) : (
-          configs.map((cfg) => (
-            <div key={cfg.domain} className="group glass-effect rounded-[32px] border border-border-light hover:border-blue-500/30 transition-all duration-300 overflow-hidden shadow-2xl">
-               <div className="p-6 sm:p-8 flex flex-col xl:flex-row xl:items-center justify-between gap-6">
-                  <div className="flex items-center space-x-5">
-                     <div className={`p-5 rounded-2xl ${cfg.enabled ? 'bg-blue-600/10' : 'bg-bg-tertiary'} shadow-inner border border-border-light`}>
-                        <Globe size={28} className={cfg.enabled ? 'text-blue-500' : 'text-text-muted'} />
-                     </div>
-                     <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-3 mb-2">
-                           <h4 className="text-base font-bold text-text-primary tracking-tight font-mono truncate max-w-[300px]">{cfg.domain}</h4>
-                           <div className={`flex items-center mt-0.5 space-x-1 px-2 py-0.5 rounded-full border text-[9px] font-bold uppercase tracking-widest ${
-                              cfg.ssl ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                           }`}>
-                              {cfg.ssl ? <ShieldCheck size={10} /> : <ShieldAlert size={10} />}
-                              <span>{cfg.ssl ? 'SSL Enforced' : 'Unsecured'}</span>
-                           </div>
-                        </div>
-                        <div className="flex items-center space-x-3 text-[10px] font-bold font-mono">
-                           <span className="text-text-muted uppercase tracking-widest bg-black/5 px-2 py-0.5 rounded-lg border border-border-light">Backend</span>
-                           <span className="text-blue-500 tracking-widest">127.0.0.1:{cfg.port}</span>
-                        </div>
-                     </div>
-                  </div>
+          <>
+            {managedConfigs.map((cfg) => (
+              <div key={cfg.domain} className="group glass-effect rounded-[32px] border border-border-light hover:border-blue-500/30 transition-all duration-300 overflow-hidden shadow-2xl">
+                 <div className="p-6 sm:p-8 flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+                    <div className="flex items-center space-x-5">
+                       <div className={`p-5 rounded-2xl ${cfg.enabled ? 'bg-blue-600/10' : 'bg-bg-tertiary'} shadow-inner border border-border-light`}>
+                          <Globe size={28} className={cfg.enabled ? 'text-blue-500' : 'text-text-muted'} />
+                       </div>
+                       <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-3 mb-2">
+                             <h4 className="text-base font-bold text-text-primary tracking-tight font-mono truncate max-w-[300px]">{cfg.domain}</h4>
+                             <div className={`flex items-center mt-0.5 space-x-1 px-2 py-0.5 rounded-full border text-[9px] font-bold uppercase tracking-widest ${
+                                cfg.ssl ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                             }`}>
+                                {cfg.ssl ? <ShieldCheck size={10} /> : <ShieldAlert size={10} />}
+                                <span>{cfg.ssl ? 'SSL Enforced' : 'Unsecured'}</span>
+                             </div>
+                          </div>
+                          <div className="flex items-center space-x-3 text-[10px] font-bold font-mono">
+                             <span className="text-text-muted uppercase tracking-widest bg-black/5 px-2 py-0.5 rounded-lg border border-border-light">Backend</span>
+                             <span className="text-blue-500 tracking-widest">127.0.0.1:{cfg.port}</span>
+                          </div>
+                       </div>
+                    </div>
 
-                  <div className="flex items-center justify-between xl:justify-end gap-4 border-t xl:border-t-0 border-border-light pt-6 xl:pt-0">
-                     <div className="flex items-center space-x-2 mr-3 hidden 2xl:flex">
-                        <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-xl border ${
-                           cfg.enabled ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 'bg-red-500/10 border-red-500/20 text-red-500'
-                        }`}>
-                           <CheckCircle size={14} />
-                           <span className="text-[9px] font-bold uppercase tracking-widest">{cfg.enabled ? 'Active' : 'Idle'}</span>
-                        </div>
-                     </div>
+                    <div className="flex items-center justify-between xl:justify-end gap-4 border-t xl:border-t-0 border-border-light pt-6 xl:pt-0">
+                       <div className="flex items-center space-x-2 mr-3 hidden 2xl:flex">
+                          <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-xl border ${
+                             cfg.enabled ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 'bg-red-500/10 border-red-500/20 text-red-500'
+                          }`}>
+                             <CheckCircle size={14} />
+                             <span className="text-[9px] font-bold uppercase tracking-widest">{cfg.enabled ? 'Active' : 'Idle'}</span>
+                          </div>
+                       </div>
 
-                     <div className="flex items-center space-x-2">
-                        <a 
-                          href={`${cfg.ssl ? 'https' : 'http'}://${cfg.domain}`} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="p-3 bg-bg-secondary/50 hover:bg-bg-tertiary text-text-secondary rounded-xl transition-all border border-border-light shadow-inner"
-                        >
-                          <ExternalLink size={20} />
-                        </a>
-                        
-                        {!cfg.ssl && (
-                          <button
-                            onClick={() => handleEnableSSL(cfg.domain)}
-                            disabled={actionLoading === `ssl-${cfg.domain}`}
-                            className="flex items-center space-x-2 px-6 py-3 bg-amber-500/10 hover:bg-amber-500 text-amber-500 hover:text-white font-bold tracking-tight text-[11px] rounded-xl border border-amber-500/20 transition-all active:scale-95"
+                       <div className="flex items-center space-x-2">
+                          <a 
+                            href={`${cfg.ssl ? 'https' : 'http'}://${cfg.domain}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="p-3 bg-bg-secondary/50 hover:bg-bg-tertiary text-text-secondary rounded-xl transition-all border border-border-light shadow-inner"
                           >
-                             {actionLoading === `ssl-${cfg.domain}` ? <Loader2 size={16} className="animate-spin" /> : <><Lock size={16} /> <span>SSL Activate</span></>}
-                          </button>
-                        )}
+                            <ExternalLink size={20} />
+                          </a>
+                          
+                          {!cfg.ssl && (
+                            <button
+                              onClick={() => handleEnableSSL(cfg.domain)}
+                              disabled={actionLoading === `ssl-${cfg.domain}`}
+                              className="flex items-center space-x-2 px-6 py-3 bg-amber-500/10 hover:bg-amber-500 text-amber-500 hover:text-white font-bold tracking-tight text-[11px] rounded-xl border border-amber-500/20 transition-all active:scale-95"
+                            >
+                               {actionLoading === `ssl-${cfg.domain}` ? <Loader2 size={16} className="animate-spin" /> : <><Lock size={16} /> <span>SSL Activate</span></>}
+                            </button>
+                          )}
 
-                        <button
-                          onClick={() => handleDelete(cfg.domain)}
-                          disabled={actionLoading === `delete-${cfg.domain}`}
-                          className="p-3 bg-bg-tertiary/50 hover:bg-red-500/20 hover:text-red-500 text-text-muted rounded-xl transition-all border border-border-light"
-                        >
-                           {actionLoading === `delete-${cfg.domain}` ? <Loader2 size={20} className="animate-spin" /> : <Trash2 size={20} />}
-                        </button>
-                     </div>
+                          <button
+                            onClick={() => handleDelete(cfg.domain)}
+                            disabled={actionLoading === `delete-${cfg.domain}`}
+                            className="p-3 bg-bg-tertiary/50 hover:bg-red-500/20 hover:text-red-500 text-text-muted rounded-xl transition-all border border-border-light"
+                          >
+                             {actionLoading === `delete-${cfg.domain}` ? <Loader2 size={20} className="animate-spin" /> : <Trash2 size={20} />}
+                          </button>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+            ))}
+
+            {externalConfigs.length > 0 && (
+              <>
+                <div className="flex items-center space-x-3 mt-10 mb-4 px-1">
+                  <Zap className="text-amber-500" size={18} />
+                  <h3 className="text-[11px] font-bold text-text-muted tracking-tight uppercase tracking-widest">External Host Proxies detected</h3>
+                </div>
+                {externalConfigs.map((cfg) => (
+                  <div key={cfg.domain} className="group glass-effect rounded-[32px] border border-border-light bg-amber-500/[0.02] hover:border-amber-500/30 transition-all duration-300 overflow-hidden shadow-2xl">
+                    <div className="p-6 sm:p-8 flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+                      <div className="flex items-center space-x-5">
+                        <div className="p-5 rounded-2xl bg-amber-500/10 shadow-inner border border-amber-500/20">
+                          <Globe size={28} className="text-amber-500" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-3 mb-2">
+                             <h4 className="text-base font-bold text-text-primary tracking-tight font-mono">{cfg.domain}</h4>
+                             <div className="px-2.5 py-0.5 rounded-full border bg-amber-500/10 border-amber-500/20 text-amber-500 text-[9px] font-bold uppercase tracking-widest">
+                                External Rule
+                             </div>
+                          </div>
+                          <div className="flex items-center space-x-3 text-[10px] font-bold font-mono text-text-muted">
+                             <span>Mapped to: {cfg.port}</span>
+                             <span className="h-1 w-1 rounded-full bg-border-light" />
+                             <span>File: {cfg.fileName}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button 
+                        onClick={() => handleAdopt(cfg)}
+                        disabled={actionLoading === `adopt-${cfg.domain}`}
+                        className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] rounded-xl transition-all border border-blue-600 shadow-xl shadow-blue-600/20 uppercase tracking-widest disabled:opacity-50 flex items-center space-x-2"
+                      >
+                        {actionLoading === `adopt-${cfg.domain}` ? <Loader2 size={16} className="animate-spin" /> : <span>Take Control</span>}
+                      </button>
+                    </div>
                   </div>
-               </div>
-            </div>
-          ))
+                ))}
+              </>
+            )}
+          </>
         )}
       </div>
     </div>

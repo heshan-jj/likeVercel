@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -45,6 +45,27 @@ const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 const App: React.FC = () => {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Focus search input on '/'
+      if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        const searchInput = document.querySelector('input[type="text"][placeholder*="Search"]') as HTMLInputElement;
+        if (searchInput) {
+          searchInput.focus();
+        }
+      }
+      // Blur inputs on 'Escape'
+      if (e.key === 'Escape') {
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   return (
     <ThemeProvider>

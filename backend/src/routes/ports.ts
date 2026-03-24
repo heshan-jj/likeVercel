@@ -4,6 +4,12 @@ import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { sshManager } from '../services/SSHManager';
 import { verifyVps } from '../utils/helpers';
 
+interface ManagedPortData {
+  port: number | null;
+  processName: string;
+  projectPath: string;
+}
+
 const router = Router();
 
 router.use(authMiddleware);
@@ -40,7 +46,7 @@ router.get('/:id/ports', async (req: AuthRequest, res: Response): Promise<void> 
 
     res.json({
       activePorts,
-      managedPorts: deployments.map((d: any) => ({
+      managedPorts: deployments.map((d: ManagedPortData) => ({
         port: d.port,
         processName: d.processName,
         projectPath: d.projectPath,
@@ -88,15 +94,13 @@ router.post('/:id/ports/check', async (req: AuthRequest, res: Response): Promise
 // GET /api/vps/:id/ports/share/:port — generate shareable URL
 router.get('/:id/ports/share/:port', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const vpsId = req.params.id as string;
-    const profile = await prisma.vpsProfile.findFirst({
-      where: { id: vpsId, userId: req.userId },
-    });
+    const vpsId = await verifyVps(req, res);
+    if (!vpsId) return;
 
-    if (!profile) {
-      res.status(404).json({ error: 'VPS profile not found' });
-      return;
-    }
+    const profile = await prisma.vpsProfile.findUnique({
+      where: { id: vpsId },
+      select: { host: true },
+    });
 
     const port = parseInt(req.params.port as string);
     if (isNaN(port) || port < 1 || port > 65535) {
@@ -104,12 +108,12 @@ router.get('/:id/ports/share/:port', async (req: AuthRequest, res: Response): Pr
       return;
     }
 
-    const url = `http://${profile.host}:${port}`;
+    const url = `http://${profile?.host}:${port}`;
 
     res.json({
       url,
       port,
-      host: profile.host,
+      host: profile?.host,
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

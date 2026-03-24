@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   Play,
   Square,
@@ -52,6 +52,13 @@ interface UnmanagedProcess {
 
 interface ProcessManagerProps {
   vpsId: string;
+}
+
+interface DeployRequest {
+  projectPath: string;
+  port?: number;
+  command?: string;
+  processName?: string;
 }
 
 function getStatusClasses(status: string): string {
@@ -131,7 +138,7 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
     setDeploying(true);
     setError('');
     try {
-      const body: any = { projectPath: deployForm.projectPath };
+      const body: DeployRequest = { projectPath: deployForm.projectPath };
       if (deployForm.port) body.port = parseInt(deployForm.port);
       if (deployForm.command) body.command = deployForm.command;
       if (deployForm.processName) body.processName = deployForm.processName;
@@ -231,6 +238,13 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
     d.projectPath.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const filteredUnmanaged = useMemo(() =>
+    unmanaged.filter(p =>
+      p.processName.toLowerCase().includes(searchTerm.toLowerCase())
+    ),
+    [unmanaged, searchTerm]
+  );
+
   return (
     <div className="flex flex-col h-full space-y-5">
       {/* Search and Action Bar */}
@@ -323,6 +337,15 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
                     placeholder="e.g. npm start"
                     value={deployForm.command}
                     onChange={(e) => setDeployForm({ ...deployForm, command: e.target.value })}
+                    className="w-full bg-bg-primary border border-border-light rounded-xl px-4 py-3 text-xs text-text-primary outline-none focus:border-blue-500 transition-all font-mono"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-[10px] font-bold text-text-muted mb-2 uppercase tracking-widest">Process Identifier (Optional)</label>
+                  <input
+                    placeholder="e.g. backend-api"
+                    value={deployForm.processName}
+                    onChange={(e) => setDeployForm({ ...deployForm, processName: e.target.value })}
                     className="w-full bg-bg-primary border border-border-light rounded-xl px-4 py-3 text-xs text-text-primary outline-none focus:border-blue-500 transition-all font-mono"
                   />
                 </div>
@@ -444,17 +467,13 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
             )}
 
             {/* Unmanaged Processes - Outside the managed deployments check */}
-            {unmanaged.filter(p => 
-              p.processName.toLowerCase().includes(searchTerm.toLowerCase())
-            ).length > 0 && (
+            {filteredUnmanaged.length > 0 && (
               <>
                 <div className="flex items-center space-x-3 mt-10 mb-4 px-1">
                   <Activity className="text-amber-500" size={18} />
                   <h3 className="text-[11px] font-bold text-text-muted tracking-tight uppercase tracking-widest">External Workloads detected</h3>
                 </div>
-                {unmanaged.filter(p => 
-                  p.processName.toLowerCase().includes(searchTerm.toLowerCase())
-                ).map((proc) => (
+                {filteredUnmanaged.map((proc) => (
                   <div key={proc.pm_id || `port-${proc.port}`} className="group premium-card glass-effect rounded-[24px] border border-border-light bg-amber-500/[0.02] hover:border-amber-500/30 transition-all duration-300 overflow-hidden shadow-xl">
                     <div className="p-5 flex flex-col xl:flex-row xl:items-center justify-between gap-5">
                       <div className="flex items-center space-x-4">

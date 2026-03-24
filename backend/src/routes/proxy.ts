@@ -68,10 +68,10 @@ router.get('/:id/proxy', async (req: AuthRequest, res: Response): Promise<void> 
     const vpsId = await verifyVps(req, res);
     if (!vpsId) return;
 
-    // List files in sites-available managed by us (prefixed with 'vdp-')
+    // List all files in sites-available (to find both managed and external)
     const output = await sshManager.executeCommand(
       vpsId,
-      'ls /etc/nginx/sites-available/vdp-* 2>/dev/null || echo ""'
+      'ls /etc/nginx/sites-available/ 2>/dev/null || echo ""'
     );
 
     const configs: Array<{
@@ -80,24 +80,23 @@ router.get('/:id/proxy', async (req: AuthRequest, res: Response): Promise<void> 
       ssl: boolean;
       enabled: boolean;
       fileName: string;
+      managed: boolean;
     }> = [];
 
     if (output.trim()) {
-      const files = output.trim().split('\n').filter(Boolean);
+      const files = output.trim().split('\n').filter(f => f.trim() && f !== 'default' && f !== 'default.dpkg-dist');
 
-      for (const filePath of files) {
-        const fileName = filePath.split('/').pop() || '';
+      for (const fileName of files) {
+        const filePath = `/etc/nginx/sites-available/${fileName}`;
         try {
           const content = await sshManager.executeCommand(vpsId, `cat ${escapeShellArg(filePath)}`);
 
-          // Parse domain from server_name
-          const domainMatch = content.match(/server_name\s+([^\s;]+)/);
+          // Parse domains from server_name (can be multiple)
+          const domainMatch = content.match(/server_name\s+([^;]+)/);
           // Parse port from proxy_pass
-          const portMatch = content.match(/proxy_pass\s+http:\/\/127\.0\.0\.1:(\d+)/);
-          // Check if SSL is configured
+          const portMatch = content.match(/proxy_pass\s+http?:\/\/(?:localhost|127\.0\.0\.1|[\d\.]+):(\d+)/);
           const hasSSL = content.includes('listen 443 ssl');
 
-          // Check if enabled (symlink exists in sites-enabled)
           let enabled = false;
           try {
             await sshManager.executeCommand(vpsId, `test -L /etc/nginx/sites-enabled/${escapeShellArg(fileName)}`);
@@ -107,30 +106,72 @@ router.get('/:id/proxy', async (req: AuthRequest, res: Response): Promise<void> 
           }
 
           if (domainMatch && portMatch) {
+            // Take the first domain if multiple
+            const domain = domainMatch[1].trim().split(/\s+/)[0];
             configs.push({
-              domain: domainMatch[1],
+              domain,
               port: parseInt(portMatch[1]),
               ssl: hasSSL,
               enabled,
               fileName,
+              managed: fileName.startsWith('vdp-'),
             });
           }
-        } catch {
-          // Skip unreadable files
-        }
+        } catch { }
       }
     }
 
-    // Check if nginx is installed
     let nginxInstalled = false;
     try {
       await sshManager.executeCommand(vpsId, 'which nginx');
       nginxInstalled = true;
-    } catch {
-      nginxInstalled = false;
-    }
+    } catch { }
 
     res.json({ configs, nginxInstalled });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/vps/:id/proxy/adopt — take control of an external nginx config
+router.post('/:id/proxy/adopt', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const vpsId = await verifyVps(req, res);
+    if (!vpsId) return;
+
+    const { domain, fileName } = req.body;
+    if (!domain || !fileName) {
+      res.status(400).json({ error: 'Domain and fileName are required' });
+      return;
+    }
+
+    if (fileName.startsWith('vdp-')) {
+      res.status(400).json({ error: 'Already managed' });
+      return;
+    }
+
+    const newFileName = `vdp-${domain.replace(/\./g, '-')}`;
+
+    // 1. Check if it was enabled
+    let wasEnabled = false;
+    try {
+      await sshManager.executeCommand(vpsId, `test -L /etc/nginx/sites-enabled/${escapeShellArg(fileName)}`);
+      wasEnabled = true;
+    } catch { }
+
+    // 2. Rename the file
+    await sshManager.executeCommand(vpsId, `sudo mv /etc/nginx/sites-available/${escapeShellArg(fileName)} /etc/nginx/sites-available/${escapeShellArg(newFileName)}`);
+
+    // 3. Update symlink if it was enabled
+    if (wasEnabled) {
+      await sshManager.executeCommand(vpsId, `sudo rm -f /etc/nginx/sites-enabled/${escapeShellArg(fileName)}`);
+      await sshManager.executeCommand(vpsId, `sudo ln -sf /etc/nginx/sites-available/${escapeShellArg(newFileName)} /etc/nginx/sites-enabled/${escapeShellArg(newFileName)}`);
+    }
+
+    // 4. Test and reload
+    await sshManager.executeCommand(vpsId, 'sudo nginx -t && sudo systemctl reload nginx');
+
+    res.json({ message: `Successfully adopted ${domain}`, newFileName });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

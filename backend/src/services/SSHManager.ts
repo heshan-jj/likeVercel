@@ -32,8 +32,8 @@ export class SSHManager extends EventEmitter {
 
   private constructor() {
     super();
-    // Prevent unhandled 'error' events from crashing the process
-    this.on('error', (vpsId, err) => {
+    // Prevent unhandled 'connection-error' events from crashing the process
+    this.on('connection-error', (vpsId: string, err: Error) => {
       console.error(`[SSHManager] Background error for ${vpsId}:`, err.message);
     });
   }
@@ -55,6 +55,18 @@ export class SSHManager extends EventEmitter {
     );
 
     return new Promise((resolve, reject) => {
+      let settled = false;
+      const settle = (fn: (v: Client) => void, v: Client) => {
+        if (settled) return;
+        settled = true;
+        fn(v);
+      };
+      const settleErr = (fn: (e: Error) => void, e: Error) => {
+        if (settled) return;
+        settled = true;
+        fn(e);
+      };
+
       const client = new Client();
       const connectConfig: ConnectConfig = {
         host: decrypted.host,
@@ -83,28 +95,28 @@ export class SSHManager extends EventEmitter {
 
         this.connections.set(vpsId, connInfo);
         this.emit('connected', vpsId);
-        resolve(client);
+        settle(resolve, client);
       });
 
       client.on('error', async (err) => {
         console.error(`[SSH] Error for ${vpsId} (Attempt ${attempt + 1}):`, err.message);
         this.cleanup(vpsId);
         
-        // Fix 32: Exponential backoff retry logic
+        // Exponential backoff retry logic
         if (attempt < this.MAX_RECONNECT_ATTEMPTS - 1) {
           const delay = Math.pow(2, attempt) * 1000;
           console.log(`[SSH] Retrying connection to ${vpsId} in ${delay}ms...`);
           setTimeout(async () => {
             try {
               const newClient = await this.connect(vpsId, encryptedCreds, iv, authTag, attempt + 1);
-              resolve(newClient);
+              settle(resolve, newClient);
             } catch (retryErr) {
-              reject(retryErr);
+              settleErr(reject, retryErr as Error);
             }
           }, delay);
         } else {
-          this.emit('error', vpsId, err);
-          reject(err);
+          this.emit('connection-error', vpsId, err);
+          settleErr(reject, err);
         }
       });
 

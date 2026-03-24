@@ -28,6 +28,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const token = localStorage.getItem('accessToken');
       if (token) {
         try {
+          // Check token expiry locally before making API call
+          const payloadParts = token.split('.');
+          if (payloadParts.length === 3) {
+            const payload = JSON.parse(atob(payloadParts[1]));
+            if (payload.exp && payload.exp * 1000 < Date.now()) {
+              throw new Error('Token expired');
+            }
+          }
+
           const res = await api.get('/auth/me');
           setUser(res.data.user);
         } catch (error) {

@@ -36,7 +36,8 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
     });
 
     // Attach live connection status
-    const profilesWithStatus = profiles.map((p: any) => ({
+    type VpsListItem = typeof profiles[number];
+    const profilesWithStatus = profiles.map((p: VpsListItem) => ({
       ...p,
       isConnected: sshManager.isConnected(p.id),
     }));
@@ -287,6 +288,13 @@ router.post('/:id/connect', async (req: AuthRequest, res: Response): Promise<voi
 
     const profile = await prisma.vpsProfile.findFirst({
       where: { id: req.params.id as string, userId: req.userId },
+      select: {
+        id: true,
+        encryptedCredentials: true,
+        iv: true,
+        authTag: true,
+        region: true,
+      },
     });
 
     if (!profile) {
@@ -308,11 +316,11 @@ router.post('/:id/connect', async (req: AuthRequest, res: Response): Promise<voi
 
     // Update last connected timestamp and region if missing
     const updateData: any = { lastConnectedAt: new Date() };
-    if (!(profile as any).region) {
+    if (!profile.region) {
       try {
-        // Use HTTPS (ipapi.co) to prevent unencrypted IP leaks
-        const city = await sshManager.executeCommand(profile.id, "curl -s https://ipapi.co/city/");
-        const country = await sshManager.executeCommand(profile.id, "curl -s https://ipapi.co/country/");
+        // Use HTTPS (ipapi.co) to prevent unencrypted IP leaks; timeout 5s to avoid hanging
+        const city = await sshManager.executeCommand(profile.id, "curl -s --max-time 5 https://ipapi.co/city/");
+        const country = await sshManager.executeCommand(profile.id, "curl -s --max-time 5 https://ipapi.co/country/");
         
         const cityTrim = city.trim();
         const countryTrim = country.trim();
@@ -377,6 +385,7 @@ router.get('/:id/specs', async (req: AuthRequest, res: Response): Promise<void> 
 
     const profile = await prisma.vpsProfile.findFirst({
       where: { id: req.params.id as string, userId: req.userId },
+      select: { id: true, region: true },
     });
 
     if (!profile) {
@@ -401,7 +410,7 @@ router.get('/:id/specs', async (req: AuthRequest, res: Response): Promise<void> 
         cpu: `${cpuCores} Cores`,
         ram: ramStr.trim(),
         disk: diskStr.trim(),
-        region: (profile as any).region || 'Unknown'
+        region: profile.region || 'Unknown'
       });
     } catch (cmdErr: any) {
       console.error('[VPS] Specs cmd error:', cmdErr);
@@ -432,6 +441,7 @@ router.get('/:id/status', async (req: AuthRequest, res: Response): Promise<void>
 
     res.json({ isConnected: sshManager.isConnected(profile.id) });
   } catch (error) {
+    console.error('[VPS] Status error:', error);
     res.status(500).json({ error: 'Failed to get status' });
   }
 });
@@ -486,10 +496,10 @@ router.post('/keys/generate', async (req: AuthRequest, res: Response): Promise<v
     const path = await import('path');
     const fs = await import('fs');
 
-    const tmpDir = os.default.tmpdir();
-    const keyFile = path.default.join(tmpDir, `likeVercel_${Date.now()}`);
+    const tmpDir = os.tmpdir();
+    const keyFile = path.join(tmpDir, `likeVercel_${Date.now()}`);
 
-    fs.default.writeFileSync(keyFile, privateKey, { mode: 0o600 });
+    fs.writeFileSync(keyFile, privateKey, { mode: 0o600 });
 
     let sshPublicKey = '';
     try {
@@ -499,7 +509,7 @@ router.post('/keys/generate', async (req: AuthRequest, res: Response): Promise<v
       // fallback: return raw spki PEM if ssh-keygen not available
       sshPublicKey = publicKey;
     } finally {
-      try { fs.default.unlinkSync(keyFile); } catch {}
+      try { fs.unlinkSync(keyFile); } catch {}
     }
 
     res.json({ privateKey, publicKey: sshPublicKey });

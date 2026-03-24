@@ -55,9 +55,14 @@ router.post('/register', async (req: AuthRequest, res: Response): Promise<void> 
         registeredAt: user.createdAt.toISOString(),
       });
     } catch (analyticsError) {
-      // Analytics write failed — delete the just-created user to keep both DBs consistent
-      await prisma.user.delete({ where: { id: user.id } });
-      console.error('[Auth] Analytics recording failed, registration rolled back:', analyticsError);
+      // Analytics write failed — attempt to delete the just-created user to keep both DBs consistent
+      try {
+        await prisma.user.delete({ where: { id: user.id } });
+        console.error('[Auth] Analytics recording failed, registration rolled back:', analyticsError);
+      } catch (rollbackError) {
+        // If rollback also fails, we have an inconsistent state — log critically
+        console.error('[Auth] CRITICAL: Analytics failed AND rollback failed. Manual cleanup required for user:', user.id, { analyticsError, rollbackError });
+      }
       res.status(502).json({ error: 'Registration failed: could not reach analytics service' });
       return;
     }

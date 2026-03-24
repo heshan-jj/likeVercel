@@ -46,15 +46,15 @@ router.get('/:id/processes', async (req: AuthRequest, res: Response): Promise<vo
       type: 'pm2'
     }));
 
-    // Scan for listening TCP ports (raw processes not in PM2)
-    let unmanagedPorts: any[] = [];
+    // Scan for all listening TCP ports
+    const listeningPorts = new Set<number>();
+    const unmanagedPorts: any[] = [];
+    
     try {
-      // Try ss first
       let ssOutput = '';
       try {
         ssOutput = await sshManager.executeCommand(vpsId, "ss -lntp | grep 'LISTEN'");
       } catch {
-        // Fallback to lsof if ss fails
         ssOutput = await sshManager.executeCommand(vpsId, "lsof -iTCP -sTCP:LISTEN -P -n | grep 'LISTEN'");
       }
 
@@ -66,29 +66,17 @@ router.get('/:id/processes', async (req: AuthRequest, res: Response): Promise<vo
       });
 
       for (const line of lines) {
-        // ss/lsof output parsing
-        // We look for :PORT followed by space, and optionally users:(("name",pid=123...
-        // Format for ss:  0.0.0.0:80 ... users:(("nginx",pid=1024,fd=6))
-        // Format for lsof: node 1234 user 18u IPv4 0x... 0t0 TCP *:80 (LISTEN)
-        
         let port: number | null = null;
         let name = 'raw-process';
         let pid: string | null = null;
 
         if (line.includes('users:')) {
-          // ss format
           const portMatch = line.match(/:(\d+)\s+/);
           if (portMatch) port = parseInt(portMatch[1]);
-          
           const userMatch = line.match(/users:\(\("([^"]+)",pid=(\d+)/);
-          if (userMatch) {
-            name = userMatch[1];
-            pid = userMatch[2];
-          }
+          if (userMatch) { name = userMatch[1]; pid = userMatch[2]; }
         } else {
-          // lsof or alternate ss format
           const parts = line.split(/\s+/);
-          // For lsof, name is index 0, port is in the address part (usually index 8 or 9)
           const addrPart = parts.find(p => p.includes(':') || p.includes('*'));
           if (addrPart) {
             const portStr = addrPart.split(':').pop() || addrPart.split('*').pop();
@@ -98,18 +86,23 @@ router.get('/:id/processes', async (req: AuthRequest, res: Response): Promise<vo
           pid = parts[1];
         }
         
-        if (port && !isNaN(port) && !managedPorts.has(port) && !pm2Ports.has(port)) {
-          if ([22, 25, 53, 111, 2049].includes(port)) continue;
-
-          unmanagedPorts.push({
-            processName: `${name}:${port}`,
-            cpu: 0,
-            memory: 0,
-            status: 'running', // Definitely running if listening
-            port: port,
-            pid: pid,
-            type: 'port'
-          });
+        if (port && !isNaN(port)) {
+          listeningPorts.add(port);
+          
+          // Only add to unmanaged list if not already managed by our app or PM2
+          if (!managedPorts.has(port) && !pm2Ports.has(port)) {
+            if (![22, 25, 53, 111, 2049].includes(port)) {
+              unmanagedPorts.push({
+                processName: `${name}:${port}`,
+                cpu: 0,
+                memory: 0,
+                status: 'running',
+                port: port,
+                pid: pid,
+                type: 'port'
+              });
+            }
+          }
         }
       }
     } catch (err) {
@@ -118,26 +111,31 @@ router.get('/:id/processes', async (req: AuthRequest, res: Response): Promise<vo
 
     const allUnmanaged = [...unmanagedPm2Processes, ...unmanagedPorts];
 
-    if (pm2Processes.length > 0) {
-      const processesWithStatus = deployments.map((d: any) => {
-        const pm2Process = pm2Processes.find((p: any) => p.name === d.processName);
-        return {
-          ...d,
-          actualStatus: pm2Process ? pm2Process.pm2_env.status : 'stopped',
-          cpu: pm2Process?.monit?.cpu || 0,
-          memory: pm2Process?.monit?.memory || 0,
-          url: `http://${vps?.host}:${d.port}`,
-        };
-      });
+    const processesWithStatus = deployments.map((d: any) => {
+      const pm2Process = pm2Processes.find((p: any) => p.name === d.processName);
+      
+      // Status determination:
+      // 1. If in PM2, use PM2 status
+      // 2. If not in PM2 but port is listening, it is "online" (raw process)
+      // 3. Otherwise, it is "stopped"
+      let status = 'stopped';
+      if (pm2Process) {
+        status = pm2Process.pm2_env.status;
+      } else if (d.port && listeningPorts.has(d.port)) {
+        status = 'online';
+      }
 
-      res.json({ processes: processesWithStatus, unmanagedProcesses: allUnmanaged });
-    } else {
-      const processesWithUrls = deployments.map((d: any) => ({
+      return {
         ...d,
+        actualStatus: status,
+        cpu: pm2Process?.monit?.cpu || 0,
+        memory: pm2Process?.monit?.memory || 0,
         url: `http://${vps?.host}:${d.port}`,
-      }));
-      res.json({ processes: processesWithUrls, unmanagedProcesses: allUnmanaged });
-    }
+      };
+    });
+
+    res.json({ processes: processesWithStatus, unmanagedProcesses: allUnmanaged });
+
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -176,7 +174,7 @@ router.post('/:id/processes/start', async (req: AuthRequest, res: Response): Pro
 
     if (data.command) {
       // Custom command — escape each part of the command safely
-      processName = `custom-${port}`;
+      processName = data.processName || `custom-${port}`;
       const tokens = splitShellTokens(data.command);
       if (tokens.length === 0) {
         res.status(400).json({ error: 'Command cannot be empty' });
@@ -191,12 +189,12 @@ router.post('/:id/processes/start', async (req: AuthRequest, res: Response): Pro
       startCommand = `cd ${escapedPath} && pm2 start ${escapedScript} --name ${escapedProcessName} ${escapedArgs ? '-- ' + escapedArgs : ''}`;
       projectType = 'custom';
     } else if (fileList.includes('package.json')) {
-      processName = `node-${port}`;
+      processName = data.processName || `node-${port}`;
       const escapedProcessName = escapeShellArg(processName);
       startCommand = `cd ${escapedPath} && npm install && PORT=${port} pm2 start npm --name ${escapedProcessName} -- start`;
       projectType = 'node';
     } else if (fileList.includes('requirements.txt')) {
-      processName = `python-${port}`;
+      processName = data.processName || `python-${port}`;
       const escapedProcessName = escapeShellArg(processName);
       // Detect the main Python file instead of assuming app.py
       const mainFile = fileList.find(f => f.endsWith('.py') && !f.startsWith('.')) || 'app.py';
@@ -204,7 +202,7 @@ router.post('/:id/processes/start', async (req: AuthRequest, res: Response): Pro
       startCommand = `cd ${escapedPath} && pip install -r requirements.txt && pm2 start ${escapedMainFile} --name ${escapedProcessName}`;
       projectType = 'python';
     } else if (fileList.includes('index.html')) {
-      processName = `static-${port}`;
+      processName = data.processName || `static-${port}`;
       const escapedProcessName = escapeShellArg(processName);
       startCommand = `pm2 serve ${escapedPath} ${port} --name ${escapedProcessName} --spa`;
       projectType = 'static';

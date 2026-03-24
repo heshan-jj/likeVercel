@@ -5,7 +5,6 @@ import {
   Zap,
   LayoutGrid,
   List,
-  Loader2,
   X
 } from 'lucide-react';
 import api from '../utils/api';
@@ -14,6 +13,7 @@ import { useToast } from '../context/ToastContext';
 import MetricCard from '../components/Dashboard/MetricCard';
 import VpsListView from '../components/Dashboard/VpsListView';
 import VpsGridView from '../components/Dashboard/VpsGridView';
+import Skeleton from '../components/Skeleton';
 
 interface VPSProfile {
   id: string;
@@ -43,6 +43,7 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState('');
   const [connecting, setConnecting] = useState<string | null>(null);
   const [specs, setSpecs] = useState<Record<string, ServerSpecs>>({});
+  const [fetchingSpecs, setFetchingSpecs] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
   const profilesRef = useRef<VPSProfile[]>([]);
@@ -55,6 +56,11 @@ const Dashboard: React.FC = () => {
     return () => clearInterval(specInterval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Keep ref in sync with state so the interval always sees the latest profiles
+  useEffect(() => {
+    profilesRef.current = profiles;
+  }, [profiles]);
 
   const fetchProfiles = async () => {
     try {
@@ -72,6 +78,7 @@ const Dashboard: React.FC = () => {
   };
 
   const fetchSpecs = async (id: string) => {
+    setFetchingSpecs(prev => new Set(prev).add(id));
     try {
       // Get static hardware specs
       const { data: specsData } = await api.get(`/vps/${id}/specs`);
@@ -89,17 +96,30 @@ const Dashboard: React.FC = () => {
       }
     } catch (err: unknown) {
       console.error('Failed to fetch node specs', err);
+    } finally {
+      setFetchingSpecs(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     }
   };
 
   const handleConnect = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setConnecting(id);
+    // Optimistic UI: Set isConnected to true in the local profiles state
+    setProfiles(prev => prev.map(p => p.id === id ? { ...p, isConnected: true } : p));
+    
     try {
       await api.post(`/vps/${id}/connect`);
       showToast('Server connected successfully', 'success');
-      fetchProfiles();
+      // No need to fetchProfiles() immediately if we trust the change, 
+      // but we do it to ensure DB consistency
+      await fetchProfiles();
     } catch (err: unknown) {
+      // Rollback on error
+      setProfiles(prev => prev.map(p => p.id === id ? { ...p, isConnected: false } : p));
       const error = err as { response?: { data?: { error?: string } } };
       setError(error.response?.data?.error || 'Connection failed');
     } finally {
@@ -109,11 +129,16 @@ const Dashboard: React.FC = () => {
 
   const handleDisconnect = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    // Optimistic UI: Set isConnected to false locally
+    setProfiles(prev => prev.map(p => p.id === id ? { ...p, isConnected: false } : p));
+    
     try {
       await api.post(`/vps/${id}/disconnect`);
       showToast('Server disconnected', 'info');
-      fetchProfiles();
+      await fetchProfiles();
     } catch (err: unknown) {
+      // Rollback on error
+      setProfiles(prev => prev.map(p => p.id === id ? { ...p, isConnected: true } : p));
       const error = err as { response?: { data?: { error?: string } } };
       setError(error.response?.data?.error || 'Disconnection failed');
     }
@@ -138,9 +163,22 @@ const Dashboard: React.FC = () => {
   };
 
   if (loading) return (
-    <div className="flex flex-col h-full bg-[#f8fafc] items-center justify-center space-y-4">
-       <Loader2 size={40} className="text-blue-600 animate-spin" />
-       <span className="text-slate-400 font-bold tracking-widest text-[10px] uppercase">Retrieving Clusters...</span>
+    <div className="p-8 max-w-[1600px] mx-auto space-y-10">
+      <div>
+        <Skeleton className="h-8 w-48 mb-2" />
+        <Skeleton className="h-4 w-64" />
+      </div>
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <MetricCard label="" value="" sub="" icon={null} color="blue" isLoading />
+        <MetricCard label="" value="" sub="" icon={null} color="emerald" isLoading />
+        <MetricCard label="" value="" sub="" icon={null} color="red" isLoading />
+      </section>
+      <div className="space-y-6">
+        <Skeleton className="h-6 w-32" />
+        <div className="space-y-4">
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 w-full rounded-2xl" />)}
+        </div>
+      </div>
     </div>
   );
 
@@ -211,6 +249,7 @@ const Dashboard: React.FC = () => {
           <VpsListView 
             profiles={profiles}
             specs={specs}
+            fetchingSpecs={fetchingSpecs}
             connecting={connecting}
             onNavigate={(id) => navigate(`/vps/${id}`)}
             onConnect={handleConnect}
@@ -220,6 +259,7 @@ const Dashboard: React.FC = () => {
           <VpsGridView 
             profiles={profiles}
             specs={specs}
+            fetchingSpecs={fetchingSpecs}
             connecting={connecting}
             onNavigate={(id) => navigate(`/vps/${id}`)}
             onConnect={handleConnect}

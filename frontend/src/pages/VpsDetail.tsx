@@ -41,6 +41,14 @@ const OfflineState: React.FC<{ label: string; onNavigate: () => void }> = ({ lab
 
 type Tab = 'terminal' | 'files' | 'processes' | 'ports' | 'domains';
 
+interface ServerSpecs {
+  os: string;
+  cpu: string;
+  ram: string;
+  disk: string;
+  region?: string;
+}
+
 interface VpsProfile {
   id: string;
   name: string;
@@ -56,7 +64,7 @@ const VpsDetail: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [profile, setProfile] = useState<VpsProfile | null>(null);
-  const [specs, setSpecs] = useState<any>(null);
+  const [specs, setSpecs] = useState<ServerSpecs | null>(null);
   const [loading, setLoading] = useState(true);
   
   const queryParams = new URLSearchParams(location.search);
@@ -163,7 +171,7 @@ const VpsDetail: React.FC = () => {
           {tabs.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as Tab)}
               className={`flex items-center space-x-3 py-4 border-b-2 transition-all font-bold text-xs tracking-tight ${
                 activeTab === tab.id 
                 ? 'border-blue-500 text-blue-500' 
