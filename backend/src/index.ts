@@ -24,10 +24,18 @@ import keyRoutes from './routes/keys';
 const app = express();
 const httpServer = createServer(app);
 
+// CORS allowed origins — includes Capacitor Android/iOS WebView origins
+const corsOrigins = [
+  config.frontendUrl,
+  'capacitor://localhost',
+  'https://localhost',
+  'http://localhost',
+];
+
 // Socket.io
 const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: config.frontendUrl,
+    origin: corsOrigins,
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -44,9 +52,25 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+      imgSrc: ["'self'", 'data:', 'blob:'],
+      connectSrc: ["'self'", 'ws:', 'wss:', 'http://localhost:*', 'https:'],
+      workerSrc: ["'self'", 'blob:'],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: null,
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
+
 app.use(cors({
-  origin: config.frontendUrl,
+  origin: corsOrigins,
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));

@@ -9,8 +9,8 @@ WORKDIR /app
 COPY package*.json ./
 COPY frontend/package*.json ./frontend/
 
-# Install only frontend dependencies
-RUN npm install --workspace=frontend
+# Install only frontend dependencies (--legacy-peer-deps handles deprecated xterm packages)
+RUN npm install --legacy-peer-deps --workspace=frontend
 
 # Copy frontend source and build
 COPY frontend/ ./frontend/
@@ -22,7 +22,7 @@ RUN npm run build --workspace=frontend
 # ─────────────────────────────────────────
 FROM node:20-alpine AS backend-builder
 
-# Install build dependencies for native modules like bcrypt
+# Install build dependencies for native modules (bcrypt)
 RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
@@ -32,13 +32,14 @@ COPY package*.json ./
 COPY backend/package*.json ./backend/
 COPY backend/prisma ./backend/prisma
 
-# Install backend dependencies
+# Install all backend dependencies (includes prisma CLI as devDep)
 RUN npm install --workspace=backend
 
-# Generate Prisma client
+# Generate both Prisma clients
 RUN npx prisma generate --schema=backend/prisma/schema.prisma
+RUN npx prisma generate --schema=backend/prisma/analytics.prisma
 
-# Copy backend source and build
+# Copy backend source and compile TypeScript
 COPY backend/ ./backend/
 RUN npm run build --workspace=backend
 
@@ -48,28 +49,36 @@ RUN npm run build --workspace=backend
 # ─────────────────────────────────────────
 FROM node:20-alpine AS production
 
-RUN apk add --no-cache openssl
+# openssl is required by Prisma on Alpine (musl)
+RUN apk add --no-cache openssl python3 make g++
 
 WORKDIR /app
 
-# Copy package files for production install
+# Copy workspace + backend package files for production install
 COPY package*.json ./
 COPY backend/package*.json ./backend/
 COPY backend/prisma ./backend/prisma
 
-# Install production deps only
-RUN npm install --omit=dev --workspace=backend
+# Install production deps only (python3/make/g++ needed to compile bcrypt)
+RUN npm install --omit=dev --workspace=backend && \
+    apk del python3 make g++
 
 WORKDIR /app/backend
 
-# Copy compiled backend from builder
+# Compiled backend
 COPY --from=backend-builder /app/backend/dist ./dist
 
-# Copy the generated Prisma client from builder
+# Prisma client — main schema (line 72 already copies all of .prisma, including analytics-client subdir)
 COPY --from=backend-builder /app/node_modules/.prisma ../node_modules/.prisma
 COPY --from=backend-builder /app/node_modules/@prisma/client ../node_modules/@prisma/client
 
-# Copy built frontend where Express expects it
+# Prisma package — needed at runtime for `prisma db push`
+# (.bin/prisma is a symlink inside this package; no need to copy it separately)
+COPY --from=backend-builder /app/node_modules/prisma ../node_modules/prisma
+
+# Built frontend — Express serves this as static files in production
+# index.ts resolves: path.resolve(__dirname, '../../frontend/dist')
+# __dirname at runtime = /app/backend/dist → ../../frontend/dist = /app/frontend/dist ✓
 COPY --from=frontend-builder /app/frontend/dist ../frontend/dist
 
 # Persist the SQLite database via a named volume
@@ -78,6 +87,6 @@ VOLUME ["/app/backend/prisma/data"]
 
 EXPOSE 3001
 
-CMD ["sh", "-c", "DATABASE_URL=file:/app/backend/prisma/data/prod.db npx prisma db push --skip-generate && node dist/index.js"]
-
-
+# DATABASE_URL and ANALYTICS_DATABASE_URL are injected by docker-compose.
+# Push both schemas at startup, then boot the server.
+CMD ["sh", "-c", "../node_modules/.bin/prisma db push --schema=./prisma/schema.prisma --skip-generate && ../node_modules/.bin/prisma db push --schema=./prisma/analytics.prisma --skip-generate && node dist/index.js"]
