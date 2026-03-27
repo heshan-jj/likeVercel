@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Settings as SettingsIcon, LogOut, Trash2, Lock,
-  Fingerprint, ChevronDown, ChevronUp, Sun, Moon, Monitor,
+  Fingerprint, ChevronDown, ChevronUp,
   Download, Shield, ClockIcon, Loader2, Check, AlertTriangle,
   ServerIcon, KeyRound, FileUp,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
+import Logo from '../components/Logo';
 
 /* ─── Types ─────────────────────────────────────────────── */
-type Theme = 'dark' | 'light' | 'system';
 
 interface ActivityEntry {
   id: string;
@@ -37,16 +37,6 @@ function relativeTime(dateStr: string): string {
   return days < 30 ? `${days}d ago` : new Date(dateStr).toLocaleDateString();
 }
 
-function applyTheme(theme: Theme) {
-  const root = document.documentElement;
-  if (theme === 'system') {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    root.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
-  } else {
-    root.setAttribute('data-theme', theme);
-  }
-  localStorage.setItem('theme', theme);
-}
 
 /* ─── Component ──────────────────────────────────────────── */
 const Settings: React.FC = () => {
@@ -60,8 +50,6 @@ const Settings: React.FC = () => {
   const [pwSaving, setPwSaving] = useState(false);
   const [pwMsg, setPwMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  /* Theme */
-  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'dark');
 
   /* Backup */
   const [backupLoading, setBackupLoading] = useState(false);
@@ -88,10 +76,6 @@ const Settings: React.FC = () => {
   useEffect(() => { fetchActivity(); }, [fetchActivity]);
 
   /* ── Handlers ── */
-  const handleChangeTheme = (t: Theme) => {
-    setTheme(t);
-    applyTheme(t);
-  };
 
   const handleChangePassword = async () => {
     if (!currentPw || !newPw || !confirmPw) {
@@ -189,22 +173,22 @@ const Settings: React.FC = () => {
     } finally { setPurging(false); }
   };
 
-  const themeOptions: { value: Theme; label: string; Icon: React.FC<{ size?: number; className?: string }> }[] = [
-    { value: 'dark', label: 'Dark', Icon: Moon },
-    { value: 'light', label: 'Light', Icon: Sun },
-    { value: 'system', label: 'System', Icon: Monitor },
-  ];
 
   return (
     <div className="flex flex-col h-full bg-bg-primary overflow-y-auto custom-scrollbar">
       {/* Header */}
       <header className="sticky top-0 z-30 px-8 py-8 border-b border-border-light bg-bg-primary/80 backdrop-blur-xl flex items-end justify-between">
-        <div>
-          <div className="flex items-center space-x-2 text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-2">
-            <SettingsIcon size={12} />
-            <span>System Preferences</span>
-          </div>
-          <h1 className="text-2xl font-bold tracking-tighter text-text-primary">Account Settings</h1>
+        <div className="flex items-center space-x-4">
+           <div className="p-2.5 bg-bg-secondary rounded-2xl border border-border-light shadow-lg">
+              <Logo size={28} />
+           </div>
+           <div>
+              <div className="flex items-center space-x-2 text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1 opacity-70">
+                <SettingsIcon size={12} />
+                <span>System Preferences</span>
+              </div>
+              <h1 className="text-2xl font-black tracking-tight text-text-primary uppercase">Account Settings</h1>
+           </div>
         </div>
         <button
           onClick={logout}
@@ -290,35 +274,6 @@ const Settings: React.FC = () => {
           )}
         </div>
 
-        {/* ── Appearance ── */}
-        <div className="glass-effect border border-border-light rounded-[32px] p-8 space-y-5">
-          <div className="flex items-center space-x-3">
-            <div className="p-2.5 bg-bg-secondary border border-border-light rounded-2xl">
-              <Sun size={16} className="text-amber-400" />
-            </div>
-            <div>
-              <h2 className="text-sm font-bold text-text-primary tracking-tight">Appearance</h2>
-              <p className="text-xs text-text-muted">Choose your preferred color scheme</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            {themeOptions.map(({ value, label, Icon }) => (
-              <button
-                key={value}
-                onClick={() => handleChangeTheme(value)}
-                className={`flex flex-col items-center space-y-2 p-4 rounded-2xl border transition-all ${
-                  theme === value
-                    ? 'bg-blue-600/10 border-blue-500/40 text-blue-400'
-                    : 'bg-bg-secondary border-border-light text-text-muted hover:border-blue-500/20'
-                }`}
-              >
-                <Icon size={18} className={theme === value ? 'text-blue-400' : 'text-text-muted'} />
-                <span className="text-xs font-bold">{label}</span>
-                {theme === value && <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />}
-              </button>
-            ))}
-          </div>
-        </div>
 
         {/* ── Security + Data ── */}
         <div className="glass-effect border border-border-light rounded-[32px] p-8 space-y-4">

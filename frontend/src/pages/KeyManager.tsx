@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import api from '../utils/api';
 import { useToast } from '../context/ToastContext';
+import Logo from '../components/Logo';
 
 interface SshKey {
   id: string;
@@ -220,9 +221,14 @@ const KeyManager: React.FC = () => {
     <div className="flex flex-col h-full bg-bg-primary overflow-y-auto custom-scrollbar">
       {/* Header */}
       <header className="sticky top-0 z-30 px-8 py-8 flex items-center justify-between border-b border-border-light bg-bg-primary/80 backdrop-blur-xl">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tighter text-text-primary mb-1">SSH Key Manager</h1>
-          <p className="text-sm text-text-muted font-medium">Save your SSH keys and deploy them to servers</p>
+        <div className="flex items-center space-x-4">
+          <div className="p-2.5 bg-bg-secondary rounded-2xl border border-border-light shadow-lg">
+             <Logo size={28} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black tracking-tight text-text-primary uppercase">SSH Key Manager</h1>
+            <p className="text-[10px] font-black text-text-muted uppercase tracking-widest opacity-70">Save your SSH keys and deploy them to servers</p>
+          </div>
         </div>
         <button
           onClick={handleToggleForm}

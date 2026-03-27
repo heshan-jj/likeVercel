@@ -8,7 +8,8 @@ import {
   X,
   Search,
   RefreshCw,
-  Power
+  Power,
+  Plus
 } from 'lucide-react';
 import api from '../utils/api';
 import ConfirmModal from '../components/ConfirmModal';
@@ -17,6 +18,7 @@ import MetricCard from '../components/Dashboard/MetricCard';
 import VpsListView from '../components/Dashboard/VpsListView';
 import VpsGridView from '../components/Dashboard/VpsGridView';
 import Skeleton from '../components/Skeleton';
+import Logo from '../components/Logo';
 
 interface VPSProfile {
   id: string;
@@ -263,20 +265,39 @@ const Dashboard: React.FC = () => {
   );
 
   return (
-    <div className="p-8 max-w-[1600px] mx-auto space-y-10">
+    <div className="p-8 max-w-[1600px] mx-auto space-y-10 bg-[#060e20] min-h-screen text-[#dee5ff]">
       {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight mb-1">Overview</h1>
-        <p className="text-slate-500 text-sm font-medium">Real-time status of your global infrastructure clusters.</p>
-      </div>
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+           <div className="flex flex-col space-y-2">
+              <div className="flex items-center space-x-3 text-[10px] font-black uppercase tracking-[0.4em] text-[#137fec] mb-1">
+                 <div className="h-1 w-8 bg-[#137fec] rounded-full" />
+                 <span>System Overview</span>
+              </div>
+              <h1 className="text-4xl font-black text-[#dee5ff] tracking-tight mb-1 uppercase">Infrastructure</h1>
+              <p className="text-[#6475a1] font-black uppercase tracking-[0.2em] text-[10px] opacity-70">Real-time telemetry of your global compute clusters.</p>
+           </div>
+           
+           <div className="flex items-center space-x-4">
+              <button 
+                onClick={() => navigate('/vps/add')}
+                className="flex items-center space-x-2 px-6 py-3.5 bg-[#137fec] hover:bg-[#1d6fee] text-white font-black text-[10px] rounded-2xl border border-[#137fec]/30 shadow-xl shadow-[#137fec]/20 transition-all active:scale-95 group uppercase tracking-widest"
+              >
+                <Plus size={16} />
+                <span>New Node</span>
+              </button>
+              <div className="p-3 bg-[#0a1836] rounded-2xl border border-[#6475a1]/10 shadow-lg hidden sm:block">
+                 <Logo size={28} />
+              </div>
+           </div>
+        </div>
 
       {error && (
-        <div className="flex items-center justify-between p-4 bg-red-50 text-red-600 border border-red-100 rounded-2xl animate-in slide-in-from-top-2">
+        <div className="flex items-center justify-between p-4 bg-[#f97386]/10 text-[#f97386] border border-[#f97386]/20 rounded-2xl animate-in slide-in-from-top-2">
           <div className="flex items-center space-x-3 text-sm font-bold">
             <X size={18} />
             <span>{error}</span>
           </div>
-          <button onClick={() => setError('')} className="p-1 hover:bg-red-100 rounded-lg"><X size={14}/></button>
+          <button onClick={() => setError('')} className="p-1 hover:bg-[#f97386]/10 rounded-lg text-[#f97386]"><X size={14}/></button>
         </div>
       )}
 
@@ -315,31 +336,31 @@ const Dashboard: React.FC = () => {
       <section className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center space-x-4">
-            <h2 className="text-lg font-black text-slate-900 tracking-tight">Active Instances</h2>
+            <h2 className="text-lg font-black text-[#dee5ff] tracking-tight">Active Instances</h2>
             {statusFilter !== 'all' && (
-              <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest rounded-lg flex items-center space-x-1">
+              <span className="px-2.5 py-1 bg-[#11244c] text-[#137fec] text-[10px] font-bold uppercase tracking-widest rounded-lg flex items-center space-x-1">
                 <span>{statusFilter}</span>
-                <button onClick={() => setStatusFilter('all')} className="ml-1 hover:text-red-500"><X size={12} /></button>
+                <button onClick={() => setStatusFilter('all')} className="ml-1 hover:text-[#f97386]"><X size={12} /></button>
               </span>
             )}
           </div>
           
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative group">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6475a1] group-focus-within:text-[#137fec] transition-colors" />
               <input 
                 type="text" 
                 placeholder="Search nodes..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full sm:w-48 bg-white border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-900 outline-none focus:border-blue-500/30 transition-all font-bold placeholder:text-slate-400 shadow-sm"
+                className="w-full sm:w-48 bg-[#0a1836] border border-[#6475a1]/10 rounded-xl pl-9 pr-4 py-2 text-xs text-[#dee5ff] outline-none focus:border-[#137fec]/30 transition-all font-bold placeholder:text-[#6475a1]/50 shadow-sm"
               />
             </div>
 
             <select 
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'name' | 'status')}
-              className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500/30 shadow-sm appearance-none cursor-pointer"
+              className="bg-[#0a1836] border border-[#6475a1]/10 rounded-xl px-3 py-2 text-xs font-bold text-[#99aad9] outline-none focus:border-[#137fec]/30 shadow-sm appearance-none cursor-pointer"
             >
               <option value="name">Sort by Name</option>
               <option value="status">Sort by Status</option>
@@ -349,7 +370,7 @@ const Dashboard: React.FC = () => {
               <button 
                 onClick={handleConnectAll}
                 disabled={connectingAll}
-                className="flex items-center space-x-1 px-3 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white rounded-xl text-xs font-bold transition-all border border-emerald-500/20 disabled:opacity-50"
+                className="flex items-center space-x-1 px-3 py-2 bg-[#10b981]/10 text-[#10b981] hover:bg-[#10b981] hover:text-white rounded-xl text-xs font-bold transition-all border border-[#10b981]/20 disabled:opacity-50"
               >
                 <Power size={14} />
                 <span className="hidden sm:inline">{connectingAll ? 'Connecting...' : 'Connect All'}</span>
@@ -358,22 +379,22 @@ const Dashboard: React.FC = () => {
 
             <button 
               onClick={handleManualRefresh}
-              className="p-2 text-slate-500 hover:text-blue-600 bg-white border border-slate-200 rounded-xl shadow-sm transition-all text-xs font-bold"
+              className="p-2 text-[#99aad9] hover:text-[#137fec] bg-[#0a1836] border border-[#6475a1]/10 rounded-xl shadow-sm transition-all text-xs font-bold"
               title="Refresh servers"
             >
               <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
             </button>
 
-            <div className="flex bg-slate-100 p-1 rounded-xl">
+            <div className="flex bg-[#11244c]/40 p-1 rounded-2xl border border-[#6475a1]/10">
               <button 
                 onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}
+                className={`p-2 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-[#137fec] shadow-[0_4px_15px_rgba(19,127,236,0.3)] text-white border border-[#137fec]/20' : 'text-[#6475a1] hover:text-[#99aad9]'}`}
               >
                 <LayoutGrid size={18} />
               </button>
               <button 
                 onClick={() => setViewMode('list')}
-                className={`p-1.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}
+                className={`p-2 rounded-xl transition-all ${viewMode === 'list' ? 'bg-[#137fec] shadow-[0_4px_15px_rgba(19,127,236,0.3)] text-white border border-[#137fec]/20' : 'text-[#6475a1] hover:text-[#99aad9]'}`}
               >
                 <List size={18} />
               </button>
@@ -382,8 +403,8 @@ const Dashboard: React.FC = () => {
         </div>
 
         {filteredProfiles.length === 0 ? (
-          <div className="p-12 text-center bg-white border border-slate-200 border-dashed rounded-[32px]">
-             <p className="text-slate-400 font-bold tracking-widest uppercase text-xs">No servers found</p>
+          <div className="p-12 text-center bg-[#0a1836]/30 border border-[#6475a1]/10 border-dashed rounded-[24px]">
+             <p className="text-[#6475a1] font-bold tracking-widest uppercase text-xs">No clusters detected</p>
           </div>
         ) : viewMode === 'list' ? (
           <VpsListView 

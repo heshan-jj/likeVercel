@@ -10,11 +10,10 @@
 const ANALYTICS_API_URL = process.env.ANALYTICS_API_URL;
 const ANALYTICS_API_SECRET = process.env.ANALYTICS_API_SECRET;
 
-if (!ANALYTICS_API_URL) {
-  throw new Error('ANALYTICS_API_URL environment variable is required');
-}
-if (!ANALYTICS_API_SECRET) {
-  throw new Error('ANALYTICS_API_SECRET environment variable is required');
+const isEnabled = !!(ANALYTICS_API_URL && ANALYTICS_API_SECRET);
+
+if (!isEnabled) {
+  console.log('[Analytics] Service disabled (missing ANALYTICS_API_URL or ANALYTICS_API_SECRET)');
 }
 
 interface RegisterPayload {
@@ -24,6 +23,8 @@ interface RegisterPayload {
 }
 
 export async function recordRegistration(payload: RegisterPayload): Promise<void> {
+  if (!isEnabled) return;
+  
   const res = await fetch(
     `${ANALYTICS_API_URL}/projects/likevercel/collections/registrations/records`,
     {
@@ -38,6 +39,6 @@ export async function recordRegistration(payload: RegisterPayload): Promise<void
 
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`Archive API error ${res.status}: ${body}`);
+    console.error(`[Analytics] Archive API error ${res.status}: ${body}`);
   }
 }

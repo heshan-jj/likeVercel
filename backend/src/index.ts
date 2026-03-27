@@ -32,6 +32,11 @@ const corsOrigins = [
   'http://localhost',
 ];
 
+// Add local machine IP if needed for emulator testing
+if (config.nodeEnv === 'development') {
+  corsOrigins.push('http://localhost:5173');
+}
+
 // Socket.io
 const io = new SocketIOServer(httpServer, {
   cors: {
@@ -70,7 +75,7 @@ app.use(helmet({
 }));
 
 app.use(cors({
-  origin: corsOrigins,
+  origin: config.nodeEnv === 'development' ? true : corsOrigins,
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));

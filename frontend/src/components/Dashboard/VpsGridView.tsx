@@ -36,36 +36,36 @@ const VpsGridView: React.FC<VpsGridViewProps> = ({ profiles, specs, fetchingSpec
         <div 
           key={vps.id}
           onClick={() => onNavigate(vps.id)}
-          className="bg-white p-6 rounded-[24px] border border-slate-200 shadow-sm premium-card hover:shadow-xl transition-all cursor-pointer group"
+          className="bg-[#0a1836] p-6 rounded-[24px] border border-[#6475a1]/10 shadow-sm premium-card hover:border-[#137fec]/30 transition-all cursor-pointer group relative"
         >
           <div className="flex items-start justify-between mb-6">
-            <div className={`p-4 rounded-2xl ${vps.isConnected ? 'icon-grad-blue text-white shadow-lg shadow-blue-500/30' : 'bg-slate-50 text-slate-400'}`}>
+            <div className={`p-4 rounded-2xl ${vps.isConnected ? 'icon-grad-blue text-white shadow-lg shadow-[#137fec]/20' : 'bg-[#11244c] text-[#6475a1]'}`}>
               <Server size={24} />
             </div>
             <button 
               onClick={(e) => onDelete(vps.id, vps.name, e)}
-              className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+              className="p-2 text-[#6475a1] hover:text-[#f97386] transition-colors"
             >
               <Trash2 size={18} />
             </button>
           </div>
           <div>
-            <h3 className="text-lg font-black text-slate-900 mb-1 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{vps.name}</h3>
-            <p className="text-xs font-mono text-slate-400 mb-4">{vps.username}@{vps.host}</p>
+            <h3 className="text-base font-black text-[#dee5ff] mb-1 group-hover:text-[#137fec] transition-colors uppercase tracking-tight">{vps.name}</h3>
+            <p className="text-[10px] font-black text-[#6475a1] mb-5 uppercase tracking-widest opacity-70">{vps.username}@{vps.host}</p>
             
             <div className="flex items-center justify-between">
-              <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${vps.isConnected ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
-                <div className={`w-1.5 h-1.5 rounded-full ${vps.isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+              <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${vps.isConnected ? 'bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20' : 'bg-[#f97386]/10 text-[#f97386] border border-[#f97386]/20'}`}>
+                <div className={`w-1.5 h-1.5 rounded-full ${vps.isConnected ? 'bg-[#10b981] animate-pulse' : 'bg-[#f97386]'}`} />
                 <span className="text-[10px] font-black uppercase tracking-widest">{vps.isConnected ? 'Live' : 'Offline'}</span>
               </div>
               <div className="flex items-center space-x-2">
                 {vps.isConnected && (
                   <div className="flex items-center space-x-1.5 mr-2">
-                    <Activity size={14} className="text-blue-600" />
+                    <Activity size={14} className="text-[#137fec]" />
                     {fetchingSpecs.has(vps.id) ? (
                       <Skeleton className="h-3 w-8" />
                     ) : (
-                      <span className="text-xs font-bold text-slate-900">{specs[vps.id]?.cpuLoad || 0}%</span>
+                      <span className="text-xs font-bold text-[#dee5ff]">{specs[vps.id]?.cpuLoad || 0}%</span>
                     )}
                   </div>
                 )}
@@ -73,14 +73,14 @@ const VpsGridView: React.FC<VpsGridViewProps> = ({ profiles, specs, fetchingSpec
                   <button 
                     onClick={(e) => onConnect(vps.id, e)}
                     disabled={connecting === vps.id}
-                    className="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 active:scale-95"
+                    className="p-2 bg-[#137fec] text-white rounded-xl hover:bg-[#1d6fee] transition-all shadow-lg shadow-[#137fec]/20 active:scale-95"
                   >
                     {connecting === vps.id ? <Loader2 size={16} className="animate-spin" /> : <Power size={16} />}
                   </button>
                 ) : (
                   <button 
                     onClick={(e) => onDisconnect(vps.id, e)}
-                    className="p-2 bg-slate-100 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all active:scale-95"
+                    className="p-2 bg-[#11244c] text-[#6475a1] hover:text-[#f97386] hover:bg-[#f97386]/10 rounded-xl transition-all active:scale-95"
                   >
                     <PowerOff size={16} />
                   </button>

@@ -5,6 +5,7 @@ import App from './App.tsx';
 import ErrorBoundary from './components/ErrorBoundary.tsx';
 import './index.css';
 
+console.error('LikeVercel: INITIALIZING NATIVE APPLICATION...');
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <HashRouter>
@@ -15,7 +16,8 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 );
 
-// Register Service Worker for PWA
+// Register Service Worker for PWA (Disabled for native mobile builds to prevent conflicts)
+/*
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(err => {
@@ -23,3 +25,4 @@ if ('serviceWorker' in navigator) {
     });
   });
 }
+*/

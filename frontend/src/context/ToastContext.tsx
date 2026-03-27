@@ -47,11 +47,11 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       {children}
 
       {/* Toast Stack */}
-      <div className="fixed bottom-6 right-6 z-[300] flex flex-col gap-2 pointer-events-none">
+      <div className="fixed top-6 right-6 z-[300] flex flex-col gap-2 pointer-events-none pt-safe">
         {toasts.map(toast => (
           <div
             key={toast.id}
-            className={`pointer-events-auto flex items-center space-x-3 px-4 py-3 rounded-2xl border bg-bg-primary shadow-2xl backdrop-blur-md animate-in slide-in-from-bottom-4 duration-300 max-w-sm ${styles[toast.type]}`}
+            className={`pointer-events-auto flex items-center space-x-3 px-4 py-3 rounded-2xl border bg-bg-primary shadow-2xl backdrop-blur-md animate-in slide-in-from-top-4 duration-300 max-w-sm ${styles[toast.type]}`}
           >
             {icons[toast.type]}
             <span className="text-xs font-bold text-text-primary flex-1 leading-relaxed">{toast.message}</span>

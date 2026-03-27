@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Loader2, Save, Terminal, Shield, Trash2, KeyRound, ChevronDown } from 'lucide-react';
 import api from '../utils/api';
+import Logo from '../components/Logo';
 
 const EditVps: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -136,9 +137,14 @@ const EditVps: React.FC = () => {
       </button>
 
       <div className="flex items-center justify-between mb-10">
-        <div>
-          <h1 className="text-3xl font-bold text-text-primary tracking-tight">Configure Node</h1>
-          <p className="mt-2 text-text-secondary text-sm font-medium">Update access credentials and connection parameters for this cluster.</p>
+        <div className="flex items-center space-x-4">
+           <div className="p-2.5 bg-bg-secondary rounded-2xl border border-border-light shadow-lg">
+              <Logo size={28} />
+           </div>
+           <div>
+              <h1 className="text-3xl font-black text-text-primary tracking-tight uppercase">Configure Node</h1>
+              <p className="mt-2 text-text-secondary text-[10px] font-black uppercase tracking-widest opacity-70">Update access credentials and connection parameters for this cluster.</p>
+           </div>
         </div>
         <button 
            onClick={handleDelete}

@@ -35,7 +35,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         onClick={onClose}
       />
 
-      <div className={`fixed lg:static inset-y-0 left-0 w-64 h-full bg-white border-r border-slate-200 flex flex-col z-50 shrink-0 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+      <div className={`fixed lg:static inset-y-0 left-0 w-64 h-full bg-[#0a1836] border-r border-[#6475a1]/10 flex flex-col z-50 shrink-0 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
         isOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
       {/* Brand Header */}
@@ -44,9 +44,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           <div className="p-1.5 icon-grad-blue rounded-lg text-white shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform">
             <Logo size={24} />
           </div>
-          <span className="text-xl font-black tracking-tighter text-slate-900 bg-clip-text">likeVercel</span>
+          <span className="text-xl font-black tracking-tighter text-[#dee5ff]">likeVercel</span>
         </div>
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Infrastructure V2.1</p>
+        <p className="text-[10px] font-bold text-[#6475a1] uppercase tracking-widest pl-1">Infrastructure V2.1</p>
       </div>
 
       {/* Action Button */}
@@ -69,8 +69,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             className={({ isActive }) => 
               `flex items-center space-x-3 px-4 py-3 rounded-xl transition-all text-sm font-bold ${
                 isActive 
-                ? 'bg-blue-50 text-blue-600 shadow-sm border border-blue-100/50 shadow-blue-500/5' 
-                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                ? 'bg-[#137fec]/10 text-[#137fec] border border-[#137fec]/20' 
+                : 'text-[#6475a1] hover:bg-[#11244c] hover:text-[#dee5ff]'
               }`
             }
           >
@@ -81,14 +81,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       </nav>
 
       {/* User Support & Profile */}
-      <div className="p-4 mt-auto border-t border-slate-100 bg-slate-50/50">
-        <div className="flex items-center space-x-3 p-3 bg-white border border-slate-200 rounded-2xl shadow-sm">
-          <div className="w-9 h-9 bg-orange-100 rounded-xl flex items-center justify-center text-orange-600">
+      <div className="p-4 mt-auto border-t border-[#6475a1]/10 bg-[#060e20]/30">
+        <div className="flex items-center space-x-3 p-3 bg-[#0a1836] border border-[#6475a1]/10 rounded-2xl shadow-sm">
+          <div className="w-9 h-9 bg-[#137fec]/10 rounded-xl flex items-center justify-center text-[#137fec]">
             <User size={18} />
           </div>
           <div className="flex-1 min-w-0 text-left">
-            <p className="text-xs font-bold text-slate-900 truncate">{user?.name || 'Admin'}</p>
-            <p className="text-[10px] text-slate-400 font-medium">Admin Access</p>
+            <p className="text-xs font-bold text-[#dee5ff] truncate">{user?.name || 'Admin'}</p>
+            <p className="text-[10px] text-[#6475a1] font-medium uppercase tracking-widest">Admin Access</p>
           </div>
         </div>
       </div>

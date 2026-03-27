@@ -35,9 +35,8 @@ COPY backend/prisma ./backend/prisma
 # Install all backend dependencies (includes prisma CLI as devDep)
 RUN npm install --workspace=backend
 
-# Generate both Prisma clients
+# Generate Prisma client
 RUN npx prisma generate --schema=backend/prisma/schema.prisma
-RUN npx prisma generate --schema=backend/prisma/analytics.prisma
 
 # Copy backend source and compile TypeScript
 COPY backend/ ./backend/
@@ -87,6 +86,6 @@ VOLUME ["/app/backend/prisma/data"]
 
 EXPOSE 3001
 
-# DATABASE_URL and ANALYTICS_DATABASE_URL are injected by docker-compose.
-# Push both schemas at startup, then boot the server.
-CMD ["sh", "-c", "../node_modules/.bin/prisma db push --schema=./prisma/schema.prisma --skip-generate && ../node_modules/.bin/prisma db push --schema=./prisma/analytics.prisma --skip-generate && node dist/index.js"]
+# DATABASE_URL is injected by docker-compose.
+# Push schema at startup, then boot the server.
+CMD ["sh", "-c", "../node_modules/.bin/prisma db push --schema=./prisma/schema.prisma --skip-generate && node dist/index.js"]

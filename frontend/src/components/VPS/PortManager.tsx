@@ -71,42 +71,42 @@ const PortManager: React.FC<PortManagerProps> = ({ vpsId }) => {
   return (
     <div className="flex flex-col space-y-8 animate-in fade-in duration-500">
       {/* Port Checker Card */}
-      <div className="glass-effect rounded-[32px] p-8 border border-border-light relative overflow-hidden group shadow-2xl">
-         <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none group-hover:scale-110 transition-transform">
-            <Zap size={96} />
+      <div className="bg-[#0a1836]/40 backdrop-blur-md rounded-[32px] p-8 border border-[#6475a1]/10 relative overflow-hidden group shadow-2xl premium-card">
+         <div className="absolute top-0 right-0 p-6 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform">
+            <Zap size={96} className="text-[#137fec]" />
          </div>
          
          <div className="flex items-center space-x-3 mb-8">
-            <div className="p-2.5 bg-blue-500/10 text-blue-500 rounded-xl">
+            <div className="p-2.5 bg-[#137fec]/10 text-[#137fec] rounded-xl border border-[#137fec]/20">
                <ShieldCheck size={20} />
             </div>
-            <h3 className="text-sm font-bold text-text-primary tracking-tight">Security Port Auditor</h3>
+            <h3 className="text-[11px] font-black text-[#dee5ff] uppercase tracking-[0.2em]">Security Port Auditor</h3>
          </div>
 
          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center relative z-10">
             <div className="relative flex-1 w-full sm:max-w-xs">
-               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted text-[10px] font-bold uppercase tracking-widest">Port</span>
+               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6475a1] text-[9px] font-black uppercase tracking-widest">Port</span>
                <input
                 type="number"
                 placeholder="Ex. 8080"
                 value={checkPort}
                 onChange={(e) => setCheckPort(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleCheckPort()}
-                className="w-full bg-bg-primary/80 border border-border-light rounded-2xl pl-16 pr-4 py-3 text-xs text-text-primary outline-none focus:border-blue-500 transition-all font-mono shadow-inner"
+                className="w-full bg-[#060e20]/60 border border-[#6475a1]/10 rounded-2xl pl-16 pr-4 py-3 text-[10px] text-[#dee5ff] outline-none focus:border-[#137fec]/30 transition-all font-mono shadow-inner uppercase tracking-widest"
               />
             </div>
             <div className="flex items-center space-x-3 w-full sm:w-auto">
                <button 
                   onClick={handleCheckPort} 
                   disabled={checking || !checkPort}
-                  className="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-xl active:scale-95 disabled:opacity-50"
+                  className="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-8 py-3 bg-[#137fec] hover:bg-[#1d6fee] text-white text-[10px] font-black rounded-xl transition-all shadow-xl shadow-[#137fec]/20 active:scale-95 disabled:opacity-50 uppercase tracking-widest border border-[#137fec]/20"
                >
                   {checking ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
                   <span>Scan</span>
                </button>
                <button 
                   onClick={fetchPorts}
-                  className="p-3 bg-bg-tertiary/50 hover:bg-bg-tertiary text-text-secondary rounded-xl transition-all border border-border-light shadow-lg"
+                  className="p-3 bg-[#11244c] hover:bg-[#137fec]/10 text-[#6475a1] hover:text-[#137fec] rounded-xl transition-all border border-[#6475a1]/10 shadow-lg"
                >
                   <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
                </button>
@@ -116,11 +116,11 @@ const PortManager: React.FC<PortManagerProps> = ({ vpsId }) => {
          {checkResult && (
            <div className={`mt-6 p-4 rounded-2xl border flex items-center space-x-3 animate-in slide-in-from-top-4 ${
              checkResult.available 
-             ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' 
-             : 'bg-red-500/10 border-red-500/20 text-red-500'
+             ? 'bg-[#10b981]/10 border-[#10b981]/20 text-[#10b981]' 
+             : 'bg-[#f97386]/10 border-[#f97386]/20 text-[#f97386]'
            }`}>
              {checkResult.available ? <ShieldCheck size={18} /> : <ShieldAlert size={18} />}
-             <span className="text-xs font-bold leading-relaxed">{checkResult.message}</span>
+             <span className="text-[10px] font-black uppercase tracking-widest leading-relaxed">{checkResult.message}</span>
            </div>
          )}
       </div>
@@ -129,27 +129,27 @@ const PortManager: React.FC<PortManagerProps> = ({ vpsId }) => {
         {/* Managed Ports Section */}
         <section className="space-y-4">
           <div className="flex items-center space-x-3 px-1">
-             <Activity className="text-emerald-500" size={18} />
-             <h3 className="text-[11px] font-bold text-text-muted tracking-tight">Public Service Sockets</h3>
+             <Activity className="text-[#10b981]" size={18} />
+             <h3 className="text-[10px] font-black text-[#6475a1] uppercase tracking-[0.2em]">Public Service Sockets</h3>
           </div>
           
           <div className="space-y-3">
             {managedPorts.length === 0 ? (
-              <div className="p-12 text-center text-xs font-bold text-text-muted glass-effect rounded-[32px] border border-border-light border-dashed uppercase tracking-widest">
+              <div className="p-12 text-center text-[9px] font-black text-[#6475a1] bg-[#0a1836]/40 backdrop-blur-md rounded-[32px] border border-[#6475a1]/10 border-dashed uppercase tracking-[0.3em]">
                  No active endpoint maps.
               </div>
             ) : (
               managedPorts.map((mp) => (
-                <div key={mp.port} className="group glass-effect rounded-[24px] p-4 border border-border-light hover:border-emerald-500/30 transition-all flex items-center justify-between shadow-xl">
+                <div key={mp.port} className="group bg-[#0a1836]/40 backdrop-blur-md rounded-[24px] p-4 border border-[#6475a1]/10 hover:border-[#10b981]/30 transition-all flex items-center justify-between shadow-xl">
                   <div className="flex items-center space-x-4">
-                     <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-xl group-hover:bg-emerald-500/20 transition-colors">
+                     <div className="p-3 bg-[#10b981]/10 text-[#10b981] rounded-xl group-hover:bg-[#10b981]/20 transition-colors border border-[#10b981]/10">
                         <Globe size={20} />
                      </div>
                      <div className="min-w-0">
-                        <h4 className="text-sm font-bold text-text-primary tracking-tight truncate max-w-[150px] md:max-w-xs">{mp.processName}</h4>
+                        <h4 className="text-[11px] font-black text-[#dee5ff] uppercase tracking-tight truncate max-w-[150px] md:max-w-xs">{mp.processName}</h4>
                         <div className="flex items-center mt-1 space-x-3">
-                           <span className="text-[10px] font-mono font-bold text-emerald-500 bg-emerald-500/5 px-2 py-0.5 rounded-lg border border-emerald-500/10">Port {mp.port}</span>
-                           <span className="text-[9px] font-bold text-text-muted truncate max-w-[100px] font-mono">{mp.projectPath}</span>
+                           <span className="text-[9px] font-mono font-black text-[#10b981] bg-[#10b981]/5 px-2 py-0.5 rounded-lg border border-[#10b981]/10 uppercase">Port {mp.port}</span>
+                           <span className="text-[8px] font-black text-[#6475a1] truncate max-w-[100px] font-mono uppercase tracking-tighter opacity-60">{mp.projectPath}</span>
                         </div>
                      </div>
                   </div>
@@ -157,7 +157,7 @@ const PortManager: React.FC<PortManagerProps> = ({ vpsId }) => {
                     href={mp.url} 
                     target="_blank" 
                     rel="noopener noreferrer" 
-                    className="p-3 bg-bg-secondary/50 hover:bg-emerald-500 hover:text-white text-text-muted rounded-xl transition-all border border-border-light shadow-inner"
+                    className="p-3 bg-[#11244c] hover:bg-[#10b981] hover:text-white text-[#6475a1] rounded-xl transition-all border border-[#6475a1]/10 shadow-inner"
                   >
                     <ArrowUpRight size={18} />
                   </a>
@@ -170,29 +170,29 @@ const PortManager: React.FC<PortManagerProps> = ({ vpsId }) => {
         {/* System Listening Ports Section */}
         <section className="space-y-4">
           <div className="flex items-center space-x-3 px-1">
-             <Settings className="text-amber-500" size={18} />
-             <h3 className="text-[11px] font-bold text-text-muted tracking-tight">Host Listening Grid</h3>
+             <Settings className="text-[#f59e0b]" size={18} />
+             <h3 className="text-[10px] font-black text-[#6475a1] uppercase tracking-[0.2em]">Host Listening Grid</h3>
           </div>
           
-          <div className="glass-effect rounded-[32px] border border-border-light p-6 shadow-xl min-h-[160px] flex items-center justify-center">
+          <div className="bg-[#0a1836]/40 backdrop-blur-md rounded-[32px] border border-[#6475a1]/10 p-6 shadow-xl min-h-[160px] flex items-center justify-center">
             {activePorts.length === 0 ? (
-              <div className="flex flex-col items-center space-y-3 opacity-40">
-                 <Settings size={32} className="text-text-muted" />
-                 <p className="text-text-muted font-bold uppercase tracking-widest text-[10px]">No listening ports detected</p>
+              <div className="flex flex-col items-center space-y-3 opacity-[0.2]">
+                 <Settings size={32} className="text-[#6475a1]" />
+                 <p className="text-[#6475a1] font-black uppercase tracking-[0.3em] text-[9px]">No listening detection</p>
               </div>
             ) : (
               <div className="flex flex-wrap gap-2 w-full">
                 {activePorts.map((port) => (
-                  <span key={port} className="px-3 py-1.5 bg-bg-primary border border-border-light rounded-xl text-[11px] font-bold font-mono text-amber-500 shadow-2xl hover:border-amber-500/40 transition-all cursor-default group hover:scale-110">
+                  <span key={port} className="px-3 py-1.5 bg-[#060e20] border border-[#6475a1]/10 rounded-xl text-[11px] font-black font-mono text-[#f59e0b] shadow-2xl hover:border-[#f59e0b]/40 transition-all cursor-default group hover:scale-110">
                     {port}
                   </span>
                 ))}
               </div>
             )}
           </div>
-          <div className="px-5 py-3 bg-amber-500/5 border border-amber-500/10 rounded-2xl flex items-start space-x-3">
-             <ShieldAlert size={16} className="text-amber-500/60 mt-0.5" />
-             <p className="text-[10px] leading-relaxed text-amber-600/70 font-bold tracking-tight">
+          <div className="px-5 py-3 bg-[#f59e0b]/5 border border-[#f59e0b]/10 rounded-2xl flex items-start space-x-3">
+             <ShieldAlert size={16} className="text-[#f59e0b]/40 mt-0.5" />
+             <p className="text-[9px] leading-relaxed text-[#f59e0b]/60 font-black tracking-widest uppercase">
                 Traffic Audit Note: Only authorized ingress ports should be exposed to public gateway protocols.
              </p>
           </div>
@@ -200,12 +200,12 @@ const PortManager: React.FC<PortManagerProps> = ({ vpsId }) => {
       </div>
 
       {error && (
-        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl flex items-center justify-between text-xs font-bold animate-in shake-1">
+        <div className="p-4 bg-[#f97386]/10 border border-[#f97386]/20 text-[#f97386] rounded-2xl flex items-center justify-between text-[10px] font-black uppercase tracking-widest animate-in shake-1">
           <div className="flex items-center space-x-3">
              <ShieldAlert size={18} />
              <span>{error}</span>
           </div>
-          <button onClick={() => setError('')} className="p-1 hover:bg-red-500/20 rounded-lg transition-all"><X size={16} /></button>
+          <button onClick={() => setError('')} className="p-1 hover:bg-[#f97386]/20 rounded-lg transition-all"><X size={16} /></button>
         </div>
       )}
     </div>

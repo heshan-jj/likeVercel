@@ -8,7 +8,6 @@ import prisma from '../utils/prisma';
 import { config } from '../config';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { registerSchema, loginSchema } from '../utils/validators';
-import { recordRegistration } from '../services/analyticsService';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 200 * 1024 * 1024 } });
 
@@ -52,27 +51,6 @@ router.post('/register', async (req: AuthRequest, res: Response): Promise<void> 
       },
     });
 
-    /*
-    // Record registration in central analytics DB (strict — roll back on failure)
-    try {
-      await recordRegistration({
-        email: user.email,
-        name: user.name,
-        registeredAt: user.createdAt.toISOString(),
-      });
-    } catch (analyticsError) {
-      // Analytics write failed — attempt to delete the just-created user to keep both DBs consistent
-      try {
-        await prisma.user.delete({ where: { id: user.id } });
-        console.error('[Auth] Analytics recording failed, registration rolled back:', analyticsError);
-      } catch (rollbackError) {
-        // If rollback also fails, we have an inconsistent state — log critically
-        console.error('[Auth] CRITICAL: Analytics failed AND rollback failed. Manual cleanup required for user:', user.id, { analyticsError, rollbackError });
-      }
-      res.status(502).json({ error: 'Registration failed: could not reach analytics service' });
-      return;
-    }
-    */
 
     // Generate tokens
     const { accessToken, refreshToken } = generateTokens(user.id);

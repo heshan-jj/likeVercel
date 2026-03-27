@@ -1,10 +1,8 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Key, Plus, Settings } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Key, Settings } from 'lucide-react';
 
 const BottomNav: React.FC = () => {
-  const navigate = useNavigate();
 
   const navItems = [
     { icon: <LayoutDashboard size={22} />, label: 'Dashboard', path: '/dashboard' },
@@ -14,48 +12,24 @@ const BottomNav: React.FC = () => {
 
   return (
     <nav
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 flex items-stretch"
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0a1836]/80 backdrop-blur-xl border-t border-[#6475a1]/10 flex items-stretch transition-all duration-300 shadow-[0_-10px_40px_rgba(0,0,0,0.6)]"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      {/* Left nav items */}
-      {navItems.slice(0, 2).map((item) => (
+      {/* Nav items spread evenly */}
+      {navItems.map((item) => (
         <NavLink
           key={item.path}
           to={item.path}
           className={({ isActive }) =>
-            `flex-1 flex flex-col items-center justify-center py-2 gap-1 text-[10px] font-bold transition-colors ${
-              isActive ? 'text-blue-600' : 'text-slate-400 hover:text-slate-700'
+            `flex-1 flex flex-col items-center justify-center py-3 gap-1.5 text-[9px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${
+              isActive ? 'text-[#137fec]' : 'text-[#6475a1] hover:text-[#99aad9]'
             }`
           }
         >
-          {item.icon}
-          <span>{item.label}</span>
-        </NavLink>
-      ))}
-
-      {/* Center FAB — Add VPS */}
-      <div className="flex-1 flex items-center justify-center pb-1">
-        <button
-          onClick={() => navigate('/vps/add')}
-          className="w-12 h-12 icon-grad-blue text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30 active:scale-95 transition-transform"
-        >
-          <Plus size={22} />
-        </button>
-      </div>
-
-      {/* Right nav item */}
-      {navItems.slice(2).map((item) => (
-        <NavLink
-          key={item.path}
-          to={item.path}
-          className={({ isActive }) =>
-            `flex-1 flex flex-col items-center justify-center py-2 gap-1 text-[10px] font-bold transition-colors ${
-              isActive ? 'text-blue-600' : 'text-slate-400 hover:text-slate-700'
-            }`
-          }
-        >
-          {item.icon}
-          <span>{item.label}</span>
+          <div className="relative">
+             {item.icon}
+          </div>
+          <span className="opacity-80">{item.label}</span>
         </NavLink>
       ))}
     </nav>

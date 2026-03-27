@@ -23,9 +23,6 @@ services:
       JWT_REFRESH_EXPIRES_IN: "${JWT_REFRESH_EXPIRES_IN:-7d}"
       ENCRYPTION_KEY: "${ENCRYPTION_KEY}"
       DATABASE_URL: "file:/app/backend/prisma/data/prod.db"
-      ANALYTICS_DATABASE_URL: "file:/app/backend/prisma/data/analytics.db"
-      ANALYTICS_API_URL: "${ANALYTICS_API_URL}"
-      ANALYTICS_API_SECRET: "${ANALYTICS_API_SECRET}"
     volumes:
       - likevercel_db:/app/backend/prisma/data
 
