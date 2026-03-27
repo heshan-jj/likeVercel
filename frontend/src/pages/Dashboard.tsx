@@ -142,9 +142,12 @@ const Dashboard: React.FC = () => {
       await fetchProfiles();
     } catch (err: unknown) {
       // Rollback on error
+      const serverName = profiles.find(p => p.id === id)?.name || 'Node';
       setProfiles(prev => prev.map(p => p.id === id ? { ...p, isConnected: false } : p));
       const error = err as { response?: { data?: { error?: string } } };
-      setError(error.response?.data?.error || 'Connection failed');
+      const reason = error.response?.data?.error || 'Connection timed out or refused';
+      setError(`Rollback: Connection to "${serverName}" failed. Your view was reverted to the last known state. Reason: ${reason}`);
+      showToast(`${serverName} connection failed`, 'error');
     } finally {
       setConnecting(null);
     }
@@ -161,9 +164,12 @@ const Dashboard: React.FC = () => {
       await fetchProfiles();
     } catch (err: unknown) {
       // Rollback on error
+      const serverName = profiles.find(p => p.id === id)?.name || 'Node';
       setProfiles(prev => prev.map(p => p.id === id ? { ...p, isConnected: true } : p));
       const error = err as { response?: { data?: { error?: string } } };
-      setError(error.response?.data?.error || 'Disconnection failed');
+      const reason = error.response?.data?.error || 'Unexpected error occurred';
+      setError(`Rollback: Disconnect from "${serverName}" failed. Your view was reverted. Reason: ${reason}`);
+      showToast(`${serverName} disconnect failed`, 'error');
     }
   };
 

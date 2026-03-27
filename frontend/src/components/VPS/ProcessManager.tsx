@@ -390,8 +390,8 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
                   const isOnline = status === 'online' || status === 'running';
                   
                   return (
-                    <div key={dep.id} className="group premium-card glass-effect rounded-[24px] border border-border-light hover:border-blue-500/30 transition-all duration-300 overflow-hidden shadow-xl">
-                      <div className="p-5 flex flex-col xl:flex-row xl:items-center justify-between gap-5">
+                    <div key={dep.id} className="group premium-card glass-effect rounded-[22px] sm:rounded-[24px] border border-border-light hover:border-blue-500/30 transition-all duration-300 overflow-hidden shadow-xl">
+                      <div className="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-5">
                         <div className="flex items-center space-x-4">
                           <div className={`p-4 rounded-2xl ${status === 'online' ? 'icon-grad-blue shadow-[0_0_20px_rgba(59,130,246,0.2)]' : 'bg-bg-tertiary'} transition-all shadow-inner`}>
                              <Activity size={24} className={status === 'online' ? 'text-white' : 'text-text-muted'} />
@@ -411,7 +411,7 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
                           </div>
                         </div>
 
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-2 flex-wrap sm:flex-nowrap gap-y-2">
                           <button
                             onClick={() => handleViewLogs(dep.id, dep.processName)}
                             className="p-3 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-secondary rounded-xl transition-all border border-border-light"
@@ -474,8 +474,8 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
                   <h3 className="text-[11px] font-bold text-text-muted tracking-tight uppercase tracking-widest">External Workloads detected</h3>
                 </div>
                 {filteredUnmanaged.map((proc) => (
-                  <div key={proc.pm_id || `port-${proc.port}`} className="group premium-card glass-effect rounded-[24px] border border-border-light bg-amber-500/[0.02] hover:border-amber-500/30 transition-all duration-300 overflow-hidden shadow-xl">
-                    <div className="p-5 flex flex-col xl:flex-row xl:items-center justify-between gap-5">
+                  <div key={proc.pm_id || `port-${proc.port}`} className="group premium-card glass-effect rounded-[22px] sm:rounded-[24px] border border-border-light bg-amber-500/[0.02] hover:border-amber-500/30 transition-all duration-300 overflow-hidden shadow-xl">
+                    <div className="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-5">
                       <div className="flex items-center space-x-4">
                         <div className={`p-4 rounded-2xl ${proc.type === 'port' ? 'icon-grad-amber shadow-[0_0_20px_rgba(245,158,11,0.2)]' : 'icon-grad-indigo shadow-[0_0_20px_rgba(79,70,229,0.2)]'} transition-all shadow-inner`}>
                           <Activity size={24} className="text-white" />

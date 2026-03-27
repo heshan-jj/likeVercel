@@ -36,9 +36,9 @@ const VpsListView: React.FC<VpsListViewProps> = ({ profiles, specs, fetchingSpec
           <tr className="border-b border-slate-100 bg-slate-50/50">
             <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Instance Name</th>
             <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
-            <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Region</th>
-            <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">IP Address</th>
-            <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">CPU Load</th>
+            <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden md:table-cell">Region</th>
+            <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden lg:table-cell">IP Address</th>
+            <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right hidden sm:table-cell">CPU Load</th>
             <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Actions</th>
           </tr>
         </thead>
@@ -70,11 +70,11 @@ const VpsListView: React.FC<VpsListViewProps> = ({ profiles, specs, fetchingSpec
                   </div>
                 )}
               </td>
-              <td className="px-6 py-5 text-sm font-bold text-slate-500 tracking-tight">
+              <td className="px-6 py-5 text-sm font-bold text-slate-500 tracking-tight hidden md:table-cell">
                 {vps.region || (vps.isConnected ? (specs[vps.id]?.region || 'DETECTING...') : '—')}
               </td>
-              <td className="px-6 py-5 text-sm font-mono text-slate-400">{vps.host}</td>
-              <td className="px-6 py-5 text-right w-48">
+              <td className="px-6 py-5 text-sm font-mono text-slate-400 hidden lg:table-cell">{vps.host}</td>
+              <td className="px-6 py-5 text-right w-48 hidden sm:table-cell">
                 <div className="flex items-center justify-end space-x-3">
                   <div className="flex-1 max-w-[100px] h-1.5 bg-slate-100 rounded-full overflow-hidden">
                     {fetchingSpecs.has(vps.id) ? (

@@ -10,7 +10,12 @@ import {
 import Logo from '../Logo';
 import { useAuth } from '../../context/AuthContext';
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -21,7 +26,18 @@ const Sidebar: React.FC = () => {
   ];
 
   return (
-    <div className="w-64 h-full bg-white border-r border-slate-200 flex flex-col z-40 shrink-0">
+    <>
+      {/* Mobile Overlay */}
+      <div 
+        className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity duration-300 lg:hidden ${
+          isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={onClose}
+      />
+
+      <div className={`fixed lg:static inset-y-0 left-0 w-64 h-full bg-white border-r border-slate-200 flex flex-col z-50 shrink-0 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        isOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
       {/* Brand Header */}
       <div className="p-8 pb-6">
         <div className="flex items-center space-x-3 mb-1 cursor-pointer group" onClick={() => navigate('/dashboard')}>
@@ -77,6 +93,7 @@ const Sidebar: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

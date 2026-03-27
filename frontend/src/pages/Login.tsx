@@ -9,6 +9,7 @@ const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [errorDetails, setErrorDetails] = useState<any[] | null>(null);
   const [loading, setLoading] = useState(false);
   
   const { login } = useAuth();
@@ -29,8 +30,9 @@ const Login: React.FC = () => {
       login(data.accessToken, data.refreshToken, data.user);
       navigate('/dashboard');
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setError(error.response?.data?.error || 'Failed to login. Please check your credentials.');
+      const axiosError = err as { response?: { data?: { error?: string; details?: any[] } } };
+      setError(axiosError.response?.data?.error || 'Failed to login. Please check your credentials.');
+      setErrorDetails(axiosError.response?.data?.details || null);
     } finally {
       setLoading(false);
     }
@@ -42,9 +44,18 @@ const Login: React.FC = () => {
       subtitle="Enter your credentials to access your dashboard."
     >
       {error && (
-        <div className="p-4 bg-red-500/5 border border-red-500/10 text-red-500 rounded-2xl text-xs font-bold flex items-center space-x-3 animate-in fade-in slide-in-from-top-2 duration-300">
-          <ShieldAlert size={16} />
-          <span>{error}</span>
+        <div className="p-4 bg-red-500/5 border border-red-500/10 text-red-500 rounded-2xl text-xs font-bold space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center space-x-3">
+            <ShieldAlert size={16} />
+            <span>{error}</span>
+          </div>
+          {errorDetails && (
+            <ul className="list-disc pl-8 opacity-80 font-medium space-y-1">
+              {errorDetails.map((d: any, i: number) => (
+                <li key={i}>{d.message || d.code || 'Unknown validation error'}</li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 
