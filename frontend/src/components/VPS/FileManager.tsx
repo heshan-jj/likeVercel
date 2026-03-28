@@ -264,7 +264,7 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
   return (
     <>
     <div
-      className={`flex flex-col h-full space-y-5 relative transition-all ${isDragging ? 'ring-4 ring-blue-500/20 ring-inset rounded-[32px]' : ''}`}
+      className={`flex flex-col h-full space-y-3 relative transition-all ${isDragging ? 'ring-4 ring-blue-500/20 ring-inset rounded-3xl' : ''}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -283,25 +283,25 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
       )}
 
       {/* Navigation and Toolbar */}
-      <div className="flex flex-col xl:flex-row items-stretch xl:items-center gap-4">
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2">
         {/* Modern Breadcrumb */}
-        <div className="flex items-center flex-1 min-w-0 bg-[#0a1836]/40 backdrop-blur-md border border-[#6475a1]/10 rounded-[20px] p-1.5 shadow-sm group">
+        <div className="flex items-center flex-1 min-w-0 bg-[#0a1836]/40 border border-[#6475a1]/10 rounded-2xl p-1 shadow-sm overflow-hidden min-h-[44px]">
           <button
             onClick={() => navigateTo('/')}
-            className="p-3 text-[#137fec] hover:bg-[#137fec]/10 rounded-2xl transition-all flex-shrink-0"
+            className="p-2 text-[#137fec] hover:bg-[#137fec]/10 rounded-xl transition-all flex-shrink-0"
           >
-            <Home size={18} />
+            <Home size={16} />
           </button>
           
-          <div className="flex items-center overflow-x-auto no-scrollbar px-2 space-x-1">
+          <div className="flex items-center overflow-x-auto no-scrollbar px-1 space-x-1">
             {breadcrumbs.map((crumb, i) => (
               <React.Fragment key={i}>
-                <ChevronRight size={14} className="text-[#6475a1]/30 flex-shrink-0 mx-1" />
+                <ChevronRight size={12} className="text-[#6475a1]/30 flex-shrink-0" />
                 <button
                   onClick={() => navigateTo('/' + breadcrumbs.slice(0, i + 1).join('/'))}
-                  className={`px-3 py-2 rounded-xl text-[10px] font-black whitespace-nowrap transition-all uppercase tracking-widest ${
+                  className={`px-2 py-1.5 rounded-lg text-[9px] font-black whitespace-nowrap transition-all uppercase tracking-widest ${
                     i === breadcrumbs.length - 1 
-                    ? 'text-[#dee5ff] bg-[#11244c]/60 cursor-default shadow-sm border border-[#6475a1]/10' 
+                    ? 'text-[#dee5ff] bg-[#11244c]/60 border border-[#6475a1]/10' 
                     : 'text-[#6475a1] hover:text-[#137fec] hover:bg-[#137fec]/10'
                   }`}
                 >
@@ -313,37 +313,36 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
         </div>
 
         {/* Unified Search & Actions */}
-        <div className="flex items-center space-x-3">
-          <div className="relative group flex-1 xl:flex-none">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6475a1] group-focus-within:text-[#137fec] transition-colors" />
+        <div className="flex items-center space-x-2">
+          <div className="relative flex-1 lg:flex-none">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6475a1]" />
             <input 
               type="text" 
-              placeholder="Filter cluster..."
+              placeholder="FILTER..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full xl:w-56 bg-[#0a1836]/40 border border-[#6475a1]/10 rounded-[20px] pl-11 pr-5 py-3 text-[10px] text-[#dee5ff] outline-none focus:border-[#137fec]/30 transition-all font-black placeholder:text-[#6475a1]/50 shadow-sm uppercase tracking-widest"
+              className="w-full lg:w-40 bg-[#0a1836]/40 border border-[#6475a1]/10 rounded-2xl pl-9 pr-3 py-2.5 text-[9px] text-[#dee5ff] outline-none focus:border-[#137fec]/30 transition-all font-black placeholder:text-[#6475a1]/50 uppercase tracking-widest"
             />
           </div>
 
-          <div className="flex items-center bg-[#0a1836]/40 border border-[#6475a1]/10 rounded-[20px] p-1 shadow-sm">
-            <button onClick={navigateUp} className="p-2.5 text-[#6475a1] hover:text-[#137fec] hover:bg-[#137fec]/10 rounded-xl transition-all" title="Go Up">
-              <ArrowUp size={18} />
+          <div className="flex items-center bg-[#0a1836]/40 border border-[#6475a1]/10 rounded-2xl p-0.5 shadow-sm">
+            <button onClick={navigateUp} className="p-2 text-[#6475a1] hover:text-[#137fec] rounded-lg" title="Go Up">
+              <ArrowUp size={16} />
             </button>
-            <button onClick={() => fetchFiles(currentPath)} className="p-2.5 text-[#6475a1] hover:text-[#137fec] hover:bg-[#137fec]/10 rounded-xl transition-all" title="Refresh">
-              <RefreshCw className={loading ? 'animate-spin' : ''} size={18} />
+            <button onClick={() => fetchFiles(currentPath)} className="p-2 text-[#6475a1] hover:text-[#137fec] rounded-lg" title="Refresh">
+              <RefreshCw className={loading ? 'animate-spin' : ''} size={16} />
             </button>
-            <div className="w-px h-6 bg-[#6475a1]/10 mx-1" />
-            <button onClick={() => setShowNewFolder(true)} className="p-2.5 text-[#6475a1] hover:text-[#137fec] hover:bg-[#137fec]/10 rounded-xl transition-all" title="New Directory">
-              <FolderPlus size={18} />
+            <button onClick={() => setShowNewFolder(true)} className="p-2 text-[#6475a1] hover:text-[#137fec] rounded-lg" title="New Folder">
+              <FolderPlus size={16} />
             </button>
           </div>
 
           <button 
             onClick={() => fileInputRef.current?.click()} 
-            className="flex items-center space-x-2 px-6 py-3 bg-[#137fec] hover:bg-[#1d6fee] text-white font-black text-[10px] rounded-[20px] transition-all shadow-xl shadow-[#137fec]/20 active:scale-95 border border-[#137fec]/20 uppercase tracking-[0.2em]"
+            className="flex items-center bg-[#137fec] hover:bg-[#1d6fee] text-white p-2.5 rounded-2xl transition-all shadow-lg active:scale-95"
+            title="Upload"
           >
-            <Upload size={18} />
-            <span className="hidden sm:inline">Ingest</span>
+            <Upload size={16} />
           </button>
           <input ref={fileInputRef} type="file" multiple onChange={handleInputChange} className="hidden" />
         </div>
@@ -399,16 +398,16 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
       )}
 
       {/* Main File Table */}
-      <div className="flex-1 bg-[#0a1836]/30 backdrop-blur-md rounded-[32px] border border-[#6475a1]/10 overflow-hidden flex flex-col shadow-xl">
+      <div className="flex-1 bg-[#0a1836]/30 backdrop-blur-md rounded-3xl border border-[#6475a1]/10 overflow-hidden flex flex-col shadow-xl">
         <div className="overflow-x-auto flex-1 no-scrollbar">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-[#0a1836] backdrop-blur-sm text-[9px] font-black uppercase tracking-[0.2em] text-[#6475a1] sticky top-0 z-10 border-b border-[#6475a1]/10 shadow-sm">
-                <th className="px-8 py-5">Object Name</th>
-                <th className="px-8 py-5 w-32 text-right">Size</th>
-                <th className="px-8 py-5 w-40 text-right">Access Protocol</th>
-                <th className="px-8 py-5 w-40 text-right">Last Sync</th>
-                <th className="px-8 py-5 w-32 text-right">Methods</th>
+              <tr className="bg-[#0a1836] backdrop-blur-sm text-[8px] font-black uppercase tracking-[0.2em] text-[#6475a1] sticky top-0 z-10 border-b border-[#6475a1]/10 shadow-sm">
+                <th className="px-4 lg:px-6 py-3">Object Name</th>
+                <th className="px-4 lg:px-6 py-3 w-20 lg:w-32 text-right">Size</th>
+                <th className="px-4 lg:px-6 py-3 w-32 text-right hidden lg:table-cell">Perms</th>
+                <th className="px-4 lg:px-6 py-3 w-24 lg:w-40 text-right">Sync</th>
+                <th className="px-4 lg:px-6 py-3 w-24 lg:w-32 text-right">Methods</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#6475a1]/5">
@@ -436,7 +435,7 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
                     key={file.path}
                     className="group hover:bg-[#137fec]/5 transition-all cursor-pointer relative"
                   >
-                    <td className="px-8 py-5">
+                    <td className="px-4 lg:px-6 py-2.5">
                       <div className="flex items-center space-x-4">
                         <div className="transition-all duration-300 group-hover:scale-110">
                           {getFileIcon(file.name, file.isDirectory)}
@@ -466,16 +465,16 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
                         )}
                       </div>
                     </td>
-                    <td className="px-8 py-5 text-right font-mono text-[9px] text-[#6475a1] font-black uppercase">
+                    <td className="px-4 lg:px-6 py-2.5 text-right font-mono text-[9px] text-[#6475a1] font-black uppercase">
                       {file.isDirectory ? '—' : formatBytes(file.size)}
                     </td>
-                    <td className="px-8 py-5 text-right font-mono text-[9px] text-[#6475a1]/60 tracking-widest uppercase">
+                    <td className="px-4 lg:px-6 py-2.5 text-right font-mono text-[8px] text-[#6475a1]/60 tracking-widest uppercase hidden lg:table-cell">
                       {file.permissions || '—'}
                     </td>
-                    <td className="px-8 py-5 text-right text-[9px] text-[#6475a1] font-black tracking-widest uppercase">
+                    <td className="px-4 lg:px-6 py-2.5 text-right text-[8px] text-[#6475a1] font-black tracking-widest uppercase">
                       {timeAgo(file.modifiedAt)}
                     </td>
-                    <td className="px-8 py-5 text-right">
+                    <td className="px-4 lg:px-6 py-2.5 text-right">
                       <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
                         {!file.isDirectory && (
                           <button onClick={() => handleDownload(file.path, file.name)} className="p-2.5 bg-[#11244c] text-[#6475a1] hover:text-[#137fec] hover:bg-[#137fec]/10 rounded-xl transition-all shadow-sm" title="Download">
@@ -501,22 +500,16 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
           </table>
         </div>
         
-        {/* Modern Footer Status Bar */}
-        <div className="px-10 py-4 bg-[#0a1836] backdrop-blur-sm border-t border-[#6475a1]/10 flex items-center justify-between text-[9px] font-black text-[#6475a1]/60 uppercase tracking-widest">
-           <div className="flex items-center space-x-6">
-              <div className="flex items-center space-x-2 text-[#6475a1]">
-                 <span className="text-[#dee5ff]">{filteredFiles.length}</span>
-                 <span>Buffers Detected</span>
-              </div>
+        {/* Minimalist Footer */}
+        <div className="px-6 py-2.5 bg-[#0a1836] backdrop-blur-sm border-t border-[#6475a1]/10 flex items-center justify-between text-[8px] font-black text-[#6475a1]/60 uppercase tracking-[0.2em]">
+           <div className="flex items-center space-x-4">
+              <span className="text-[#137fec]">{filteredFiles.length} OBJECTS</span>
               <span className="h-1 w-1 bg-[#6475a1]/20 rounded-full" />
-              <div className="flex items-center space-x-2 text-[#6475a1]">
-                 <span className="text-[#dee5ff]">{files.filter(f => f.isDirectory).length}</span>
-                 <span>Clusters</span>
-              </div>
+              <span className="font-mono text-[#6475a1]/40 truncate max-w-[150px]">{currentPath}</span>
            </div>
-           <div className="flex items-center space-x-3 group cursor-help">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
-              <span className="font-mono text-[#137fec]/80 transition-all group-hover:text-[#137fec]">{currentPath}</span>
+           <div className="flex items-center space-x-2">
+              <div className="w-1 h-1 rounded-full bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+              <span className="text-[7px]">CLUSTER ACTIVE</span>
            </div>
         </div>
       </div>

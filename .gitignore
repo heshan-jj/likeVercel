@@ -5,7 +5,7 @@ dist/
 .DS_Store
 Thumbs.db
 # Platform Components
-frontend/
+frontend/android/
 backend/.env
 frontend/.env
 

@@ -47,6 +47,11 @@ api.interceptors.response.use(
         window.location.href = '/login';
       }
     }
+    // [DIAGNOSTIC] Log every error clearly for Logcat
+    console.error(`[API ERROR] Status: ${error.response?.status} | URL: ${originalRequest.url} | Message: ${error.message}`);
+    if (error.response?.data) {
+      console.error(`[API ERROR DATA]`, error.response.data);
+    }
     
     return Promise.reject(error);
   }
