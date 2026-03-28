@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Settings as SettingsIcon, LogOut, Trash2, Lock,
+  Settings as LogOut, Trash2, Lock,
   Fingerprint, ChevronDown, ChevronUp,
   Download, Shield, ClockIcon, Loader2, Check, AlertTriangle,
   ServerIcon, KeyRound, FileUp,
@@ -183,10 +183,7 @@ const Settings: React.FC = () => {
               <Logo size={28} />
            </div>
            <div>
-              <div className="flex items-center space-x-2 text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1 opacity-70">
-                <SettingsIcon size={12} />
-              </div>
-              <h1 className="text-2xl font-black tracking-tight text-text-primary uppercase">User Settings</h1>
+              <h1 className="text-2xl font-black tracking-tight text-text-primary uppercase">Settings</h1>
            </div>
         </div>
         <button
@@ -194,7 +191,7 @@ const Settings: React.FC = () => {
           className="flex items-center space-x-2 px-5 py-2.5 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white font-bold text-xs rounded-2xl transition-all active:scale-95"
         >
           <LogOut size={14} />
-          <span>Terminate Session</span>
+          <span>Log Out</span>
         </button>
       </header>
 

@@ -108,7 +108,7 @@ const VpsListView: React.FC<VpsListViewProps> = ({ profiles, specs, fetchingSpec
                     disabled={connecting === vps.id}
                     className="flex items-center space-x-2 px-4 py-2 bg-[#137fec] hover:bg-[#1d6fee] text-white text-[10px] font-black rounded-xl transition-all shadow-lg shadow-[#137fec]/20 active:scale-95 disabled:opacity-50 uppercase tracking-widest"
                   >
-                    {connecting === vps.id ? <Loader2 size={12} className="animate-spin" /> : "Deploy Connection"}
+                    {connecting === vps.id ? <Loader2 size={12} className="animate-spin" /> : "Connect"}
                   </button>
                 ) : (
                   <button 

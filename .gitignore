@@ -4,8 +4,12 @@ dist/
 *.db-journal
 .DS_Store
 Thumbs.db
+# Platform Components
+frontend/
 backend/.env
 frontend/.env
+
+# Artifacts
 build_error.log
 fixes.md
 features.md
