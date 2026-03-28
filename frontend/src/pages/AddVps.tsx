@@ -106,8 +106,7 @@ const AddVps: React.FC = () => {
 
       <div className="flex items-center justify-between mb-10">
         <div>
-          <h1 className="text-3xl font-black text-text-primary tracking-tight uppercase">Add New Endpoint</h1>
-          <p className="mt-2 text-text-secondary text-[10px] font-black uppercase tracking-widest opacity-70">Configure a new remote server connection to manage your services.</p>
+          <h1 className="text-3xl font-black text-text-primary tracking-tight uppercase">Add New VPS</h1>
         </div>
         <div className="p-3 bg-bg-secondary rounded-2xl border border-border-light shadow-lg">
            <Logo size={28} />

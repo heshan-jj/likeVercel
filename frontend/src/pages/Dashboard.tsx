@@ -271,10 +271,9 @@ const Dashboard: React.FC = () => {
            <div className="flex flex-col space-y-2">
               <div className="flex items-center space-x-3 text-[10px] font-black uppercase tracking-[0.4em] text-[#137fec] mb-1">
                  <div className="h-1 w-8 bg-[#137fec] rounded-full" />
-                 <span>System Overview</span>
+                 <span>VPS Overview</span>
               </div>
-              <h1 className="text-4xl font-black text-[#dee5ff] tracking-tight mb-1 uppercase">Infrastructure</h1>
-              <p className="text-[#6475a1] font-black uppercase tracking-[0.2em] text-[10px] opacity-70">Real-time telemetry of your global compute clusters.</p>
+              <h1 className="text-4xl font-black text-[#dee5ff] tracking-tight mb-1 uppercase">Servers</h1>
            </div>
            
            <div className="flex items-center space-x-4">
@@ -283,7 +282,7 @@ const Dashboard: React.FC = () => {
                 className="flex items-center space-x-2 px-6 py-3.5 bg-[#137fec] hover:bg-[#1d6fee] text-white font-black text-[10px] rounded-2xl border border-[#137fec]/30 shadow-xl shadow-[#137fec]/20 transition-all active:scale-95 group uppercase tracking-widest"
               >
                 <Plus size={16} />
-                <span>New Node</span>
+                <span>Add new server</span>
               </button>
               <div className="p-3 bg-[#0a1836] rounded-2xl border border-[#6475a1]/10 shadow-lg hidden sm:block">
                  <Logo size={28} />

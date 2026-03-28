@@ -185,9 +185,8 @@ const Settings: React.FC = () => {
            <div>
               <div className="flex items-center space-x-2 text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1 opacity-70">
                 <SettingsIcon size={12} />
-                <span>System Preferences</span>
               </div>
-              <h1 className="text-2xl font-black tracking-tight text-text-primary uppercase">Account Settings</h1>
+              <h1 className="text-2xl font-black tracking-tight text-text-primary uppercase">User Settings</h1>
            </div>
         </div>
         <button
@@ -216,7 +215,7 @@ const Settings: React.FC = () => {
               {user?.name?.charAt(0).toUpperCase() || 'U'}
             </div>
             <div>
-              <p className="text-xs font-bold text-text-muted uppercase tracking-widest mb-1">Authorized Node</p>
+              <p className="text-xs font-bold text-text-muted uppercase tracking-widest mb-1">Authorized Account</p>
               <h3 className="text-2xl font-bold text-text-primary tracking-tight">{user?.name || 'Authorized Operator'}</h3>
               <p className="text-xs text-text-muted mt-0.5">{user?.email}</p>
             </div>

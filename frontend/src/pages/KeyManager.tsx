@@ -227,7 +227,6 @@ const KeyManager: React.FC = () => {
           </div>
           <div>
             <h1 className="text-2xl font-black tracking-tight text-text-primary uppercase">SSH Key Manager</h1>
-            <p className="text-[10px] font-black text-text-muted uppercase tracking-widest opacity-70">Save your SSH keys and deploy them to servers</p>
           </div>
         </div>
         <button
