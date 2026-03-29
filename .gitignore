@@ -5,10 +5,8 @@ dist/
 .DS_Store
 Thumbs.db
 # Platform Components
-frontend/android/
-android/
 backend/.env
-frontend/.env
+frontend/
 
 # Artifacts
 build_error.log
@@ -16,3 +14,4 @@ fixes.md
 features.md
 release/export_image.bat
 release/run_portable.bat
+frontend/capacitor.config.ts
