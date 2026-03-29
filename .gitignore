@@ -14,3 +14,5 @@ frontend/.env
 build_error.log
 fixes.md
 features.md
+release/export_image.bat
+release/run_portable.bat
