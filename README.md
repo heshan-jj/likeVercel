@@ -69,5 +69,5 @@ Only one admin account is allowed. To reset:
 ---
 
 MIT License. Created by Heshan Jayakody.
-
 ---
+

@@ -1,29 +1,16 @@
 services:
-
-  # ── Main likeVercel app ───────────────────────────────────────────────────────
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: likevercel
-    container_name: likevercel
-    restart: unless-stopped
+  likevercel:
+    build: .
+    image: likevercel-backend:latest
+    container_name: likevercel-app
     ports:
-      - "${PORT:-3001}:3001"
-    environment:
-      NODE_ENV: production
-      PORT: 3001
-      FRONTEND_URL: "${FRONTEND_URL:-http://localhost:3001}"
-      JWT_SECRET: "${JWT_SECRET}"
-      JWT_REFRESH_SECRET: "${JWT_REFRESH_SECRET}"
-      JWT_EXPIRES_IN: "${JWT_EXPIRES_IN:-15m}"
-      JWT_REFRESH_EXPIRES_IN: "${JWT_REFRESH_EXPIRES_IN:-7d}"
-      ENCRYPTION_KEY: "${ENCRYPTION_KEY}"
-      DATABASE_URL: "file:/app/backend/prisma/data/prod.db"
-      ANALYTICS_API_URL: "${ANALYTICS_API_URL}"
-      ANALYTICS_API_SECRET: "${ANALYTICS_API_SECRET}"
+      - "3001:3001"
+    env_file:
+      - .env
     volumes:
-      - likevercel_db:/app/backend/prisma/data
+      - ./backend/prisma:/app/prisma
+    restart: unless-stopped
 
-volumes:
-  likevercel_db:
+networks:
+  default:
+    driver: bridge

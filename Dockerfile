@@ -1,83 +1,44 @@
-# ─────────────────────────────────────────
-# Stage 1: Build frontend
-# ─────────────────────────────────────────
+# Stage 1: Build Frontend
 FROM node:20-alpine AS frontend-builder
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend/ ./
+RUN npm run build
 
-WORKDIR /app
-
-# Copy workspace configuration and lock file
-COPY package*.json ./
-COPY frontend/package*.json ./frontend/
-
-# Install only frontend dependencies
-RUN npm install --workspace=frontend
-
-# Copy frontend source and build
-COPY frontend/ ./frontend/
-RUN npm run build --workspace=frontend
-
-
-# ─────────────────────────────────────────
-# Stage 2: Build backend
-# ─────────────────────────────────────────
+# Stage 2: Build Backend
 FROM node:20-alpine AS backend-builder
-
-# Install build dependencies for native modules like bcrypt
-RUN apk add --no-cache python3 make g++
-
-WORKDIR /app
-
-# Copy workspace configuration and lock file
-COPY package*.json ./
-COPY backend/package*.json ./backend/
-COPY backend/prisma ./backend/prisma
-
-# Install backend dependencies
-RUN npm install --workspace=backend
-
-# Generate Prisma client
-RUN npx prisma generate --schema=backend/prisma/schema.prisma
-
-# Copy backend source and build
-COPY backend/ ./backend/
-RUN npm run build --workspace=backend
-
-
-# ─────────────────────────────────────────
-# Stage 3: Production image
-# ─────────────────────────────────────────
-FROM node:20-alpine AS production
-
-RUN apk add --no-cache openssl
-
-WORKDIR /app
-
-# Copy package files for production install
-COPY package*.json ./
-COPY backend/package*.json ./backend/
-COPY backend/prisma ./backend/prisma
-
-# Install production deps only
-RUN npm install --omit=dev --workspace=backend
-
 WORKDIR /app/backend
+COPY backend/package*.json ./
+RUN npm install
+COPY backend/prisma ./prisma/
+RUN npx prisma generate
+COPY backend/ ./
+RUN npm run build
 
-# Copy compiled backend from builder
+# Stage 3: Final Production Image
+FROM node:20-slim
+RUN apt-get update && apt-get install -y openssl sqlite3 && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+
+# Copy Backend artifacts
 COPY --from=backend-builder /app/backend/dist ./dist
+COPY --from=backend-builder /app/backend/node_modules ./node_modules
+COPY --from=backend-builder /app/backend/package.json ./package.json
+COPY --from=backend-builder /app/backend/prisma ./prisma
 
-# Copy the generated Prisma client from builder
-COPY --from=backend-builder /app/node_modules/.prisma ../node_modules/.prisma
-COPY --from=backend-builder /app/node_modules/@prisma/client ../node_modules/@prisma/client
+# Copy Frontend static files
+# The backend expects ../../frontend/dist relative to dist/index.js
+# /app/dist/index.js -> /app/frontend/dist
+COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
-# Copy built frontend where Express expects it
-COPY --from=frontend-builder /app/frontend/dist ../frontend/dist
-
-# Persist the SQLite database via a named volume
-RUN mkdir -p /app/backend/prisma/data
-VOLUME ["/app/backend/prisma/data"]
+# Environment configuration
+# Note: You should still provide JWT secrets and ENCRYPTION_KEY at runtime
+ENV NODE_ENV=production
+ENV PORT=3001
 
 EXPOSE 3001
 
-CMD ["sh", "-c", "DATABASE_URL=file:/app/backend/prisma/data/prod.db npx prisma db push --skip-generate && node dist/index.js"]
-
-
+# Auto-run Prisma migrations on startup if dev.db doesn't exist
+# Then start the server
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node dist/index.js"]
