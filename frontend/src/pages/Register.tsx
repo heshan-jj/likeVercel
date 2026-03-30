@@ -52,14 +52,14 @@ const Register: React.FC = () => {
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-2">
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Full Name</label>
+          <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] ml-1">Full Name</label>
           <div className="relative group blue-border-focus">
-            <UserCheck size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
+            <UserCheck size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-blue-600 transition-colors" />
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-12 py-4 text-slate-900 text-sm font-medium outline-none transition-all placeholder:text-slate-300"
+              className="w-full bg-bg-secondary border border-border-light rounded-2xl px-12 py-4 text-text-primary text-sm font-medium outline-none transition-all placeholder:text-text-muted/50"
               placeholder="John Doe"
               disabled={loading}
               required
@@ -68,14 +68,14 @@ const Register: React.FC = () => {
         </div>
 
         <div className="space-y-2">
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Work Email</label>
+          <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] ml-1">Work Email</label>
           <div className="relative group blue-border-focus">
-            <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
+            <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-blue-600 transition-colors" />
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-12 py-4 text-slate-900 text-sm font-medium outline-none transition-all placeholder:text-slate-300"
+              className="w-full bg-bg-secondary border border-border-light rounded-2xl px-12 py-4 text-text-primary text-sm font-medium outline-none transition-all placeholder:text-text-muted/50"
               placeholder="name@company.com"
               disabled={loading}
               required
@@ -84,14 +84,14 @@ const Register: React.FC = () => {
         </div>
 
         <div className="space-y-2">
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Create Password</label>
+          <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] ml-1">Create Password</label>
           <div className="relative group blue-border-focus">
-            <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
+            <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-blue-600 transition-colors" />
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-12 py-4 text-slate-900 text-sm font-medium outline-none transition-all placeholder:text-slate-300"
+              className="w-full bg-bg-secondary border border-border-light rounded-2xl px-12 py-4 text-text-primary text-sm font-medium outline-none transition-all placeholder:text-text-muted/50"
               placeholder="••••••••"
               disabled={loading}
               required
@@ -109,7 +109,7 @@ const Register: React.FC = () => {
       </form>
 
       <div className="text-center pt-2">
-        <p className="text-sm font-medium text-slate-400">
+        <p className="text-sm font-medium text-text-muted">
           Already in the observatory? <Link to="/login" className="text-blue-600 hover:underline font-bold transition-all ml-1">Log in</Link>
         </p>
       </div>

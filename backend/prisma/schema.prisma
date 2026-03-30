@@ -18,7 +18,7 @@ model User {
 
   vpsProfiles VpsProfile[]
   sshKeys     SshKey[]
-  activities  ActivityLog[]
+
 }
 
 model SshKey {
@@ -77,12 +77,4 @@ model Deployment {
   @@index([vpsId])
 }
 
-model ActivityLog {
-  id        String   @id @default(cuid())
-  userId    String
-  action    String
-  details   String
-  createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}

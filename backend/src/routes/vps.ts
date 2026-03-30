@@ -5,7 +5,7 @@ import { encrypt } from '../utils/crypto';
 import { sshManager } from '../services/SSHManager';
 import { createVpsSchema, updateVpsSchema } from '../utils/validators';
 import { escapeShellArg } from '../utils/helpers';
-import { logActivity } from '../services/activityService';
+
 
 const router = Router();
 
@@ -344,12 +344,7 @@ router.post('/:id/connect', async (req: AuthRequest, res: Response): Promise<voi
       data: updateData,
     });
 
-    // Fetch the profile name for the activity log
-    const fullProfile = await prisma.vpsProfile.findFirst({
-      where: { id: profile.id },
-      select: { name: true, host: true },
-    });
-    if (req.userId) await logActivity(req.userId, 'connect_vps', `Connected to ${fullProfile?.name ?? ''} (${fullProfile?.host ?? profile.id})`);
+
 
     res.json({ message: 'Connected successfully', isConnected: true });
   } catch (error: any) {

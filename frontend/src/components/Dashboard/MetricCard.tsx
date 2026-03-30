@@ -24,15 +24,15 @@ const MetricCard: React.FC<MetricCardProps> = ({ label, value, sub, icon, color,
   return (
     <div 
       onClick={onClick}
-      className={`bg-white p-6 rounded-[24px] border shadow-sm premium-card transition-all group overflow-hidden relative ${
+      className={`bg-bg-secondary p-6 rounded-[24px] border shadow-sm premium-card transition-all group overflow-hidden relative ${
         onClick ? 'cursor-pointer hover:shadow-xl hover:border-blue-500/30' : ''
-      } ${active ? 'border-blue-500 ring-4 ring-blue-500/10' : 'border-slate-200'}`}
+      } ${active ? 'border-blue-500 ring-4 ring-blue-500/10' : 'border-border-light'}`}
     >
       <div className="flex items-start justify-between mb-4">
         <div className={`p-3 rounded-2xl text-white ${getGradClass()}`}>
           {icon}
         </div>
-        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest pt-1">{sub}</span>
+        <span className="text-[9px] font-black text-text-muted uppercase tracking-widest pt-1">{sub}</span>
       </div>
       <div>
         {isLoading ? (
@@ -42,8 +42,8 @@ const MetricCard: React.FC<MetricCardProps> = ({ label, value, sub, icon, color,
           </>
         ) : (
           <>
-            <p className="text-3xl font-black text-slate-900 tracking-tighter mb-0.5">{value}</p>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</p>
+            <p className="text-3xl font-black text-text-primary tracking-tighter mb-0.5">{value}</p>
+            <p className="text-xs font-bold text-text-muted uppercase tracking-wider">{label}</p>
           </>
         )}
       </div>

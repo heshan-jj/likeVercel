@@ -1,56 +1,22 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   Settings as SettingsIcon, LogOut, Trash2, Lock,
   Fingerprint, ChevronDown, ChevronUp, Sun, Moon, Monitor,
-  Download, Shield, ClockIcon, Loader2, Check, AlertTriangle,
-  ServerIcon, KeyRound, FileUp,
+  Download, Shield, Loader2, Check, AlertTriangle, FileUp,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import api from '../utils/api';
 
 /* ─── Types ─────────────────────────────────────────────── */
 type Theme = 'dark' | 'light' | 'system';
 
-interface ActivityEntry {
-  id: string;
-  action: string;
-  details: string;
-  createdAt: string;
-}
 
-/* ─── Helpers ────────────────────────────────────────────── */
-function actionIcon(action: string) {
-  if (action === 'connect_vps') return <ServerIcon size={12} className="text-blue-400" />;
-  if (action === 'key_install') return <KeyRound size={12} className="text-emerald-400" />;
-  if (action === 'deploy') return <FileUp size={12} className="text-purple-400" />;
-  return <ClockIcon size={12} className="text-text-muted" />;
-}
-
-function relativeTime(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return days < 30 ? `${days}d ago` : new Date(dateStr).toLocaleDateString();
-}
-
-function applyTheme(theme: Theme) {
-  const root = document.documentElement;
-  if (theme === 'system') {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    root.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
-  } else {
-    root.setAttribute('data-theme', theme);
-  }
-  localStorage.setItem('theme', theme);
-}
 
 /* ─── Component ──────────────────────────────────────────── */
 const Settings: React.FC = () => {
   const { user, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
 
   /* Password change */
   const [showPwForm, setShowPwForm] = useState(false);
@@ -61,36 +27,23 @@ const Settings: React.FC = () => {
   const [pwMsg, setPwMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   /* Theme */
-  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'dark');
 
   /* Backup */
   const [backupLoading, setBackupLoading] = useState(false);
   const [restoreLoading, setRestoreLoading] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  /* Activity */
-  const [activities, setActivities] = useState<ActivityEntry[]>([]);
-  const [actLoading, setActLoading] = useState(true);
+
 
   /* Misc */
   const [purging, setPurging] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  const fetchActivity = useCallback(async () => {
-    setActLoading(true);
-    try {
-      const { data } = await api.get('/auth/activity');
-      setActivities(data.logs);
-    } catch { /* ignore */ }
-    finally { setActLoading(false); }
-  }, []);
 
-  useEffect(() => { fetchActivity(); }, [fetchActivity]);
 
   /* ── Handlers ── */
   const handleChangeTheme = (t: Theme) => {
-    setTheme(t);
-    applyTheme(t);
+    setTheme(t as any); // using 'any' to bypass context type limitation if needed, but Context now supports 'system'
   };
 
   const handleChangePassword = async () => {
@@ -381,52 +334,7 @@ const Settings: React.FC = () => {
           </button>
         </div>
 
-        {/* ── Activity Log ── */}
-        <div className="glass-effect border border-border-light rounded-[32px] p-8 space-y-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2.5 bg-bg-secondary border border-border-light rounded-2xl">
-                <ClockIcon size={16} className="text-text-muted" />
-              </div>
-              <div>
-                <h2 className="text-sm font-bold text-text-primary tracking-tight">Activity Log</h2>
-                <p className="text-xs text-text-muted">Recent actions on your account</p>
-              </div>
-            </div>
-            <button
-              onClick={fetchActivity}
-              className="text-[10px] font-bold text-text-muted hover:text-text-primary uppercase tracking-widest transition-colors"
-            >
-              Refresh
-            </button>
-          </div>
 
-          {actLoading ? (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 size={20} className="animate-spin text-text-muted" />
-            </div>
-          ) : activities.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 space-y-2 text-text-muted">
-              <ClockIcon size={28} className="opacity-20" />
-              <p className="text-xs font-bold">No activity yet</p>
-              <p className="text-[10px]">Actions like connecting servers and installing keys will appear here</p>
-            </div>
-          ) : (
-            <div className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar pr-1">
-              {activities.map(a => (
-                <div key={a.id} className="flex items-start space-x-3 p-3 bg-bg-secondary border border-border-light rounded-xl">
-                  <div className="p-1.5 bg-bg-tertiary rounded-lg mt-0.5 shrink-0">
-                    {actionIcon(a.action)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-text-primary truncate">{a.details}</p>
-                    <p className="text-[10px] text-text-muted mt-0.5">{relativeTime(a.createdAt)}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
 
         {/* ── Danger Zone ── */}
         <div className="glass-effect border border-red-500/10 rounded-[32px] p-8 space-y-4">

@@ -30,31 +30,31 @@ interface VpsListViewProps {
 
 const VpsListView: React.FC<VpsListViewProps> = ({ profiles, specs, fetchingSpecs, connecting, onNavigate, onConnect, onDisconnect }) => {
   return (
-    <div className="bg-white border border-slate-200 rounded-[24px] overflow-hidden shadow-sm">
+    <div className="bg-bg-secondary border border-border-light rounded-[24px] overflow-hidden shadow-sm">
       <table className="w-full text-left">
         <thead>
-          <tr className="border-b border-slate-100 bg-slate-50/50">
-            <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Instance Name</th>
-            <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
-            <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden md:table-cell">Region</th>
-            <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden lg:table-cell">IP Address</th>
-            <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right hidden sm:table-cell">CPU Load</th>
-            <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Actions</th>
+          <tr className="border-b border-border-light bg-bg-tertiary/40">
+            <th className="px-6 py-4 text-[10px] font-bold text-text-muted uppercase tracking-widest">Instance Name</th>
+            <th className="px-6 py-4 text-[10px] font-bold text-text-muted uppercase tracking-widest">Status</th>
+            <th className="px-6 py-4 text-[10px] font-bold text-text-muted uppercase tracking-widest hidden md:table-cell">Region</th>
+            <th className="px-6 py-4 text-[10px] font-bold text-text-muted uppercase tracking-widest hidden lg:table-cell">IP Address</th>
+            <th className="px-6 py-4 text-[10px] font-bold text-text-muted uppercase tracking-widest text-right hidden sm:table-cell">CPU Load</th>
+            <th className="px-6 py-4 text-[10px] font-bold text-text-muted uppercase tracking-widest text-right">Actions</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-50">
+        <tbody className="divide-y divide-border-light/50">
           {profiles.map((vps) => (
             <tr 
               key={vps.id} 
               onClick={() => onNavigate(vps.id)}
-              className="hover:bg-slate-50/80 cursor-pointer transition-colors group"
+              className="hover:bg-bg-tertiary/30 cursor-pointer transition-colors group"
             >
               <td className="px-6 py-5">
                 <div className="flex items-center space-x-4">
-                  <div className={`p-2.5 rounded-xl ${vps.isConnected ? 'icon-grad-blue text-white shadow-md' : 'bg-slate-50 text-slate-400'}`}>
+                  <div className={`p-2.5 rounded-xl ${vps.isConnected ? 'icon-grad-blue text-white shadow-md' : 'bg-bg-tertiary text-text-muted'}`}>
                     <Server size={18} />
                   </div>
-                  <span className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{vps.name}</span>
+                  <span className="text-sm font-bold text-text-primary group-hover:text-blue-500 transition-colors uppercase tracking-tight">{vps.name}</span>
                 </div>
               </td>
               <td className="px-6 py-5">
@@ -70,23 +70,23 @@ const VpsListView: React.FC<VpsListViewProps> = ({ profiles, specs, fetchingSpec
                   </div>
                 )}
               </td>
-              <td className="px-6 py-5 text-sm font-bold text-slate-500 tracking-tight hidden md:table-cell">
+              <td className="px-6 py-5 text-sm font-bold text-text-secondary tracking-tight hidden md:table-cell">
                 {vps.region || (vps.isConnected ? (specs[vps.id]?.region || 'DETECTING...') : '—')}
               </td>
-              <td className="px-6 py-5 text-sm font-mono text-slate-400 hidden lg:table-cell">{vps.host}</td>
+              <td className="px-6 py-5 text-sm font-mono text-text-muted hidden lg:table-cell">{vps.host}</td>
               <td className="px-6 py-5 text-right w-48 hidden sm:table-cell">
                 <div className="flex items-center justify-end space-x-3">
-                  <div className="flex-1 max-w-[100px] h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="flex-1 max-w-[100px] h-1.5 bg-bg-tertiary rounded-full overflow-hidden">
                     {fetchingSpecs.has(vps.id) ? (
                       <Skeleton className="h-full w-full" />
                     ) : (
                       <div 
-                        className={`h-full rounded-full transition-all duration-1000 ${vps.isConnected ? 'bg-blue-600' : 'bg-slate-300'}`}
+                        className={`h-full rounded-full transition-all duration-1000 ${vps.isConnected ? 'bg-blue-600' : 'bg-border-light'}`}
                         style={{ width: `${vps.isConnected ? (specs[vps.id]?.cpuLoad || 0) : 0}%` }}
                       />
                     )}
                   </div>
-                  <span className="text-xs font-bold text-slate-900 w-8">
+                  <span className="text-xs font-bold text-text-primary w-8">
                     {fetchingSpecs.has(vps.id) ? <Skeleton className="h-3 w-6" /> : (vps.isConnected ? `${specs[vps.id]?.cpuLoad || 0}%` : '0%')}
                   </span>
                 </div>
@@ -103,7 +103,7 @@ const VpsListView: React.FC<VpsListViewProps> = ({ profiles, specs, fetchingSpec
                 ) : (
                   <button 
                     onClick={(e) => onDisconnect(vps.id, e)}
-                    className="px-4 py-1.5 bg-slate-100 hover:bg-red-50 hover:text-red-500 text-slate-500 text-[10px] font-black rounded-lg transition-all active:scale-95 uppercase tracking-widest"
+                    className="px-4 py-1.5 bg-bg-tertiary hover:bg-red-500/10 hover:text-red-500 text-text-muted text-[10px] font-black rounded-lg transition-all active:scale-95 uppercase tracking-widest"
                   >
                     Disconnect
                   </button>
@@ -115,12 +115,12 @@ const VpsListView: React.FC<VpsListViewProps> = ({ profiles, specs, fetchingSpec
       </table>
       {profiles.length === 0 && (
         <div className="py-20 text-center">
-          <Server size={48} className="mx-auto text-slate-200 mb-4" />
-          <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">No instances detected</p>
+          <Server size={48} className="mx-auto text-border-light mb-4" />
+          <p className="text-sm font-bold text-text-muted uppercase tracking-widest">No instances detected</p>
         </div>
       )}
-      <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-100">
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Showing {profiles.length} of {profiles.length} Instances</p>
+      <div className="px-6 py-4 bg-bg-tertiary/30 border-t border-border-light">
+        <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Showing {profiles.length} of {profiles.length} Instances</p>
       </div>
     </div>
   );

@@ -540,7 +540,7 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
               </div>
             </div>
             
-            <div ref={logBodyRef} className="flex-1 bg-black p-8 overflow-auto custom-scrollbar font-mono text-xs leading-relaxed text-slate-300 selection:bg-blue-500/30">
+            <div ref={logBodyRef} className="flex-1 bg-black p-8 overflow-auto custom-scrollbar font-mono text-xs leading-relaxed text-text-secondary selection:bg-blue-500/30">
                {logLoading ? (
                  <div className="h-full flex flex-col items-center justify-center space-y-4">
                    <Loader2 size={40} className="text-blue-500 animate-spin opacity-50" />

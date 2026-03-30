@@ -36,22 +36,22 @@ const VpsGridView: React.FC<VpsGridViewProps> = ({ profiles, specs, fetchingSpec
         <div 
           key={vps.id}
           onClick={() => onNavigate(vps.id)}
-          className="bg-white p-6 rounded-[24px] border border-slate-200 shadow-sm premium-card hover:shadow-xl transition-all cursor-pointer group"
+          className="bg-bg-secondary p-6 rounded-[24px] border border-border-light shadow-sm premium-card hover:shadow-xl transition-all cursor-pointer group"
         >
           <div className="flex items-start justify-between mb-6">
-            <div className={`p-4 rounded-2xl ${vps.isConnected ? 'icon-grad-blue text-white shadow-lg shadow-blue-500/30' : 'bg-slate-50 text-slate-400'}`}>
+            <div className={`p-4 rounded-2xl ${vps.isConnected ? 'icon-grad-blue text-white shadow-lg shadow-blue-500/30' : 'bg-bg-tertiary text-text-muted'}`}>
               <Server size={24} />
             </div>
             <button 
               onClick={(e) => onDelete(vps.id, vps.name, e)}
-              className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+              className="p-2 text-text-muted hover:text-red-500 transition-colors"
             >
               <Trash2 size={18} />
             </button>
           </div>
           <div>
-            <h3 className="text-lg font-black text-slate-900 mb-1 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{vps.name}</h3>
-            <p className="text-xs font-mono text-slate-400 mb-4">{vps.username}@{vps.host}</p>
+            <h3 className="text-lg font-black text-text-primary mb-1 group-hover:text-blue-500 transition-colors uppercase tracking-tight">{vps.name}</h3>
+            <p className="text-xs font-mono text-text-muted mb-4">{vps.username}@{vps.host}</p>
             
             <div className="flex items-center justify-between">
               <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${vps.isConnected ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
@@ -65,7 +65,7 @@ const VpsGridView: React.FC<VpsGridViewProps> = ({ profiles, specs, fetchingSpec
                     {fetchingSpecs.has(vps.id) ? (
                       <Skeleton className="h-3 w-8" />
                     ) : (
-                      <span className="text-xs font-bold text-slate-900">{specs[vps.id]?.cpuLoad || 0}%</span>
+                      <span className="text-xs font-bold text-text-primary">{specs[vps.id]?.cpuLoad || 0}%</span>
                     )}
                   </div>
                 )}
@@ -80,7 +80,7 @@ const VpsGridView: React.FC<VpsGridViewProps> = ({ profiles, specs, fetchingSpec
                 ) : (
                   <button 
                     onClick={(e) => onDisconnect(vps.id, e)}
-                    className="p-2 bg-slate-100 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all active:scale-95"
+                    className="p-2 bg-bg-tertiary text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all active:scale-95"
                   >
                     <PowerOff size={16} />
                   </button>

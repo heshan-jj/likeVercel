@@ -8,7 +8,7 @@ import prisma from '../utils/prisma';
 import { config } from '../config';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { registerSchema, loginSchema } from '../utils/validators';
-import { recordRegistration } from '../services/analyticsService';
+
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 200 * 1024 * 1024 } });
 
@@ -52,27 +52,7 @@ router.post('/register', async (req: AuthRequest, res: Response): Promise<void> 
       },
     });
 
-    /*
-    // Record registration in central analytics DB (strict — roll back on failure)
-    try {
-      await recordRegistration({
-        email: user.email,
-        name: user.name,
-        registeredAt: user.createdAt.toISOString(),
-      });
-    } catch (analyticsError) {
-      // Analytics write failed — attempt to delete the just-created user to keep both DBs consistent
-      try {
-        await prisma.user.delete({ where: { id: user.id } });
-        console.error('[Auth] Analytics recording failed, registration rolled back:', analyticsError);
-      } catch (rollbackError) {
-        // If rollback also fails, we have an inconsistent state — log critically
-        console.error('[Auth] CRITICAL: Analytics failed AND rollback failed. Manual cleanup required for user:', user.id, { analyticsError, rollbackError });
-      }
-      res.status(502).json({ error: 'Registration failed: could not reach analytics service' });
-      return;
-    }
-    */
+
 
     // Generate tokens
     const { accessToken, refreshToken } = generateTokens(user.id);
@@ -313,21 +293,6 @@ router.get('/backup', authMiddleware, async (_req: AuthRequest, res: Response): 
   }
 });
 
-// GET /api/auth/activity — return recent activity log for the user
-router.get('/activity', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    if (!req.userId) { res.status(401).json({ error: 'Unauthorized' }); return; }
-    const logs = await prisma.activityLog.findMany({
-      where: { userId: req.userId },
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-      select: { id: true, action: true, details: true, createdAt: true },
-    });
-    res.json({ logs });
-  } catch (error) {
-    console.error('[Auth] Activity fetch error:', error);
-    res.status(500).json({ error: 'Failed to fetch activity log' });
-  }
-});
+
 
 export default router;

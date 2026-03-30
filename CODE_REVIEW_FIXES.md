@@ -23,45 +23,6 @@ CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
 
 ---
 
-### 2. `analyticsService.ts` — move validation inside the function
-
-**File:** `backend/src/services/analyticsService.ts`
-
-Throwing at module load time means the backend crashes on startup if `ANALYTICS_API_URL` or `ANALYTICS_API_SECRET` are absent — even while the analytics call is commented out in `auth.ts`. Move the checks inside the exported function so the error only surfaces when the function is actually called.
-
-```ts
-// Before — throws at import time, crashes the process
-if (!ANALYTICS_API_URL) {
-  throw new Error('ANALYTICS_API_URL environment variable is required');
-}
-
-// After — validate lazily inside the function
-export async function recordRegistration(payload: RegisterPayload): Promise<void> {
-  const url = process.env.ANALYTICS_API_URL;
-  const secret = process.env.ANALYTICS_API_SECRET;
-  if (!url) throw new Error('ANALYTICS_API_URL is required');
-  if (!secret) throw new Error('ANALYTICS_API_SECRET is required');
-
-  const res = await fetch(
-    `${url}/projects/likevercel/collections/registrations/records`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${secret}`,
-      },
-      body: JSON.stringify(payload),
-    }
-  );
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Archive API error ${res.status}: ${body}`);
-  }
-}
-```
-
----
 
 ### 3. `SSHManager.ts` — await `disconnect()` inside `disconnectAll()`
 

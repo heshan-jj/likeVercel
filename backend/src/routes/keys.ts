@@ -5,7 +5,7 @@ import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { encrypt, decrypt } from '../utils/crypto';
 import { sshManager } from '../services/SSHManager';
 import { escapeShellArg } from '../utils/helpers';
-import { logActivity } from '../services/activityService';
+
 
 const router = Router();
 router.use(authMiddleware);
@@ -244,12 +244,7 @@ router.post('/:id/install', async (req: AuthRequest, res: Response): Promise<voi
       sftp.end();
     }
 
-    // Track last used date and log activity
-    await prisma.sshKey.update({
-      where: { id: key.id },
-      data: { lastUsedAt: new Date() },
-    });
-    if (req.userId) await logActivity(req.userId, 'key_install', `Installed SSH key "${key.label}" on ${profile.name}`);
+
 
     res.json({ message: 'Public key installed successfully' });
   } catch (error: any) {

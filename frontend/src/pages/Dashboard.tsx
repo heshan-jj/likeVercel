@@ -266,12 +266,12 @@ const Dashboard: React.FC = () => {
     <div className="p-8 max-w-[1600px] mx-auto space-y-10">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight mb-1">Overview</h1>
-        <p className="text-slate-500 text-sm font-medium">Real-time status of your global infrastructure clusters.</p>
+        <h1 className="text-2xl font-black text-text-primary tracking-tight mb-1">Overview</h1>
+        <p className="text-text-secondary text-sm font-medium">Real-time status of your global infrastructure clusters.</p>
       </div>
 
       {error && (
-        <div className="flex items-center justify-between p-4 bg-red-50 text-red-600 border border-red-100 rounded-2xl animate-in slide-in-from-top-2">
+        <div className="flex items-center justify-between p-4 bg-error-bg text-error border border-error/20 rounded-2xl animate-in slide-in-from-top-2">
           <div className="flex items-center space-x-3 text-sm font-bold">
             <X size={18} />
             <span>{error}</span>
@@ -315,9 +315,9 @@ const Dashboard: React.FC = () => {
       <section className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center space-x-4">
-            <h2 className="text-lg font-black text-slate-900 tracking-tight">Active Instances</h2>
+            <h2 className="text-lg font-black text-text-primary tracking-tight">Active Instances</h2>
             {statusFilter !== 'all' && (
-              <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest rounded-lg flex items-center space-x-1">
+              <span className="px-2.5 py-1 bg-bg-tertiary text-text-secondary text-[10px] font-bold uppercase tracking-widest rounded-lg flex items-center space-x-1">
                 <span>{statusFilter}</span>
                 <button onClick={() => setStatusFilter('all')} className="ml-1 hover:text-red-500"><X size={12} /></button>
               </span>
@@ -326,20 +326,20 @@ const Dashboard: React.FC = () => {
           
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative group">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-blue-500 transition-colors" />
               <input 
                 type="text" 
                 placeholder="Search nodes..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full sm:w-48 bg-white border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-900 outline-none focus:border-blue-500/30 transition-all font-bold placeholder:text-slate-400 shadow-sm"
+                className="w-full sm:w-48 bg-bg-secondary border border-border-light rounded-xl pl-9 pr-4 py-2 text-xs text-text-primary outline-none focus:border-blue-500/30 transition-all font-bold placeholder:text-text-muted shadow-sm"
               />
             </div>
 
             <select 
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'name' | 'status')}
-              className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-500/30 shadow-sm appearance-none cursor-pointer"
+              className="bg-bg-secondary border border-border-light rounded-xl px-3 py-2 text-xs font-bold text-text-secondary outline-none focus:border-blue-500/30 shadow-sm appearance-none cursor-pointer"
             >
               <option value="name">Sort by Name</option>
               <option value="status">Sort by Status</option>
@@ -358,22 +358,22 @@ const Dashboard: React.FC = () => {
 
             <button 
               onClick={handleManualRefresh}
-              className="p-2 text-slate-500 hover:text-blue-600 bg-white border border-slate-200 rounded-xl shadow-sm transition-all text-xs font-bold"
+              className="p-2 text-text-muted hover:text-blue-500 bg-bg-secondary border border-border-light rounded-xl shadow-sm transition-all text-xs font-bold"
               title="Refresh servers"
             >
               <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
             </button>
 
-            <div className="flex bg-slate-100 p-1 rounded-xl">
+            <div className="flex bg-bg-tertiary p-1 rounded-xl">
               <button 
                 onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}
+                className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-bg-secondary shadow-sm text-blue-500' : 'text-text-muted'}`}
               >
                 <LayoutGrid size={18} />
               </button>
               <button 
                 onClick={() => setViewMode('list')}
-                className={`p-1.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}
+                className={`p-1.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-bg-secondary shadow-sm text-blue-500' : 'text-text-muted'}`}
               >
                 <List size={18} />
               </button>
@@ -382,8 +382,8 @@ const Dashboard: React.FC = () => {
         </div>
 
         {filteredProfiles.length === 0 ? (
-          <div className="p-12 text-center bg-white border border-slate-200 border-dashed rounded-[32px]">
-             <p className="text-slate-400 font-bold tracking-widest uppercase text-xs">No servers found</p>
+          <div className="p-12 text-center bg-bg-secondary border border-border-light border-dashed rounded-[32px]">
+             <p className="text-text-muted font-bold tracking-widest uppercase text-xs">No servers found</p>
           </div>
         ) : viewMode === 'list' ? (
           <VpsListView 
