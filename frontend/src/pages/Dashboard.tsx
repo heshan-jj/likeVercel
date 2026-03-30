@@ -27,6 +27,7 @@ interface ServerSpecs {
   ram: string;
   disk: string;
   cpuLoad?: number;
+  ramLoad?: number;
   region?: string;
 }
 
@@ -95,11 +96,11 @@ const Dashboard: React.FC = () => {
         const { data: usageData } = await api.get(`/vps/${id}/usage`);
         setSpecs(prev => ({ 
           ...prev, 
-          [id]: { ...specsData, cpuLoad: usageData.cpu } 
+          [id]: { ...specsData, cpuLoad: usageData.cpu, ramLoad: usageData.ram } 
         }));
       } catch {
         // Fallback if usage fails but specs worked
-        setSpecs(prev => ({ ...prev, [id]: { ...specsData, cpuLoad: 0 } }));
+        setSpecs(prev => ({ ...prev, [id]: { ...specsData, cpuLoad: 0, ramLoad: 0 } }));
       }
     } catch (err: unknown) {
       console.error('Failed to fetch node specs', err);
