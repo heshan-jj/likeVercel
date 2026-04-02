@@ -147,8 +147,26 @@ router.post('/:id/processes/start', async (req: AuthRequest, res: Response): Pro
     } else if (fileList.includes('package.json')) {
       processName = data.processName || `node-${port}`;
       const escapedProcessName = escapeShellArg(processName);
-      startCommand = `cd ${escapedPath} && npm install && PORT=${port} pm2 start npm --name ${escapedProcessName} -- start`;
-      projectType = 'node';
+
+      // Detect frameworks that need a build step
+      const hasVite = fileList.some(f => f.startsWith('vite.config'));
+      const hasNext = fileList.some(f => f.startsWith('next.config'));
+      const hasNuxt = fileList.some(f => f.startsWith('nuxt.config'));
+
+      if ((hasVite || hasNuxt) && !data.command) {
+        // Build then Serve static
+        startCommand = `cd ${escapedPath} && npm install && npm run build && pm2 serve dist ${port} --name ${escapedProcessName} --spa`;
+        projectType = 'frontend';
+      } else if (hasNext && !data.command) {
+        // Next.js (build and start)
+        const buildCmd = `npm run build`;
+        startCommand = `cd ${escapedPath} && npm install && ${buildCmd} && PORT=${port} pm2 start npm --name ${escapedProcessName} -- start`;
+        projectType = 'nextjs';
+      } else {
+        // Generic Node — attempt build then start
+        startCommand = `cd ${escapedPath} && npm install && (npm run build || true) && PORT=${port} pm2 start npm --name ${escapedProcessName} -- start`;
+        projectType = 'node';
+      }
     } else if (fileList.includes('requirements.txt')) {
       processName = data.processName || `python-${port}`;
       const escapedProcessName = escapeShellArg(processName);
