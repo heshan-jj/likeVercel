@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import Login from './pages/Login';
-import Register from './pages/Register';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import Unlock from './pages/Unlock';
+import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
 import VpsDetail from './pages/VpsDetail';
 import Settings from './pages/Settings';
@@ -16,7 +16,7 @@ import { VpsProvider } from './context/VpsContext';
 import { KeyProvider } from './context/KeyContext';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, isSetup } = useAuth();
   
   if (loading) return (
     <div className="h-screen w-full flex items-center justify-center bg-bg-primary text-text-primary font-bold uppercase tracking-widest text-xs">
@@ -24,15 +24,20 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     </div>
   );
   
+  if (!isSetup) {
+    return <Navigate to="/onboarding" replace />;
+  }
+  
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/unlock" replace />;
   }
   
   return <Layout>{children}</Layout>;
 };
 
 const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, isSetup } = useAuth();
+  const location = useLocation();
   
   if (loading) return (
     <div className="h-screen w-full flex items-center justify-center bg-bg-primary text-text-primary font-bold uppercase tracking-widest text-xs">
@@ -40,8 +45,13 @@ const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     </div>
   );
   
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (!isSetup && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />;
+  }
   
+  if (isSetup && user) {
+    return <Navigate to="/dashboard" replace />;
+  }
   
   return <>{children}</>;
 };
@@ -76,8 +86,8 @@ const App: React.FC = () => {
           <VpsProvider>
             <KeyProvider>
               <Routes>
-                <Route path="/login" element={<AuthRoute><Login /></AuthRoute>} />
-                <Route path="/register" element={<AuthRoute><Register /></AuthRoute>} />
+                <Route path="/unlock" element={<AuthRoute><Unlock /></AuthRoute>} />
+                <Route path="/onboarding" element={<AuthRoute><Onboarding /></AuthRoute>} />
                 <Route 
                   path="/dashboard" 
                   element={
@@ -127,6 +137,9 @@ const App: React.FC = () => {
                   } 
                 />
                 <Route path="/" element={<Navigate to="/dashboard" />} />
+                {/* Fallback for old routes */}
+                <Route path="/login" element={<Navigate to="/unlock" replace />} />
+                <Route path="/register" element={<Navigate to="/onboarding" replace />} />
               </Routes>
             </KeyProvider>
           </VpsProvider>

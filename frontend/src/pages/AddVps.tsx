@@ -5,6 +5,7 @@ import api from '../utils/api';
 import { useToast } from '../context/ToastContext';
 import { useVps } from '../context/VpsContext';
 import { useKeys } from '../context/KeyContext';
+import type { SshKey } from '../context/KeyContext';
 
 const AddVps: React.FC = () => {
   const navigate = useNavigate();

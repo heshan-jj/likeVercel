@@ -13,6 +13,7 @@
   --text-muted: #94a3b8;
   
   --accent-primary: #3b82f6;
+  --accent-primary-rgb: 59, 130, 246;
   --accent-hover: #2563eb;
   
   --success: #10b981;
@@ -25,6 +26,7 @@
   /* Borders - Dark Mode Aesthetic but for light theme */
   --border-color: #e2e8f0;
   --border-light: rgba(0, 0, 0, 0.1);
+  --border-muted: rgba(0, 0, 0, 0.05);
   
   /* Spacing */
   --space-1: 0.25rem;

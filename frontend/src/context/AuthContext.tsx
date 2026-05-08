@@ -4,16 +4,15 @@ import api from '../utils/api';
 
 interface User {
   id: string;
-  email: string;
-  name: string;
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  isSetup: boolean;
   login: (token: string, refreshToken: string, userData: User) => void;
-  updateUser: (userData: Partial<User>) => void;
   logout: () => void;
+  checkSetupStatus: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,14 +20,23 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSetup, setIsSetup] = useState(false);
+
+  const checkSetupStatus = async () => {
+    try {
+      const res = await api.get('/auth/status');
+      setIsSetup(res.data.isSetup);
+    } catch (error) {
+      console.error('Failed to check setup status', error);
+    }
+  };
 
   useEffect(() => {
-    const checkAuth = async () => {
-
+    const initAuth = async () => {
+      await checkSetupStatus();
       const token = localStorage.getItem('accessToken');
       if (token) {
         try {
-          // Check token expiry locally before making API call
           const payloadParts = token.split('.');
           if (payloadParts.length === 3) {
             const payload = JSON.parse(atob(payloadParts[1]));
@@ -48,17 +56,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setLoading(false);
     };
 
-    checkAuth();
+    initAuth();
   }, []);
 
   const login = (token: string, refreshToken: string, userData: User) => {
     localStorage.setItem('accessToken', token);
     localStorage.setItem('refreshToken', refreshToken);
     setUser(userData);
-  };
-
-  const updateUser = (userData: Partial<User>) => {
-    setUser((prev) => (prev ? { ...prev, ...userData } : null));
+    setIsSetup(true);
   };
 
   const logout = async () => {
@@ -76,7 +81,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, updateUser, logout }}>
+    <AuthContext.Provider value={{ user, loading, isSetup, login, logout, checkSetupStatus }}>
       {children}
     </AuthContext.Provider>
   );

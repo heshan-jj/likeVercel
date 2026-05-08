@@ -4,16 +4,24 @@ import jwt from 'jsonwebtoken';
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
+import rateLimit from 'express-rate-limit';
 import prisma from '../utils/prisma';
 import { config } from '../config';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
-import { registerSchema, loginSchema } from '../utils/validators';
+import { setupSchema, unlockSchema } from '../utils/validators';
 
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
 const router = Router();
 const SALT_ROUNDS = 12;
+
+const bruteForceLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 5, // Limit each IP to 5 unlock attempts per windowMs
+  message: { error: 'Too many failed attempts. Please try again in 10 minutes.' },
+  skipSuccessfulRequests: true,
+});
 
 async function generateTokens(userId: string) {
   const { secret, refreshSecret, expiresIn, refreshExpiresIn } = config.jwt;
@@ -53,43 +61,45 @@ function parseDuration(duration: string): number {
   }
 }
 
-
-// POST /api/auth/register
-router.post('/register', async (req: AuthRequest, res: Response): Promise<void> => {
+// GET /api/auth/status
+router.get('/status', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const data = registerSchema.parse(req.body);
+    const user = await prisma.user.findFirst();
+    res.json({
+      isSetup: !!user && user.onboardingCompleted,
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to check auth status' });
+  }
+});
 
-    // Enforce single-user policy: block registration if a user already exists
+// POST /api/auth/setup
+router.post('/setup', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const data = setupSchema.parse(req.body);
+
     const userCount = await prisma.user.count();
     if (userCount > 0) {
-      res.status(403).json({ error: 'Registration is closed. Only one administrator is allowed.' });
-      return;
-    }
-    const existingUser = await prisma.user.findUnique({ where: { email: data.email } });
-    if (existingUser) {
-      res.status(400).json({ error: 'User with this email already exists' });
+      res.status(403).json({ error: 'Setup already completed.' });
       return;
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
+    // Hash PIN
+    const hashedPin = await bcrypt.hash(data.pin, SALT_ROUNDS);
 
-    // Create user in local DB
+    // Create admin user
     const user = await prisma.user.create({
       data: {
-        email: data.email,
-        password: hashedPassword,
-        name: data.name,
+        hashedPin,
+        onboardingCompleted: true,
       },
     });
-
-
 
     // Generate tokens
     const { accessToken, refreshToken } = await generateTokens(user.id);
 
     res.status(201).json({
-      user: { id: user.id, email: user.email, name: user.name },
+      user: { id: user.id },
       accessToken,
       refreshToken,
     });
@@ -98,32 +108,32 @@ router.post('/register', async (req: AuthRequest, res: Response): Promise<void> 
       res.status(400).json({ error: 'Validation error', details: error.errors });
       return;
     }
-    console.error('[Auth] Register error:', error);
-    res.status(500).json({ error: 'Registration failed' });
+    console.error('[Auth] Setup error:', error);
+    res.status(500).json({ error: `Setup failed: ${error.message || 'Unknown error'}` });
   }
 });
 
-// POST /api/auth/login
-router.post('/login', async (req: AuthRequest, res: Response): Promise<void> => {
+// POST /api/auth/unlock
+router.post('/unlock', bruteForceLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const data = loginSchema.parse(req.body);
+    const data = unlockSchema.parse(req.body);
 
-    const user = await prisma.user.findUnique({ where: { email: data.email } });
+    const user = await prisma.user.findFirst();
     if (!user) {
-      res.status(401).json({ error: 'Invalid credentials' });
+      res.status(404).json({ error: 'Setup not completed' });
       return;
     }
 
-    const validPassword = await bcrypt.compare(data.password, user.password);
-    if (!validPassword) {
-      res.status(401).json({ error: 'Invalid credentials' });
+    const validPin = await bcrypt.compare(data.pin, user.hashedPin);
+    if (!validPin) {
+      res.status(401).json({ error: 'Invalid PIN' });
       return;
     }
 
     const { accessToken, refreshToken } = await generateTokens(user.id);
 
     res.json({
-      user: { id: user.id, email: user.email, name: user.name },
+      user: { id: user.id },
       accessToken,
       refreshToken,
     });
@@ -132,8 +142,8 @@ router.post('/login', async (req: AuthRequest, res: Response): Promise<void> => 
       res.status(400).json({ error: 'Validation error', details: error.errors });
       return;
     }
-    console.error('[Auth] Login error:', error);
-    res.status(500).json({ error: 'Login failed' });
+    console.error('[Auth] Unlock error:', error);
+    res.status(500).json({ error: 'Unlock failed' });
   }
 });
 
@@ -206,7 +216,7 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response): Promi
 
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { id: true, email: true, name: true, createdAt: true },
+      select: { id: true, createdAt: true },
     });
 
     if (!user) {
@@ -220,33 +230,12 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response): Promi
   }
 });
 
-// PUT /api/auth/profile
-router.put('/profile', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+// PUT /api/auth/pin - Change PIN
+router.put('/pin', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { name } = req.body;
-    if (!name) {
-      res.status(400).json({ error: 'Name is required' });
-      return;
-    }
-
-    const user = await prisma.user.update({
-      where: { id: req.userId },
-      data: { name },
-      select: { id: true, email: true, name: true }
-    });
-
-    res.json({ user });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to update profile' });
-  }
-});
-
-// PUT /api/auth/password
-router.put('/password', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const { currentPassword, newPassword } = req.body;
-    if (!currentPassword || !newPassword) {
-      res.status(400).json({ error: 'Both current and new passwords are required' });
+    const { currentPin, newPin } = req.body;
+    if (!currentPin || !newPin) {
+      res.status(400).json({ error: 'Both current and new PINs are required' });
       return;
     }
 
@@ -256,53 +245,31 @@ router.put('/password', authMiddleware, async (req: AuthRequest, res: Response):
       return;
     }
 
-    const validPassword = await bcrypt.compare(currentPassword, user.password);
-    if (!validPassword) {
-      res.status(401).json({ error: 'Current password is incorrect' });
+    const validPin = await bcrypt.compare(currentPin, user.hashedPin);
+    if (!validPin) {
+      res.status(401).json({ error: 'Current PIN is incorrect' });
       return;
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    const hashedPin = await bcrypt.hash(newPin, SALT_ROUNDS);
     await prisma.user.update({
       where: { id: req.userId },
-      data: { password: hashedPassword }
+      data: { hashedPin }
     });
 
-    // Revoke all refresh tokens on password change
+    // Revoke all refresh tokens on PIN change
     await prisma.refreshToken.updateMany({
       where: { userId: req.userId, revoked: false },
       data: { revoked: true },
     });
 
-    res.json({ message: 'Password updated successfully' });
+    res.json({ message: 'PIN updated successfully' });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update password' });
+    res.status(500).json({ error: 'Failed to update PIN' });
   }
 });
 
-// DELETE /api/auth/profile
-router.delete('/profile', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    if (!req.userId) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
-
-    const userId = req.userId;
-    const vpsProfiles = await prisma.vpsProfile.findMany({ where: { userId } });
-    for (const profile of vpsProfiles) {
-      await prisma.deployment.deleteMany({ where: { vpsId: profile.id } });
-    }
-    await prisma.vpsProfile.deleteMany({ where: { userId } });
-    await prisma.user.delete({ where: { id: userId } });
-
-    res.json({ message: 'User profile and all associated data deleted' });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to delete profile' });
-  }
-});
-
-// POST /api/auth/restore — upload a backup SQLite file to replace dev.db
+// POST /api/auth/restore
 router.post('/restore', authMiddleware, upload.single('backup'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const file = (req as any).file as Express.Multer.File | undefined;
@@ -311,7 +278,6 @@ router.post('/restore', authMiddleware, upload.single('backup'), async (req: Aut
       return;
     }
 
-    // Validate SQLite3 magic bytes: "SQLite format 3\0"
     const SQLITE_MAGIC = Buffer.from([0x53, 0x51, 0x4c, 0x69, 0x74, 0x65, 0x20, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x20, 0x33, 0x00]);
     if (file.buffer.length < 16 || !file.buffer.slice(0, 16).equals(SQLITE_MAGIC)) {
       res.status(400).json({ error: 'File does not appear to be a valid SQLite 3 database' });
@@ -321,13 +287,11 @@ router.post('/restore', authMiddleware, upload.single('backup'), async (req: Aut
     const dbPath = path.resolve(__dirname, '../../prisma/dev.db');
     const backupPath = `${dbPath}.pre-restore-${Date.now()}`;
 
-    // Keep a safety copy of the current db, then replace
     if (fs.existsSync(dbPath)) fs.copyFileSync(dbPath, backupPath);
     try {
       await prisma.$disconnect();
       fs.writeFileSync(dbPath, file.buffer);
 
-      // Run pending migrations to ensure schema compatibility
       const { execSync } = require('child_process');
       const migrateOutput = execSync('npx prisma migrate deploy', {
         cwd: path.resolve(__dirname, '../..'),
@@ -336,12 +300,9 @@ router.post('/restore', authMiddleware, upload.single('backup'), async (req: Aut
       });
       console.log('[Auth] Migration output:', migrateOutput);
 
-      // Reconnect by accessing prisma lazily (it reconnects on next query)
       await prisma.$connect();
-      // Clean up safety backup on success
       try { if (fs.existsSync(backupPath)) fs.unlinkSync(backupPath); } catch {}
     } catch (writeErr) {
-      // Try to roll back
       if (fs.existsSync(backupPath)) {
         try { fs.copyFileSync(backupPath, dbPath); await prisma.$connect(); } catch {}
       }
@@ -349,7 +310,7 @@ router.post('/restore', authMiddleware, upload.single('backup'), async (req: Aut
     }
 
     res.json({
-      message: 'Database restored and migrations applied successfully. Restart the server for changes to take effect.',
+      message: 'Database restored successfully. Restart the server for changes to take effect.',
       requiresRestart: true,
     });
   } catch (error: any) {
@@ -358,17 +319,15 @@ router.post('/restore', authMiddleware, upload.single('backup'), async (req: Aut
   }
 });
 
-// GET /api/auth/backup — stream a copy of the SQLite database
+// GET /api/auth/backup
 router.get('/backup', authMiddleware, async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
-    // Prisma stores the db relative to the schema file (prisma/dev.db)
     const dbPath = path.resolve(__dirname, '../../prisma/dev.db');
     if (!fs.existsSync(dbPath)) {
       res.status(404).json({ error: 'Database file not found' });
       return;
     }
 
-    // WAL checkpoint to ensure consistency before backup
     try {
       await prisma.$executeRawUnsafe('PRAGMA wal_checkpoint(FULL)');
     } catch (checkpointErr) {
@@ -384,7 +343,5 @@ router.get('/backup', authMiddleware, async (_req: AuthRequest, res: Response): 
     res.status(500).json({ error: 'Failed to download backup' });
   }
 });
-
-
 
 export default router;

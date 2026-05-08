@@ -23,9 +23,9 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     
-    // If error is 401 and it's not a retry request and NOT a login request
-    const isLoginRequest = originalRequest.url?.includes('/auth/login');
-    if (error.response?.status === 401 && !isLoginRequest && !originalRequest._retry) {
+    // If error is 401 and it's not a retry request and NOT an unlock request
+    const isUnlockRequest = originalRequest.url?.includes('/auth/unlock');
+    if (error.response?.status === 401 && !isUnlockRequest && !originalRequest._retry) {
       originalRequest._retry = true;
       
       const refreshToken = localStorage.getItem('refreshToken');
@@ -43,13 +43,13 @@ api.interceptors.response.use(
           // Refresh failed, user needs to login again
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
-          if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
-            window.location.href = '/login';
+          if (window.location.pathname !== '/unlock' && window.location.pathname !== '/onboarding') {
+            window.location.href = '/unlock';
           }
         }
       } else {
-        if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
-          window.location.href = '/login';
+        if (window.location.pathname !== '/unlock' && window.location.pathname !== '/onboarding') {
+          window.location.href = '/unlock';
         }
       }
     }

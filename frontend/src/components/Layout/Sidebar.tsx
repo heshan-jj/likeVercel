@@ -108,8 +108,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             <User size={18} />
           </div>
           <div className="flex-1 min-w-0 text-left">
-            <p className="text-xs font-bold text-text-primary truncate">{user?.name || 'Admin'}</p>
-            <p className="text-[10px] text-text-muted font-medium">Admin Access</p>
+            <p className="text-xs font-bold text-text-primary truncate">Authorized Operator</p>
+            <p className="text-[10px] text-text-muted font-medium">Session ID: {user?.id.slice(0, 8)}</p>
           </div>
         </div>
       </div>
