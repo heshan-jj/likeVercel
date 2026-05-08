@@ -63,10 +63,21 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     fetchProfiles();
+    
+    // Poll for profiles every 15 seconds to keep list in sync
+    const profileInterval = setInterval(() => {
+      fetchProfiles(false);
+    }, 15_000);
+
+    // Poll for specs every 30 seconds
     const specInterval = setInterval(() => {
       profilesRef.current.filter(p => p.isConnected).forEach(p => fetchSpecs(p.id));
     }, 30_000);
-    return () => clearInterval(specInterval);
+
+    return () => {
+      clearInterval(profileInterval);
+      clearInterval(specInterval);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -79,16 +90,21 @@ const Dashboard: React.FC = () => {
     localStorage.setItem('dashboardViewMode', viewMode);
   }, [viewMode]);
 
-  const fetchProfiles = async () => {
+  const fetchProfiles = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
       const { data } = await api.get('/vps');
       setProfiles(data.profiles);
       profilesRef.current = data.profiles;
+      
+      // Fetch specs for newly connected nodes
       data.profiles.forEach((p: VPSProfile) => {
         if (p.isConnected) fetchSpecs(p.id);
       });
-    } catch {
-      setError('Failed to load infrastructure nodes');
+      setError('');
+    } catch (err: unknown) {
+      console.error('[Dashboard] Fetch failed:', err);
+      setError('Failed to synchronize infrastructure nodes');
     } finally {
       setLoading(false);
       setRefreshing(false);

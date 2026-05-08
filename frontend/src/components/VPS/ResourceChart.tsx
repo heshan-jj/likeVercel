@@ -27,13 +27,16 @@ const ResourceChart: React.FC<ResourceChartProps> = ({ vpsId, isConnected, compa
   }, [vpsId]);
 
   useEffect(() => {
-    if (!isConnected) { 
-      setTimeout(() => setLatest(null), 0); 
-      return; 
+    if (!isConnected) {
+      setTimeout(() => setLatest(null), 0);
+      return;
     }
-    fetchUsage();
+    const initialFetch = setTimeout(() => fetchUsage(), 0);
     intervalRef.current = setInterval(fetchUsage, POLL_MS);
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+    return () => {
+      clearTimeout(initialFetch);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, [isConnected, fetchUsage]);
 
   if (!isConnected) return null;

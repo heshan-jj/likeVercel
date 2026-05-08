@@ -4,6 +4,7 @@ dist/
 *.db-journal
 .DS_Store
 Thumbs.db
+.env
 backend/.env
 frontend/.env
 build_error.log
@@ -11,3 +12,6 @@ fixes.md
 features.md
 release/export_image.bat
 release/run_portable.bat
+eslint_report.json
+tsc_output.txt
+test.ps1

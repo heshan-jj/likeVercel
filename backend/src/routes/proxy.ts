@@ -151,6 +151,10 @@ router.post('/:id/proxy/adopt', async (req: AuthRequest, res: Response): Promise
     }
 
     const newFileName = `vdp-${domain.replace(/\./g, '-')}`;
+    if (!/^[a-zA-Z0-9-]+$/.test(newFileName)) {
+      res.status(400).json({ error: 'Invalid domain-derived filename' });
+      return;
+    }
 
     // 1. Check if it was enabled
     let wasEnabled = false;
@@ -196,6 +200,10 @@ router.post('/:id/proxy', async (req: AuthRequest, res: Response): Promise<void>
     }
 
     const fileName = `vdp-${domain.replace(/\./g, '-')}`;
+    if (!/^[a-zA-Z0-9-]+$/.test(fileName)) {
+      res.status(400).json({ error: 'Invalid domain-derived filename' });
+      return;
+    }
     const config = generateNginxConfig(domain, port, false); // Always start without SSL
 
     // Write config using base64 to avoid shell escaping issues with $variables
@@ -276,6 +284,10 @@ router.delete('/:id/proxy/:domain', async (req: AuthRequest, res: Response): Pro
       return;
     }
     const fileName = `vdp-${domain.replace(/\./g, '-')}`;
+    if (!/^[a-zA-Z0-9-]+$/.test(fileName)) {
+      res.status(400).json({ error: 'Invalid domain' });
+      return;
+    }
 
     // Remove symlink and config
     await sshManager.executeCommand(

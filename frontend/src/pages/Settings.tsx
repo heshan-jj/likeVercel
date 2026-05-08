@@ -43,7 +43,7 @@ const Settings: React.FC = () => {
 
   /* ── Handlers ── */
   const handleChangeTheme = (t: Theme) => {
-    setTheme(t as any); // using 'any' to bypass context type limitation if needed, but Context now supports 'system'
+    setTheme(t);
   };
 
   const handleChangePassword = async () => {
@@ -108,10 +108,11 @@ const Settings: React.FC = () => {
       });
       setFeedback({ type: 'success', message: 'Database restored successfully! Reloading...' });
       setTimeout(() => window.location.reload(), 2000);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { error?: string } } };
       setFeedback({
         type: 'error',
-        message: err.response?.data?.error || 'Failed to restore database. Ensure it is a valid SQLite file.'
+        message: e.response?.data?.error || 'Failed to restore database. Ensure it is a valid SQLite file.'
       });
     } finally {
       setRestoreLoading(false);

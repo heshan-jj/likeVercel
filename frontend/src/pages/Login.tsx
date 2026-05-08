@@ -9,7 +9,7 @@ const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [errorDetails, setErrorDetails] = useState<any[] | null>(null);
+  const [errorDetails, setErrorDetails] = useState<Array<{ message?: string; code?: string }> | null>(null);
   const [loading, setLoading] = useState(false);
   
   const { login } = useAuth();
@@ -30,7 +30,7 @@ const Login: React.FC = () => {
       login(data.accessToken, data.refreshToken, data.user);
       navigate('/dashboard');
     } catch (err: unknown) {
-      const axiosError = err as { response?: { data?: { error?: string; details?: any[] } } };
+      const axiosError = err as { response?: { data?: { error?: string; details?: Array<{ message?: string; code?: string }> } } };
       setError(axiosError.response?.data?.error || 'Failed to login. Please check your credentials.');
       setErrorDetails(axiosError.response?.data?.details || null);
     } finally {
@@ -51,7 +51,7 @@ const Login: React.FC = () => {
           </div>
           {errorDetails && (
             <ul className="list-disc pl-8 opacity-80 font-medium space-y-1">
-              {errorDetails.map((d: any, i: number) => (
+              {errorDetails.map((d: { message?: string; code?: string }, i: number) => (
                 <li key={i}>{d.message || d.code || 'Unknown validation error'}</li>
               ))}
             </ul>

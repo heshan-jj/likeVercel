@@ -82,7 +82,7 @@ const EditVps: React.FC = () => {
     setError('');
 
     try {
-      const payload: any = {
+      const payload: Record<string, string | number | undefined> = {
         name: formData.name,
         host: formData.host,
         port: formData.port,

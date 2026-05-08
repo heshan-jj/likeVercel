@@ -10,16 +10,47 @@ import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { registerSchema, loginSchema } from '../utils/validators';
 
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 200 * 1024 * 1024 } });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
 const router = Router();
 const SALT_ROUNDS = 12;
 
-function generateTokens(userId: string) {
+async function generateTokens(userId: string) {
   const { secret, refreshSecret, expiresIn, refreshExpiresIn } = config.jwt;
-  const accessToken = jwt.sign({ userId }, secret, { expiresIn } as jwt.SignOptions);
-  const refreshToken = jwt.sign({ userId }, refreshSecret, { expiresIn: refreshExpiresIn } as jwt.SignOptions);
+
+  const parsedExpiresIn = typeof expiresIn === 'string' ? expiresIn : '15m';
+  const parsedRefreshExpiresIn = typeof refreshExpiresIn === 'string' ? refreshExpiresIn : '7d';
+
+  const accessToken = jwt.sign({ userId }, secret, { expiresIn: parsedExpiresIn } as jwt.SignOptions);
+
+  const refreshToken = jwt.sign({ userId }, refreshSecret, { expiresIn: parsedRefreshExpiresIn } as jwt.SignOptions);
+
+  // Parse refresh token expiry for DB storage
+  const refreshExpiryMs = parseDuration(parsedRefreshExpiresIn);
+  const expiresAt = new Date(Date.now() + refreshExpiryMs);
+
+  await prisma.refreshToken.create({
+    data: {
+      token: refreshToken,
+      userId,
+      expiresAt,
+    },
+  });
+
   return { accessToken, refreshToken };
+}
+
+function parseDuration(duration: string): number {
+  const match = duration.match(/^(\d+)([smhd])$/);
+  if (!match) return 7 * 24 * 60 * 60 * 1000;
+  const value = parseInt(match[1]);
+  switch (match[2]) {
+    case 's': return value * 1000;
+    case 'm': return value * 60 * 1000;
+    case 'h': return value * 60 * 60 * 1000;
+    case 'd': return value * 24 * 60 * 60 * 1000;
+    default: return 7 * 24 * 60 * 60 * 1000;
+  }
 }
 
 
@@ -55,7 +86,7 @@ router.post('/register', async (req: AuthRequest, res: Response): Promise<void> 
 
 
     // Generate tokens
-    const { accessToken, refreshToken } = generateTokens(user.id);
+    const { accessToken, refreshToken } = await generateTokens(user.id);
 
     res.status(201).json({
       user: { id: user.id, email: user.email, name: user.name },
@@ -89,7 +120,7 @@ router.post('/login', async (req: AuthRequest, res: Response): Promise<void> => 
       return;
     }
 
-    const { accessToken, refreshToken } = generateTokens(user.id);
+    const { accessToken, refreshToken } = await generateTokens(user.id);
 
     res.json({
       user: { id: user.id, email: user.email, name: user.name },
@@ -123,11 +154,45 @@ router.post('/refresh', async (req: AuthRequest, res: Response): Promise<void> =
       return;
     }
 
-    const { accessToken } = generateTokens(user.id);
+    // Check if refresh token exists in DB and is not revoked
+    const storedToken = await prisma.refreshToken.findUnique({
+      where: { token: refreshToken },
+    });
+    if (!storedToken || storedToken.revoked) {
+      res.status(401).json({ error: 'Refresh token has been revoked' });
+      return;
+    }
 
-    res.json({ accessToken });
+    // Rotate: revoke old token
+    await prisma.refreshToken.update({
+      where: { id: storedToken.id },
+      data: { revoked: true },
+    });
+
+    const { accessToken: newAccessToken, refreshToken: newRefreshToken } = await generateTokens(user.id);
+
+    res.json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
   } catch (error) {
     res.status(401).json({ error: 'Invalid refresh token' });
+  }
+});
+
+// POST /api/auth/logout
+router.post('/logout', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { refreshToken } = req.body;
+    if (refreshToken) {
+      const stored = await prisma.refreshToken.findUnique({ where: { token: refreshToken } });
+      if (stored) {
+        await prisma.refreshToken.update({
+          where: { id: stored.id },
+          data: { revoked: true },
+        });
+      }
+    }
+    res.json({ message: 'Logged out successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Logout failed' });
   }
 });
 
@@ -203,6 +268,12 @@ router.put('/password', authMiddleware, async (req: AuthRequest, res: Response):
       data: { password: hashedPassword }
     });
 
+    // Revoke all refresh tokens on password change
+    await prisma.refreshToken.updateMany({
+      where: { userId: req.userId, revoked: false },
+      data: { revoked: true },
+    });
+
     res.json({ message: 'Password updated successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update password' });
@@ -255,6 +326,16 @@ router.post('/restore', authMiddleware, upload.single('backup'), async (req: Aut
     try {
       await prisma.$disconnect();
       fs.writeFileSync(dbPath, file.buffer);
+
+      // Run pending migrations to ensure schema compatibility
+      const { execSync } = require('child_process');
+      const migrateOutput = execSync('npx prisma migrate deploy', {
+        cwd: path.resolve(__dirname, '../..'),
+        encoding: 'utf-8',
+        timeout: 30000,
+      });
+      console.log('[Auth] Migration output:', migrateOutput);
+
       // Reconnect by accessing prisma lazily (it reconnects on next query)
       await prisma.$connect();
       // Clean up safety backup on success
@@ -267,7 +348,7 @@ router.post('/restore', authMiddleware, upload.single('backup'), async (req: Aut
       throw writeErr;
     }
 
-    res.json({ message: 'Database restored successfully. Please reload the app.' });
+    res.json({ message: 'Database restored and migrations applied successfully. Please reload the app.' });
   } catch (error: any) {
     console.error('[Auth] Restore error:', error);
     res.status(500).json({ error: `Restore failed: ${error.message}` });
@@ -283,6 +364,14 @@ router.get('/backup', authMiddleware, async (_req: AuthRequest, res: Response): 
       res.status(404).json({ error: 'Database file not found' });
       return;
     }
+
+    // WAL checkpoint to ensure consistency before backup
+    try {
+      await prisma.$executeRawUnsafe('PRAGMA wal_checkpoint(FULL)');
+    } catch (checkpointErr) {
+      console.warn('[Auth] WAL checkpoint warning:', checkpointErr);
+    }
+
     const filename = `likeVercel-backup-${new Date().toISOString().slice(0, 10)}.sqlite`;
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Type', 'application/octet-stream');

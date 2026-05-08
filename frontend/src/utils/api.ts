@@ -39,7 +39,7 @@ api.interceptors.response.use(
           // Store new token and retry
           localStorage.setItem('accessToken', data.accessToken);
           return api(originalRequest);
-        } catch (refreshError) {
+        } catch {
           // Refresh failed, user needs to login again
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');

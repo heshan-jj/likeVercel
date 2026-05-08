@@ -163,6 +163,8 @@ export class SSHManager extends EventEmitter {
     }
 
     return new Promise((resolve, reject) => {
+      let activeStream: ClientChannel | null = null;
+
       const timeout = setTimeout(() => {
         // If we have a stream, try to close it
         if (activeStream) {
@@ -170,8 +172,6 @@ export class SSHManager extends EventEmitter {
         }
         reject(new Error(`Command timed out after ${timeoutMs}ms`));
       }, timeoutMs);
-
-      let activeStream: ClientChannel | null = null;
 
       client.exec(command, (err, stream) => {
         if (err) {
@@ -250,10 +250,12 @@ export class SSHManager extends EventEmitter {
     this.connections.delete(vpsId);
   }
 
-  disconnectAll(): void {
+  async disconnectAll(): Promise<void> {
+    const promises: Promise<void>[] = [];
     for (const [vpsId] of this.connections) {
-      this.disconnect(vpsId);
+      promises.push(this.disconnect(vpsId));
     }
+    await Promise.all(promises);
   }
 }
 
