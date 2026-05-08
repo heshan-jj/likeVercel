@@ -1,6 +1,5 @@
 import React from 'react';
-import { Server, Trash2, Activity, Loader2, Power, PowerOff } from 'lucide-react';
-import Skeleton from '../Skeleton';
+import { Server, Trash2, Loader2, Power, PowerOff } from 'lucide-react';
 
 interface VPSProfile {
   id: string;
@@ -15,6 +14,7 @@ interface VPSProfile {
 
 interface ServerSpecs {
   cpuLoad?: number;
+  ramLoad?: number;
   region?: string;
 }
 
@@ -52,6 +52,34 @@ const VpsGridView: React.FC<VpsGridViewProps> = ({ profiles, specs, fetchingSpec
           <div>
             <h3 className="text-lg font-black text-text-primary mb-1 group-hover:text-blue-500 transition-colors uppercase tracking-tight">{vps.name}</h3>
             <p className="text-xs font-mono text-text-muted mb-4">{vps.username}@{vps.host}</p>
+            <div className="mb-5 space-y-3">
+              {/* CPU Bar */}
+              <div>
+                <div className="flex justify-between text-[10px] font-bold text-text-primary uppercase tracking-widest mb-1.5">
+                  <span>CPU</span>
+                  <span>{fetchingSpecs.has(vps.id) ? '...' : (vps.isConnected ? `${specs[vps.id]?.cpuLoad || 0}%` : '—')}</span>
+                </div>
+                <div className="h-1.5 bg-bg-tertiary rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full rounded-full transition-all duration-1000 ${vps.isConnected ? 'bg-blue-500' : 'bg-border-light'}`}
+                    style={{ width: `${vps.isConnected ? (specs[vps.id]?.cpuLoad || 0) : 0}%` }}
+                  />
+                </div>
+              </div>
+              {/* RAM Bar */}
+              <div>
+                <div className="flex justify-between text-[10px] font-bold text-text-primary uppercase tracking-widest mb-1.5">
+                  <span>RAM</span>
+                  <span>{fetchingSpecs.has(vps.id) ? '...' : (vps.isConnected ? `${specs[vps.id]?.ramLoad || 0}%` : '—')}</span>
+                </div>
+                <div className="h-1.5 bg-bg-tertiary rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full rounded-full transition-all duration-1000 ${vps.isConnected ? 'bg-purple-500' : 'bg-border-light'}`}
+                    style={{ width: `${vps.isConnected ? (specs[vps.id]?.ramLoad || 0) : 0}%` }}
+                  />
+                </div>
+              </div>
+            </div>
             
             <div className="flex items-center justify-between">
               <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${vps.isConnected ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
@@ -59,16 +87,6 @@ const VpsGridView: React.FC<VpsGridViewProps> = ({ profiles, specs, fetchingSpec
                 <span className="text-[10px] font-black uppercase tracking-widest">{vps.isConnected ? 'Live' : 'Offline'}</span>
               </div>
               <div className="flex items-center space-x-2">
-                {vps.isConnected && (
-                  <div className="flex items-center space-x-1.5 mr-2">
-                    <Activity size={14} className="text-blue-600" />
-                    {fetchingSpecs.has(vps.id) ? (
-                      <Skeleton className="h-3 w-8" />
-                    ) : (
-                      <span className="text-xs font-bold text-text-primary">{specs[vps.id]?.cpuLoad || 0}%</span>
-                    )}
-                  </div>
-                )}
                 {!vps.isConnected ? (
                   <button 
                     onClick={(e) => onConnect(vps.id, e)}

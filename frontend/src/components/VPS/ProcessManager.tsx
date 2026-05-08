@@ -16,7 +16,10 @@ import {
   Search,
   Activity,
   Filter,
-  Maximize2
+  Maximize2,
+  SlidersHorizontal,
+  KeyRound,
+  Save
 } from 'lucide-react';
 import api from '../../utils/api';
 import ConfirmModal from '../ConfirmModal';
@@ -47,7 +50,7 @@ interface UnmanagedProcess {
   pm_id?: number;
   port?: number;
   pid?: number;
-  type?: 'pm2' | 'port';
+  type?: 'pm2' | 'port' | 'systemctl';
 }
 
 interface ProcessManagerProps {
@@ -105,6 +108,18 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmAdoptProc, setConfirmAdoptProc] = useState<UnmanagedProcess | null>(null);
+
+  // Env Vars modal state
+  interface EnvModalState {
+    id: string;
+    name: string;
+    path: string;
+    vars: Record<string, string>;
+    loading: boolean;
+    saving: boolean;
+  }
+  const [envModal, setEnvModal] = useState<EnvModalState | null>(null);
 
   const isFetching = useRef(false);
 
@@ -206,8 +221,14 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
     }
   };
 
-  const handleAdopt = async (proc: UnmanagedProcess) => {
-    const actionKey = proc.pm_id ? `adopt-${proc.pm_id}` : `adopt-${proc.port}`;
+  const handleAdopt = (proc: UnmanagedProcess) => {
+    setConfirmAdoptProc(proc);
+  };
+
+  const confirmAdopt = async () => {
+    if (!confirmAdoptProc) return;
+    const proc = confirmAdoptProc;
+    const actionKey = proc.pm_id !== undefined ? `adopt-${proc.pm_id}` : `adopt-${proc.processName}`;
     setActionLoading(actionKey);
     try {
       await api.post(`/vps/${vpsId}/processes/adopt`, {
@@ -218,6 +239,7 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
         type: proc.type,
       });
       showToast('Process adopted successfully', 'success');
+      setConfirmAdoptProc(null);
       fetchProcesses();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } };
@@ -225,6 +247,62 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
     } finally {
       setActionLoading(null);
     }
+  };
+
+  const handleViewEnv = async (dep: Deployment) => {
+    setEnvModal({ id: dep.id, name: dep.processName, path: dep.projectPath, vars: {}, loading: true, saving: false });
+    try {
+      const { data } = await api.get(`/vps/${vpsId}/env`, { params: { path: dep.projectPath } });
+      setEnvModal(prev => prev ? { ...prev, vars: data.env, loading: false } : null);
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { error?: string } } };
+      showToast(e.response?.data?.error || 'Failed to load .env file', 'error');
+      setEnvModal(null);
+    }
+  };
+
+  const handleSaveEnv = async (restart: boolean) => {
+    if (!envModal) return;
+    setEnvModal(prev => prev ? { ...prev, saving: true } : null);
+    try {
+      await api.put(`/vps/${vpsId}/env`, { env: envModal.vars }, { params: { path: envModal.path } });
+      showToast('.env file saved', 'success');
+      if (restart) {
+        await api.post(`/vps/${vpsId}/processes/${envModal.id}/restart`);
+        showToast('Process restarted to apply changes', 'success');
+        fetchProcesses();
+      }
+      setEnvModal(null);
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { error?: string } } };
+      showToast(e.response?.data?.error || 'Failed to save .env file', 'error');
+      setEnvModal(prev => prev ? { ...prev, saving: false } : null);
+    }
+  };
+
+  const handleEnvChange = (key: string, value: string, oldKey?: string) => {
+    if (!envModal) return;
+    const next = { ...envModal.vars };
+    if (oldKey && oldKey !== key) {
+      delete next[oldKey];
+    }
+    next[key] = value;
+    setEnvModal(prev => prev ? { ...prev, vars: next } : null);
+  };
+
+  const handleEnvDelete = (key: string) => {
+    if (!envModal) return;
+    const next = { ...envModal.vars };
+    delete next[key];
+    setEnvModal(prev => prev ? { ...prev, vars: next } : null);
+  };
+
+  const handleEnvAddRow = () => {
+    if (!envModal) return;
+    // Find a unique placeholder key
+    let i = 1;
+    while (`NEW_VAR_${i}` in envModal.vars) i++;
+    handleEnvChange(`NEW_VAR_${i}`, '');
   };
 
   useEffect(() => {
@@ -419,6 +497,13 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
                           >
                             <ScrollText size={18} />
                           </button>
+                          <button
+                            onClick={() => handleViewEnv(dep)}
+                            className="p-3 bg-bg-tertiary hover:bg-blue-500/10 text-text-secondary hover:text-blue-400 rounded-xl transition-all border border-border-light"
+                            title="Env Vars"
+                          >
+                            <SlidersHorizontal size={18} />
+                          </button>
                           
                           {!isOnline ? (
                             <button
@@ -477,31 +562,31 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
                   <div key={proc.pm_id || `port-${proc.port}`} className="group premium-card glass-effect rounded-[22px] sm:rounded-[24px] border border-border-light bg-amber-500/[0.02] hover:border-amber-500/30 transition-all duration-300 overflow-hidden shadow-xl">
                     <div className="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-5">
                       <div className="flex items-center space-x-4">
-                        <div className={`p-4 rounded-2xl ${proc.type === 'port' ? 'icon-grad-amber shadow-[0_0_20px_rgba(245,158,11,0.2)]' : 'icon-grad-indigo shadow-[0_0_20px_rgba(79,70,229,0.2)]'} transition-all shadow-inner`}>
+                        <div className={`p-4 rounded-2xl ${proc.type === 'systemctl' ? 'icon-grad-amber shadow-[0_0_20px_rgba(245,158,11,0.2)]' : proc.type === 'port' ? 'icon-grad-amber shadow-[0_0_20px_rgba(245,158,11,0.2)]' : 'icon-grad-indigo shadow-[0_0_20px_rgba(79,70,229,0.2)]'} transition-all shadow-inner`}>
                           <Activity size={24} className="text-white" />
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center space-x-3 mb-1.5">
                             <h5 className="font-bold text-text-primary tracking-tight text-[13px]">{proc.processName}</h5>
                             <div className="px-2.5 py-0.5 rounded-full border bg-amber-500/10 border-amber-500/20 text-amber-500 text-[9px] font-bold uppercase tracking-widest">
-                               {proc.type === 'port' ? 'RAW PORT' : 'UNMANAGED'}
+                               {proc.type === 'systemctl' ? 'SYSTEM SERVICE' : proc.type === 'port' ? 'RAW PORT' : 'UNMANAGED'}
                             </div>
                           </div>
                           <p className="text-[10px] font-medium text-text-muted tracking-wide flex items-center space-x-2">
                              <span className={`h-1.5 w-1.5 rounded-full ${proc.status === 'online' || proc.status === 'running' ? 'bg-emerald-500' : 'bg-red-500'}`} />
                              <span>Status: {proc.status}</span>
                              <span className="opacity-30">|</span>
-                             <span>{proc.pm_id ? `PM2 ID: ${proc.pm_id}` : `PORT: ${proc.port}`}</span>
+                             <span>{proc.pm_id ? `PM2 ID: ${proc.pm_id}` : proc.type === 'systemctl' ? 'SYSTEMD' : `PORT: ${proc.port}`}</span>
                           </p>
                         </div>
                       </div>
 
                       <button 
                        onClick={() => handleAdopt(proc)}
-                       disabled={actionLoading === (proc.pm_id ? `adopt-${proc.pm_id}` : `adopt-${proc.port}`)}
+                       disabled={actionLoading === (proc.pm_id !== undefined ? `adopt-${proc.pm_id}` : `adopt-${proc.processName}`)}
                        className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] rounded-xl transition-all border border-blue-600 shadow-xl shadow-blue-600/10 uppercase tracking-widest disabled:opacity-50 flex items-center space-x-2"
                       >
-                        {actionLoading === (proc.pm_id ? `adopt-${proc.pm_id}` : `adopt-${proc.port}`) ? <Loader2 size={14} className="animate-spin" /> : <span>Take Control</span>}
+                        {actionLoading === (proc.pm_id !== undefined ? `adopt-${proc.pm_id}` : `adopt-${proc.processName}`) ? <Loader2 size={14} className="animate-spin" /> : <span>Take Control</span>}
                       </button>
                     </div>
                   </div>
@@ -511,6 +596,109 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
           </>
         )}
       </div>
+
+      {/* Env Vars Modal */}
+      {envModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 sm:p-12 animate-in fade-in duration-300" onClick={() => !envModal.saving && setEnvModal(null)}>
+          <div className="bg-bg-primary w-full max-w-2xl max-h-[90vh] rounded-[32px] border border-border-light flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="p-6 border-b border-border-light flex items-center justify-between bg-bg-secondary/40 rounded-t-[32px]">
+              <div>
+                <div className="flex items-center space-x-2 text-text-muted text-[10px] font-bold uppercase tracking-widest mb-1">
+                  <KeyRound size={14} />
+                  <span>Environment Variables</span>
+                </div>
+                <h3 className="text-lg font-bold text-text-primary tracking-tight">{envModal.name}</h3>
+                <p className="text-[10px] text-text-muted font-mono mt-0.5">{envModal.path}/.env</p>
+              </div>
+              <button onClick={() => !envModal.saving && setEnvModal(null)} className="p-2.5 bg-bg-tertiary hover:bg-red-500 text-white rounded-xl transition-all">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+              {envModal.loading ? (
+                <div className="h-48 flex flex-col items-center justify-center space-y-4">
+                  <Loader2 size={32} className="text-blue-500 animate-spin" />
+                  <p className="text-text-muted font-bold uppercase tracking-widest text-[10px]">Reading .env file...</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {/* Column headers */}
+                  <div className="grid grid-cols-[1fr_1fr_auto] gap-2 px-3 mb-1">
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-text-muted">KEY</span>
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-text-muted">VALUE</span>
+                  </div>
+
+                  {/* Env var rows */}
+                  {Object.entries(envModal.vars).map(([key, value]) => (
+                    <div key={key} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center group">
+                      <input
+                        className="bg-bg-secondary border border-border-light rounded-xl px-3 py-2 text-xs font-mono text-text-primary outline-none focus:border-blue-500 transition-all"
+                        defaultValue={key}
+                        onBlur={(e) => {
+                          if (e.target.value !== key) handleEnvChange(e.target.value, value, key);
+                        }}
+                        spellCheck={false}
+                      />
+                      <input
+                        className="bg-bg-secondary border border-border-light rounded-xl px-3 py-2 text-xs font-mono text-text-primary outline-none focus:border-blue-500 transition-all"
+                        value={value}
+                        onChange={(e) => handleEnvChange(key, e.target.value)}
+                        spellCheck={false}
+                      />
+                      <button
+                        onClick={() => handleEnvDelete(key)}
+                        className="p-2 text-text-muted hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all rounded-lg hover:bg-red-500/10"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* Add row button */}
+                  <button
+                    onClick={handleEnvAddRow}
+                    className="w-full mt-3 py-2.5 border border-dashed border-border-light hover:border-blue-500/40 rounded-xl text-[10px] font-bold text-text-muted hover:text-blue-400 transition-all flex items-center justify-center space-x-2"
+                  >
+                    <Plus size={14} />
+                    <span>Add Variable</span>
+                  </button>
+
+                  {Object.keys(envModal.vars).length === 0 && !envModal.loading && (
+                    <p className="text-center text-text-muted text-xs font-medium py-4">
+                      No variables found. Add some using the button above.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            {!envModal.loading && (
+              <div className="p-5 border-t border-border-light bg-bg-secondary/40 rounded-b-[32px] flex items-center justify-end space-x-3">
+                <button
+                  onClick={() => handleSaveEnv(false)}
+                  disabled={envModal.saving}
+                  className="px-5 py-2 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-secondary font-bold rounded-xl text-xs transition-all border border-border-light disabled:opacity-50 flex items-center space-x-2"
+                >
+                  {envModal.saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                  <span>Save Only</span>
+                </button>
+                <button
+                  onClick={() => handleSaveEnv(true)}
+                  disabled={envModal.saving}
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs transition-all shadow-lg shadow-blue-600/20 disabled:opacity-50 flex items-center space-x-2"
+                >
+                  {envModal.saving ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
+                  <span>Save &amp; Restart</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Log Modal */}
       {logModal && (
@@ -566,7 +754,7 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
           </div>
         </div>
       )}
-      {/* Confirm Delete Deployment Modal */}
+      {/* Confirm Action Modals */}
       {confirmDeleteId && (
         <ConfirmModal
           title="Delete Deployment"
@@ -575,6 +763,21 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
           danger
           onConfirm={confirmDeleteDeployment}
           onCancel={() => setConfirmDeleteId(null)}
+        />
+      )}
+      {confirmAdoptProc && (
+        <ConfirmModal
+          title="Take Control"
+          message={
+            confirmAdoptProc?.type === 'systemctl'
+              ? `Adopting a systemctl service (${confirmAdoptProc?.processName}) is currently not natively supported. Would you like to stop the service and restart it under PM2 manually?`
+              : confirmAdoptProc?.type === 'port' 
+              ? `Adopting this raw port process requires RESTARTING it under PM2 management. A brief outage will occur. Are you sure you want to take control of ${confirmAdoptProc?.processName}?`
+              : `Bring this existing PM2 process (${confirmAdoptProc?.processName}) under LikeVercel management?`
+          }
+          confirmLabel="Take Control"
+          onConfirm={confirmAdopt}
+          onCancel={() => setConfirmAdoptProc(null)}
         />
       )}
     </div>

@@ -46,83 +46,39 @@ router.get('/:id/processes', async (req: AuthRequest, res: Response): Promise<vo
       type: 'pm2'
     }));
 
-    // Scan for all listening TCP ports
-    const listeningPorts = new Set<number>();
-    const unmanagedPorts: any[] = [];
-    
+    // Scan for systemctl running services
+    const systemctlProcesses: any[] = [];
     try {
-      let ssOutput = '';
-      try {
-        ssOutput = await sshManager.executeCommand(vpsId, "ss -lntp | grep 'LISTEN'");
-      } catch {
-        ssOutput = await sshManager.executeCommand(vpsId, "lsof -iTCP -sTCP:LISTEN -P -n | grep 'LISTEN'");
-      }
-
-      const lines = ssOutput.split('\n').filter(l => l.trim());
-      const managedPorts = new Set(deployments.map(d => d.port));
-      const pm2Ports = new Set();
-      pm2Processes.forEach(p => {
-        if (p.pm2_env?.PORT) pm2Ports.add(parseInt(p.pm2_env.PORT));
-      });
-
-      for (const line of lines) {
-        let port: number | null = null;
-        let name = 'raw-process';
-        let pid: string | null = null;
-
-        if (line.includes('users:')) {
-          const portMatch = line.match(/:(\d+)\s+/);
-          if (portMatch) port = parseInt(portMatch[1]);
-          const userMatch = line.match(/users:\(\("([^"]+)",pid=(\d+)/);
-          if (userMatch) { name = userMatch[1]; pid = userMatch[2]; }
-        } else {
-          const parts = line.split(/\s+/);
-          const addrPart = parts.find(p => p.includes(':') || p.includes('*'));
-          if (addrPart) {
-            const portStr = addrPart.split(':').pop() || addrPart.split('*').pop();
-            if (portStr) port = parseInt(portStr);
-          }
-          name = parts[0];
-          pid = parts[1];
-        }
-        
-        if (port && !isNaN(port)) {
-          listeningPorts.add(port);
-          
-          // Only add to unmanaged list if not already managed by our app or PM2
-          if (!managedPorts.has(port) && !pm2Ports.has(port)) {
-            if (![22, 25, 53, 111, 2049].includes(port)) {
-              unmanagedPorts.push({
-                processName: `${name}:${port}`,
-                cpu: 0,
-                memory: 0,
-                status: 'running',
-                port: port,
-                pid: pid,
-                type: 'port'
-              });
-            }
-          }
+      const sysOutput = await sshManager.executeCommand(vpsId, "systemctl list-units --type=service --state=running --no-pager --no-legend");
+      const sysLines = sysOutput.split('\n').filter(l => l.trim());
+      for (const line of sysLines) {
+        const parts = line.split(/\s+/).filter(Boolean);
+        if (parts.length > 0) {
+          const serviceName = parts[0].replace('.service', '');
+          systemctlProcesses.push({
+            processName: serviceName,
+            cpu: 0,
+            memory: 0,
+            status: 'running',
+            type: 'systemctl'
+          });
         }
       }
     } catch (err) {
-      console.warn('[Process] Robust port scan failed:', err);
+      console.warn('[Process] Systemctl scan failed:', err);
     }
 
-    const allUnmanaged = [...unmanagedPm2Processes, ...unmanagedPorts];
+    const allUnmanaged = [...unmanagedPm2Processes, ...systemctlProcesses];
 
     const processesWithStatus = deployments.map((d: any) => {
       const pm2Process = pm2Processes.find((p: any) => p.name === d.processName);
       
       // Status determination:
       // 1. If in PM2, use PM2 status
-      // 2. If not in PM2 but port is listening, it is "online" (raw process)
-      // 3. Otherwise, it is "stopped"
+      // 2. Otherwise, it is "stopped"
       let status = 'stopped';
       if (pm2Process) {
         status = pm2Process.pm2_env.status;
-      } else if (d.port && listeningPorts.has(d.port)) {
-        status = 'online';
       }
 
       return {
@@ -191,8 +147,26 @@ router.post('/:id/processes/start', async (req: AuthRequest, res: Response): Pro
     } else if (fileList.includes('package.json')) {
       processName = data.processName || `node-${port}`;
       const escapedProcessName = escapeShellArg(processName);
-      startCommand = `cd ${escapedPath} && npm install && PORT=${port} pm2 start npm --name ${escapedProcessName} -- start`;
-      projectType = 'node';
+
+      // Detect frameworks that need a build step
+      const hasVite = fileList.some(f => f.startsWith('vite.config'));
+      const hasNext = fileList.some(f => f.startsWith('next.config'));
+      const hasNuxt = fileList.some(f => f.startsWith('nuxt.config'));
+
+      if ((hasVite || hasNuxt) && !data.command) {
+        // Build then Serve static
+        startCommand = `cd ${escapedPath} && npm install && npm run build && pm2 serve dist ${port} --name ${escapedProcessName} --spa`;
+        projectType = 'frontend';
+      } else if (hasNext && !data.command) {
+        // Next.js (build and start)
+        const buildCmd = `npm run build`;
+        startCommand = `cd ${escapedPath} && npm install && ${buildCmd} && PORT=${port} pm2 start npm --name ${escapedProcessName} -- start`;
+        projectType = 'nextjs';
+      } else {
+        // Generic Node — attempt build then start
+        startCommand = `cd ${escapedPath} && npm install && (npm run build || true) && PORT=${port} pm2 start npm --name ${escapedProcessName} -- start`;
+        projectType = 'node';
+      }
     } else if (fileList.includes('requirements.txt')) {
       processName = data.processName || `python-${port}`;
       const escapedProcessName = escapeShellArg(processName);
@@ -384,40 +358,83 @@ router.post('/:id/processes/adopt', async (req: AuthRequest, res: Response): Pro
     }
 
     let finalPath = projectPath;
-    let finalPort = port ? parseInt(port) : 80;
+    let finalPort = port ? parseInt(port) : (type === 'port' ? parseInt(port) : 0);
     let finalName = processName;
+    let projectType = 'custom';
 
     if (type === 'port' && pid) {
-      // Try to discover CWD using pwdx
+      // SMART PORT ADOPTION: Kill and Relaunch under PM2
       try {
-        const pwdxOut = await sshManager.executeCommand(vpsId, `pwdx ${escapeShellArg(pid)}`);
-        // Output: "1024: /home/user/app"
-        const pathPart = pwdxOut.split(': ')[1];
+        // 1. Resolve CWD
+        const pwdxOut = await sshManager.executeCommand(vpsId, `readlink -f /proc/${escapeShellArg(pid)}/cwd 2>/dev/null || pwdx ${escapeShellArg(pid)}`);
+        const pathPart = pwdxOut.includes(': ') ? pwdxOut.split(': ')[1] : pwdxOut;
         if (pathPart && !finalPath) finalPath = pathPart.trim();
-      } catch (err) {
-        console.warn(`[Process] pwdx failed for pid ${pid}:`, err);
-      }
-      if (!finalPath) finalPath = '/var/www';
-    } else if (pm_id) {
-      // PM2 adoption logic
-      try {
-        const pm2Desc = await sshManager.executeCommand(vpsId, `pm2 describe ${escapeShellArg(pm_id)} --format json`);
-        const details = JSON.parse(pm2Desc);
-        if (details && details.length > 0) {
-          const proc = details[0];
-          if (!finalPath) finalPath = proc.pm2_env?.pm_cwd || '/var/www';
-          if (!port && proc.pm2_env?.PORT) finalPort = parseInt(proc.pm2_env.PORT);
+        if (!finalPath) finalPath = '/var/www';
+
+        // 2. Detect project type
+        const escapedPath = escapeShellArg(finalPath);
+        const files = await sshManager.executeCommand(vpsId, `ls -F ${escapedPath}`);
+        const fileList = files.split('\n').map(f => f.trim());
+
+        let startCommand: string;
+        finalName = finalName || `adopted-${finalPort}`;
+        const escapedProcessName = escapeShellArg(finalName);
+
+        if (fileList.includes('package.json')) {
+          startCommand = `cd ${escapedPath} && PORT=${finalPort} pm2 start npm --name ${escapedProcessName} -- start`;
+          projectType = 'node';
+        } else if (fileList.includes('requirements.txt')) {
+          const mainFile = fileList.find(f => f.endsWith('.py') && !f.startsWith('.')) || 'app.py';
+          startCommand = `cd ${escapedPath} && pm2 start ${escapeShellArg(mainFile)} --name ${escapedProcessName}`;
+          projectType = 'python';
+        } else if (fileList.includes('index.html')) {
+          startCommand = `pm2 serve ${escapedPath} ${finalPort} --name ${escapedProcessName} --spa`;
+          projectType = 'static';
+        } else {
+          res.status(400).json({ error: 'Unable to detect project type for adoption. Please deploy as new app instead.' });
+          return;
         }
-      } catch (err) {
-        console.warn(`[Process] PM2 describe failed for adoption: ${err}`);
+
+        // 3. KILL the old process
+        await sshManager.executeCommand(vpsId, `kill -9 ${escapeShellArg(pid)}`);
+
+        // 4. Start under PM2
+        await sshManager.executeCommand(vpsId, startCommand);
+
+      } catch (err: any) {
+        res.status(500).json({ error: `Port adoption failed (smart logic): ${err.message}` });
+        return;
+      }
+    } else if (pm_id !== undefined && pm_id !== null) {
+      // SMART PM2 ADOPTION: Just Link to existing process
+      try {
+        const pm2Output = await sshManager.executeCommand(vpsId, 'pm2 jlist');
+        const processes = JSON.parse(pm2Output);
+        const proc = processes.find((p: any) => p.pm_id == pm_id);
+        
+        if (!proc) {
+          res.status(404).json({ error: `PM2 process with ID ${pm_id} not found` });
+          return;
+        }
+
+        finalName = proc.name;
+        finalPath = proc.pm2_env?.pm_cwd || '/var/www';
+        finalPort = parseInt(proc.pm2_env?.PORT || proc.pm2_env?.env?.PORT || "0");
+        
+        // If port is still 0, it might be a static server
+        if (finalPort === 0 && proc.name.includes('static')) {
+          // Static servers often have port in arg
+        }
+      } catch (err: any) {
+        res.status(500).json({ error: `PM2 adoption failed: ${err.message}` });
+        return;
       }
     } else {
-      res.status(400).json({ error: 'pm_id or pid/port required' });
+      res.status(400).json({ error: 'pm_id or pid required for adoption' });
       return;
     }
 
     // Save deployment record
-    // We assume 'running' because it was detected as listening
     const deployment = await prisma.deployment.create({
       data: {
         vpsId,
@@ -431,7 +448,7 @@ router.post('/:id/processes/adopt', async (req: AuthRequest, res: Response): Pro
 
     res.status(201).json({
       message: 'Workload adopted successfully',
-      deployment,
+      deployment: { ...deployment, projectType },
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

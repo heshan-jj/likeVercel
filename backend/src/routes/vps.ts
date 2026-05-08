@@ -1,4 +1,3 @@
-import { generateKeyPairSync } from 'crypto';
 import { Router, Response } from 'express';
 import { execSync } from 'child_process';
 import os from 'os';
@@ -9,6 +8,7 @@ import prisma from '../utils/prisma';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { encrypt } from '../utils/crypto';
 import { sshManager } from '../services/SSHManager';
+import { generateKeyPairSync } from 'crypto';
 import { createVpsSchema, updateVpsSchema } from '../utils/validators';
 import { escapeShellArg } from '../utils/helpers';
 
@@ -501,7 +501,6 @@ router.post('/keys/generate', async (req: AuthRequest, res: Response): Promise<v
       sshPublicKey = execSync(`ssh-keygen -y -f "${keyFile}"`, { encoding: 'utf-8' }).trim();
       sshPublicKey += ` likeVercel-generated`;
     } catch {
-      // fallback: return raw spki PEM if ssh-keygen not available
       sshPublicKey = publicKey;
     } finally {
       try { fs.unlinkSync(keyFile); } catch {}
@@ -536,13 +535,13 @@ router.post('/:id/keys/install', async (req: AuthRequest, res: Response): Promis
     
     try {
       // Ensure .ssh exists
-      await new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         sftp.mkdir('.ssh', { mode: 0o700 }, (err) => {
           // ssh2 reports EEXIST as a generic "Failure" message
           if (err && !err.message.toLowerCase().includes('failure')) {
             reject(new Error(`Failed to create .ssh directory: ${err.message}`));
           } else {
-            resolve(true);
+            resolve();
           }
         });
       });

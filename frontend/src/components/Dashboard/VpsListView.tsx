@@ -15,6 +15,7 @@ interface VPSProfile {
 
 interface ServerSpecs {
   cpuLoad?: number;
+  ramLoad?: number;
   region?: string;
 }
 
@@ -38,7 +39,7 @@ const VpsListView: React.FC<VpsListViewProps> = ({ profiles, specs, fetchingSpec
             <th className="px-6 py-4 text-[10px] font-bold text-text-muted uppercase tracking-widest">Status</th>
             <th className="px-6 py-4 text-[10px] font-bold text-text-muted uppercase tracking-widest hidden md:table-cell">Region</th>
             <th className="px-6 py-4 text-[10px] font-bold text-text-muted uppercase tracking-widest hidden lg:table-cell">IP Address</th>
-            <th className="px-6 py-4 text-[10px] font-bold text-text-muted uppercase tracking-widest text-right hidden sm:table-cell">CPU Load</th>
+            <th className="px-6 py-4 text-[10px] font-bold text-text-muted uppercase tracking-widest text-right hidden sm:table-cell">Usage (CPU/RAM)</th>
             <th className="px-6 py-4 text-[10px] font-bold text-text-muted uppercase tracking-widest text-right">Actions</th>
           </tr>
         </thead>
@@ -75,20 +76,39 @@ const VpsListView: React.FC<VpsListViewProps> = ({ profiles, specs, fetchingSpec
               </td>
               <td className="px-6 py-5 text-sm font-mono text-text-muted hidden lg:table-cell">{vps.host}</td>
               <td className="px-6 py-5 text-right w-48 hidden sm:table-cell">
-                <div className="flex items-center justify-end space-x-3">
-                  <div className="flex-1 max-w-[100px] h-1.5 bg-bg-tertiary rounded-full overflow-hidden">
-                    {fetchingSpecs.has(vps.id) ? (
-                      <Skeleton className="h-full w-full" />
-                    ) : (
-                      <div 
-                        className={`h-full rounded-full transition-all duration-1000 ${vps.isConnected ? 'bg-blue-600' : 'bg-border-light'}`}
-                        style={{ width: `${vps.isConnected ? (specs[vps.id]?.cpuLoad || 0) : 0}%` }}
-                      />
-                    )}
+                <div className="flex flex-col items-end space-y-2">
+                  <div className="flex items-center justify-end space-x-2 w-full">
+                    <span className="text-[9px] font-bold text-text-muted uppercase tracking-widest">CPU</span>
+                    <div className="flex-1 max-w-[80px] h-1.5 bg-bg-tertiary rounded-full overflow-hidden">
+                      {fetchingSpecs.has(vps.id) ? (
+                        <Skeleton className="h-full w-full" />
+                      ) : (
+                        <div 
+                          className={`h-full rounded-full transition-all duration-1000 ${vps.isConnected ? 'bg-blue-600' : 'bg-border-light'}`}
+                          style={{ width: `${vps.isConnected ? (specs[vps.id]?.cpuLoad || 0) : 0}%` }}
+                        />
+                      )}
+                    </div>
+                    <span className="text-[10px] font-bold text-text-primary w-6 text-right">
+                      {fetchingSpecs.has(vps.id) ? '...' : (vps.isConnected ? `${specs[vps.id]?.cpuLoad || 0}%` : '—')}
+                    </span>
                   </div>
-                  <span className="text-xs font-bold text-text-primary w-8">
-                    {fetchingSpecs.has(vps.id) ? <Skeleton className="h-3 w-6" /> : (vps.isConnected ? `${specs[vps.id]?.cpuLoad || 0}%` : '0%')}
-                  </span>
+                  <div className="flex items-center justify-end space-x-2 w-full">
+                    <span className="text-[9px] font-bold text-text-muted uppercase tracking-widest">RAM</span>
+                    <div className="flex-1 max-w-[80px] h-1.5 bg-bg-tertiary rounded-full overflow-hidden">
+                      {fetchingSpecs.has(vps.id) ? (
+                        <Skeleton className="h-full w-full" />
+                      ) : (
+                        <div 
+                          className={`h-full rounded-full transition-all duration-1000 ${vps.isConnected ? 'bg-purple-500' : 'bg-border-light'}`}
+                          style={{ width: `${vps.isConnected ? (specs[vps.id]?.ramLoad || 0) : 0}%` }}
+                        />
+                      )}
+                    </div>
+                    <span className="text-[10px] font-bold text-text-primary w-6 text-right">
+                      {fetchingSpecs.has(vps.id) ? '...' : (vps.isConnected ? `${specs[vps.id]?.ramLoad || 0}%` : '—')}
+                    </span>
+                  </div>
                 </div>
               </td>
               <td className="px-6 py-5 text-right">

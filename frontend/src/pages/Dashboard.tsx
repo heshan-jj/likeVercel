@@ -17,17 +17,9 @@ import MetricCard from '../components/Dashboard/MetricCard';
 import VpsListView from '../components/Dashboard/VpsListView';
 import VpsGridView from '../components/Dashboard/VpsGridView';
 import Skeleton from '../components/Skeleton';
+import { useVps, type VPSProfile } from '../context/VpsContext';
 
-interface VPSProfile {
-  id: string;
-  name: string;
-  host: string;
-  username: string;
-  port: number;
-  authType: string;
-  isConnected: boolean;
-  region?: string;
-}
+
 
 interface ServerSpecs {
   os: string;
@@ -35,14 +27,14 @@ interface ServerSpecs {
   ram: string;
   disk: string;
   cpuLoad?: number;
+  ramLoad?: number;
   region?: string;
 }
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const [profiles, setProfiles] = useState<VPSProfile[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { profiles, loading, error: contextError, refreshProfiles, setProfiles } = useVps();
   const [error, setError] = useState('');
   const [connecting, setConnecting] = useState<string | null>(null);
   const [specs, setSpecs] = useState<Record<string, ServerSpecs>>({});
@@ -62,13 +54,19 @@ const Dashboard: React.FC = () => {
   const profilesRef = useRef<VPSProfile[]>([]);
 
   useEffect(() => {
-    fetchProfiles();
+    // Initial fetch
+    refreshProfiles();
     
     // Poll for profiles every 15 seconds to keep list in sync
     const profileInterval = setInterval(() => {
-      fetchProfiles(false);
+      refreshProfiles();
     }, 15_000);
 
+    // Initial specs fetch for already connected profiles
+    profiles.forEach(p => {
+      if (p.isConnected && !specs[p.id]) fetchSpecs(p.id);
+    });
+    
     // Poll for specs every 30 seconds
     const specInterval = setInterval(() => {
       profilesRef.current.filter(p => p.isConnected).forEach(p => fetchSpecs(p.id));
@@ -81,8 +79,13 @@ const Dashboard: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Keep ref in sync with state so the interval always sees the latest profiles
+  // Update profilesRef and auto-fetch specs for new connections
   useEffect(() => {
+    profiles.forEach(p => {
+      if (p.isConnected && !specs[p.id] && !fetchingSpecs.has(p.id)) {
+        fetchSpecs(p.id);
+      }
+    });
     profilesRef.current = profiles;
   }, [profiles]);
 
@@ -90,30 +93,9 @@ const Dashboard: React.FC = () => {
     localStorage.setItem('dashboardViewMode', viewMode);
   }, [viewMode]);
 
-  const fetchProfiles = async (showLoading = true) => {
-    if (showLoading) setLoading(true);
-    try {
-      const { data } = await api.get('/vps');
-      setProfiles(data.profiles);
-      profilesRef.current = data.profiles;
-      
-      // Fetch specs for newly connected nodes
-      data.profiles.forEach((p: VPSProfile) => {
-        if (p.isConnected) fetchSpecs(p.id);
-      });
-      setError('');
-    } catch (err: unknown) {
-      console.error('[Dashboard] Fetch failed:', err);
-      setError('Failed to synchronize infrastructure nodes');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
   const handleManualRefresh = () => {
     setRefreshing(true);
-    fetchProfiles();
+    refreshProfiles().finally(() => setRefreshing(false));
   };
 
   const fetchSpecs = async (id: string) => {
@@ -127,11 +109,11 @@ const Dashboard: React.FC = () => {
         const { data: usageData } = await api.get(`/vps/${id}/usage`);
         setSpecs(prev => ({ 
           ...prev, 
-          [id]: { ...specsData, cpuLoad: usageData.cpu } 
+          [id]: { ...specsData, cpuLoad: usageData.cpu, ramLoad: usageData.ram } 
         }));
       } catch {
         // Fallback if usage fails but specs worked
-        setSpecs(prev => ({ ...prev, [id]: { ...specsData, cpuLoad: 0 } }));
+        setSpecs(prev => ({ ...prev, [id]: { ...specsData, cpuLoad: 0, ramLoad: 0 } }));
       }
     } catch (err: unknown) {
       console.error('Failed to fetch node specs', err);
@@ -148,18 +130,18 @@ const Dashboard: React.FC = () => {
     e.stopPropagation();
     setConnecting(id);
     // Optimistic UI: Set isConnected to true in the local profiles state
-    setProfiles(prev => prev.map(p => p.id === id ? { ...p, isConnected: true } : p));
+    setProfiles((prev: VPSProfile[]) => prev.map((p: VPSProfile) => p.id === id ? { ...p, isConnected: true } : p));
     
     try {
       await api.post(`/vps/${id}/connect`);
       showToast('Server connected successfully', 'success');
       // No need to fetchProfiles() immediately if we trust the change, 
       // but we do it to ensure DB consistency
-      await fetchProfiles();
+      await refreshProfiles();
     } catch (err: unknown) {
       // Rollback on error
       const serverName = profiles.find(p => p.id === id)?.name || 'Node';
-      setProfiles(prev => prev.map(p => p.id === id ? { ...p, isConnected: false } : p));
+      setProfiles((prev: VPSProfile[]) => prev.map((p: VPSProfile) => p.id === id ? { ...p, isConnected: false } : p));
       const error = err as { response?: { data?: { error?: string } } };
       const reason = error.response?.data?.error || 'Connection timed out or refused';
       setError(`Rollback: Connection to "${serverName}" failed. Your view was reverted to the last known state. Reason: ${reason}`);
@@ -172,16 +154,16 @@ const Dashboard: React.FC = () => {
   const handleDisconnect = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     // Optimistic UI: Set isConnected to false locally
-    setProfiles(prev => prev.map(p => p.id === id ? { ...p, isConnected: false } : p));
+    setProfiles((prev: VPSProfile[]) => prev.map((p: VPSProfile) => p.id === id ? { ...p, isConnected: false } : p));
     
     try {
       await api.post(`/vps/${id}/disconnect`);
       showToast('Server disconnected', 'info');
-      await fetchProfiles();
+      await refreshProfiles();
     } catch (err: unknown) {
       // Rollback on error
       const serverName = profiles.find(p => p.id === id)?.name || 'Node';
-      setProfiles(prev => prev.map(p => p.id === id ? { ...p, isConnected: true } : p));
+      setProfiles((prev: VPSProfile[]) => prev.map((p: VPSProfile) => p.id === id ? { ...p, isConnected: true } : p));
       const error = err as { response?: { data?: { error?: string } } };
       const reason = error.response?.data?.error || 'Unexpected error occurred';
       setError(`Rollback: Disconnect from "${serverName}" failed. Your view was reverted. Reason: ${reason}`);
@@ -196,7 +178,7 @@ const Dashboard: React.FC = () => {
     setConnectingAll(true);
     
     // Optimistic UI
-    setProfiles(prev => prev.map(p => 
+    setProfiles((prev: VPSProfile[]) => prev.map((p: VPSProfile) => 
       offlineProfiles.some(op => op.id === p.id) ? { ...p, isConnected: true } : p
     ));
 
@@ -205,11 +187,11 @@ const Dashboard: React.FC = () => {
         offlineProfiles.map(p => api.post(`/vps/${p.id}/connect`))
       );
       showToast(`Attempted to connect ${offlineProfiles.length} servers`, 'info');
-      await fetchProfiles();
+      await refreshProfiles();
     } catch (err) {
       console.error(err);
       setError('Bulk connection encountered errors');
-      await fetchProfiles(); // Revert optimistic UI on error
+      await refreshProfiles(); // Revert optimistic UI on error
     } finally {
       setConnectingAll(false);
     }
@@ -225,7 +207,7 @@ const Dashboard: React.FC = () => {
     try {
       await api.delete(`/vps/${confirmDelete.id}`);
       showToast(`"${confirmDelete.name}" removed`, 'success');
-      fetchProfiles();
+      refreshProfiles();
     } catch {
       setError('Decommission failed');
     } finally {
@@ -286,13 +268,13 @@ const Dashboard: React.FC = () => {
         <p className="text-text-secondary text-sm font-medium">Real-time status of your global infrastructure clusters.</p>
       </div>
 
-      {error && (
-        <div className="flex items-center justify-between p-4 bg-error-bg text-error border border-error/20 rounded-2xl animate-in slide-in-from-top-2">
+      {(error || contextError) && (
+        <div className="flex items-center justify-between p-4 bg-red-500/10 text-red-500 border border-red-500/20 rounded-2xl animate-in slide-in-from-top-2">
           <div className="flex items-center space-x-3 text-sm font-bold">
             <X size={18} />
-            <span>{error}</span>
+            <span>{error || contextError}</span>
           </div>
-          <button onClick={() => setError('')} className="p-1 hover:bg-red-100 rounded-lg"><X size={14}/></button>
+          <button onClick={() => setError('')} className="p-1 hover:bg-red-500/10 rounded-lg"><X size={14}/></button>
         </div>
       )}
 

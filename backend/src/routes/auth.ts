@@ -348,7 +348,10 @@ router.post('/restore', authMiddleware, upload.single('backup'), async (req: Aut
       throw writeErr;
     }
 
-    res.json({ message: 'Database restored and migrations applied successfully. Please reload the app.' });
+    res.json({
+      message: 'Database restored and migrations applied successfully. Restart the server for changes to take effect.',
+      requiresRestart: true,
+    });
   } catch (error: any) {
     console.error('[Auth] Restore error:', error);
     res.status(500).json({ error: `Restore failed: ${error.message}` });

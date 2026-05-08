@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { createHash } from 'crypto';
+import { createHash, generateKeyPairSync } from 'crypto';
 import { execSync } from 'child_process';
 import os from 'os';
 import path from 'path';
@@ -58,7 +58,6 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
     if (!label?.trim()) { res.status(400).json({ error: 'label is required' }); return; }
     if (!privateKey?.trim()) { res.status(400).json({ error: 'privateKey is required' }); return; }
 
-    // Derive public key from private key using ssh-keygen if not provided
     let resolvedPublicKey = publicKey?.trim() || '';
     if (!resolvedPublicKey) {
       const tmpDir = os.tmpdir();
@@ -116,7 +115,6 @@ router.post('/generate', async (req: AuthRequest, res: Response): Promise<void> 
     const keyFile = path.join(tmpDir, `likeVercel_gen_${Date.now()}`);
 
     try {
-      // Generate Ed25519 key pair (no passphrase)
       execSync(`ssh-keygen -t ed25519 -N "" -f "${keyFile}" -C "${label.trim()}"`);
 
       const privateKey = fs.readFileSync(keyFile, 'utf-8');
@@ -137,7 +135,6 @@ router.post('/generate', async (req: AuthRequest, res: Response): Promise<void> 
         },
       });
 
-      // Return the private key once so the user can save it locally
       res.status(201).json({
         key: {
           id: key.id,
@@ -147,7 +144,7 @@ router.post('/generate', async (req: AuthRequest, res: Response): Promise<void> 
           createdAt: key.createdAt,
           lastUsedAt: key.lastUsedAt,
         },
-        privateKey, // only returned on generation — never stored in plaintext after this
+        privateKey,
       });
     } finally {
       try { fs.unlinkSync(keyFile); } catch {}
@@ -219,12 +216,12 @@ router.post('/:id/install', async (req: AuthRequest, res: Response): Promise<voi
     
     try {
       // Ensure .ssh exists
-      await new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         sftp.mkdir('.ssh', { mode: 0o700 }, (err) => {
           if (err && !err.message.toLowerCase().includes('failure')) {
             reject(new Error(`Failed to create .ssh directory: ${err.message}`));
           } else {
-            resolve(true);
+            resolve();
           }
         });
       });
