@@ -60,6 +60,7 @@ export const VpsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useVps = () => {
   const context = useContext(VpsContext);
   if (context === undefined) {

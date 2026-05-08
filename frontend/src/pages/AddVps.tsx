@@ -229,7 +229,7 @@ const AddVps: React.FC = () => {
                         className="w-full appearance-none bg-bg-primary border border-border-light focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all font-bold text-sm cursor-pointer"
                       >
                         <option value="">— select a saved key or paste below —</option>
-                        {savedKeys.map((k: any) => (
+                        {savedKeys.map((k: SshKey) => (
                           <option key={k.id} value={k.id}>{k.label} (MD5:{k.fingerprint})</option>
                         ))}
                       </select>

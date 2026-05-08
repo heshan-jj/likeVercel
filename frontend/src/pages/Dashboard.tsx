@@ -87,7 +87,7 @@ const Dashboard: React.FC = () => {
       }
     });
     profilesRef.current = profiles;
-  }, [profiles]);
+  }, [profiles, specs, fetchingSpecs]);
 
   useEffect(() => {
     localStorage.setItem('dashboardViewMode', viewMode);
