@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Server,
-  Zap,
   LayoutGrid,
   List,
   X,
@@ -14,11 +13,9 @@ import api from '../utils/api';
 import ConfirmModal from '../components/ConfirmModal';
 import { useToast } from '../context/ToastContext';
 import Button from '../components/UI/Button';
-import Input from '../components/UI/Input';
 import { useInfrastructure } from '../hooks/useInfrastructure';
 import type { VPSProfile } from '../context/VpsContext';
 import Skeleton from '../components/Skeleton';
-import MetricCard from '../components/Dashboard/MetricCard';
 import VpsListView from '../components/Dashboard/VpsListView';
 import VpsGridView from '../components/Dashboard/VpsGridView';
 
@@ -165,16 +162,99 @@ const Dashboard: React.FC = () => {
   const displayError = error || infrastructureError;
 
   return (
-    <div className="p-6 max-w-[1600px] mx-auto space-y-8">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-xl font-bold text-text-primary tracking-tight uppercase">Infrastructure Overview</h1>
-        <p className="text-text-secondary text-[10px] font-bold uppercase tracking-widest mt-0.5 opacity-60">Real-time status of global cluster state</p>
+    <div className="p-4 md:p-6 max-w-[1600px] mx-auto space-y-6">
+      {/* Sleek Unified Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex items-center space-x-4">
+          <div>
+            <h1 className="text-xl font-semibold text-text-primary tracking-tight">Infrastructure</h1>
+            <div className="flex items-center mt-1 space-x-2">
+              <span className="text-[11px] font-medium text-text-secondary">
+                {profiles.length} Instances
+              </span>
+              <span className="text-[11px] text-text-muted">•</span>
+              <span className="flex items-center space-x-1 px-1.5 py-0.5 bg-blue-500/10 text-blue-600 rounded text-[10px] font-semibold">
+                <span className="w-1 h-1 rounded-full bg-blue-500 animate-pulse" />
+                <span>{profiles.filter(p => p.isConnected).length} Active</span>
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          {/* Search Bar */}
+          <div className="relative flex-1 sm:w-64 lg:w-80">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" size={14} />
+            <input 
+              placeholder="Search host or name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-bg-secondary border border-border-light rounded-md pl-8 pr-3 py-2 text-xs text-text-primary outline-none focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-sm"
+            />
+          </div>
+
+          <div className="flex items-center justify-between sm:justify-end gap-2">
+            {/* View Mode & Sort Toggle */}
+            <div className="flex bg-bg-secondary border border-border-light p-1 rounded-md shadow-sm">
+              <button 
+                onClick={() => setViewMode('grid')}
+                className={`p-1.5 rounded transition-all ${viewMode === 'grid' ? 'bg-bg-tertiary text-blue-600' : 'text-text-muted hover:text-text-primary'}`}
+                title="Grid View"
+              >
+                <LayoutGrid size={15} />
+              </button>
+              <button 
+                onClick={() => setViewMode('list')}
+                className={`p-1.5 rounded transition-all ${viewMode === 'list' ? 'bg-bg-tertiary text-blue-600' : 'text-text-muted hover:text-text-primary'}`}
+                title="List View"
+              >
+                <List size={15} />
+              </button>
+            </div>
+
+            <div className="relative">
+              <select 
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as 'name' | 'status')}
+                className="bg-bg-secondary border border-border-light rounded-md pl-3 pr-8 py-2 text-[11px] font-semibold text-text-secondary outline-none focus:border-blue-500 appearance-none cursor-pointer shadow-sm min-w-[100px]"
+              >
+                <option value="name">A-Z</option>
+                <option value="status">Status</option>
+              </select>
+              <LayoutGrid size={10} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+            </div>
+
+            <div className="h-6 w-px bg-border-light mx-1" />
+
+            {profiles.some(p => !p.isConnected) && (
+              <Button 
+                variant="success"
+                size="sm"
+                onClick={handleConnectAll}
+                isLoading={connectingAll}
+                className="h-9 px-3 text-[11px] font-semibold shadow-sm"
+              >
+                <Power size={12} className="mr-1.5" />
+                Initialize All
+              </Button>
+            )}
+            
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={handleManualRefresh}
+              className="h-9 w-9 !p-0 shadow-sm"
+              title="Refresh"
+            >
+              <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+            </Button>
+          </div>
+        </div>
       </div>
 
       {displayError && (
-        <div className="flex items-center justify-between p-3 bg-red-500/10 text-red-600 border border-red-500/20 rounded shadow-sm">
-          <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-tight">
+        <div className="flex items-center justify-between p-3 bg-red-500/10 text-red-600 border border-red-500/20 rounded shadow-sm text-xs font-semibold">
+          <div className="flex items-center space-x-2">
             <X size={14} />
             <span>{displayError}</span>
           </div>
@@ -182,137 +262,40 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Metrics Cards */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <MetricCard 
-          label="Total Instances" 
-          value={profiles.length} 
-          sub="CLUSTER" 
-          icon={<Server size={18} />} 
-          color="blue" 
-          onClick={() => setStatusFilter('all')}
-          active={statusFilter === 'all'}
-        />
-        <MetricCard 
-          label="Active Nodes" 
-          value={profiles.filter((p: VPSProfile) => p.isConnected).length} 
-          sub="STABLE" 
-          icon={<Zap size={18} />} 
-          color="emerald" 
-          onClick={() => setStatusFilter('online')}
-          active={statusFilter === 'online'}
-        />
-        <MetricCard 
-          label="Idle / Offline" 
-          value={profiles.filter((p: VPSProfile) => !p.isConnected).length} 
-          sub="ACTION REQ." 
-          icon={<X size={18} />} 
-          color="red" 
-          onClick={() => setStatusFilter('offline')}
-          active={statusFilter === 'offline'}
-        />
-      </section>
-
-      {/* Active Instances Section */}
-      <section className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center space-x-3">
-            <h2 className="text-sm font-bold text-text-primary uppercase tracking-wider">Active Instances</h2>
-            {statusFilter !== 'all' && (
-              <div className={`flex items-center space-x-1.5 px-2 py-0.5 rounded border text-[9px] font-bold uppercase ${
-                statusFilter === 'online' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-red-500/10 text-red-600 border-red-500/20'
-              }`}>
-                <span>{statusFilter}</span>
-                <button onClick={() => setStatusFilter('all')} className="hover:opacity-50"><X size={10} /></button>
-              </div>
-            )}
-          </div>
-          
-          <div className="flex flex-wrap items-center gap-2">
-            <Input 
-              placeholder="Filter nodes..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              icon={<Search size={14} />}
-              className="w-full sm:w-40 !py-1.5 text-xs"
-            />
-
-            <select 
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'name' | 'status')}
-              className="bg-bg-secondary border border-border-light rounded px-3 py-1.5 text-[10px] font-bold text-text-secondary outline-none focus:border-blue-500 shadow-sm appearance-none cursor-pointer uppercase tracking-wider"
-            >
-              <option value="name">Sort: Name</option>
-              <option value="status">Sort: Status</option>
-            </select>
-
-            {filteredProfiles.some((p: VPSProfile) => !p.isConnected) && (
-              <Button 
-                variant="success"
-                size="sm"
-                onClick={handleConnectAll}
-                isLoading={connectingAll}
-                className="space-x-1 uppercase text-[10px]"
-              >
-                <Power size={12} />
-                <span className="hidden sm:inline">Initialize All</span>
-              </Button>
-            )}
-
-            <Button 
-              variant="outline"
-              size="icon"
-              onClick={handleManualRefresh}
-              className="h-8 w-8"
-              title="Refresh servers"
-            >
-              <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-            </Button>
-
-            <div className="flex bg-bg-tertiary p-1 rounded">
-              <button 
-                onClick={() => setViewMode('grid')}
-                className={`p-1 rounded transition-all ${viewMode === 'grid' ? 'bg-bg-secondary shadow-sm text-blue-500' : 'text-text-muted hover:text-text-primary'}`}
-              >
-                <LayoutGrid size={14} />
-              </button>
-              <button 
-                onClick={() => setViewMode('list')}
-                className={`p-1 rounded transition-all ${viewMode === 'list' ? 'bg-bg-secondary shadow-sm text-blue-500' : 'text-text-muted hover:text-text-primary'}`}
-              >
-                <List size={14} />
-              </button>
-            </div>
-          </div>
-        </div>
-
+      {/* Main View Area */}
+      <div className="min-h-[400px]">
         {filteredProfiles.length === 0 ? (
-          <div className="p-12 text-center border border-dashed border-border-light rounded bg-bg-secondary/10">
-             <p className="text-text-muted font-bold tracking-widest uppercase text-[10px]">No infrastructure nodes detected</p>
+          <div className="p-24 text-center border border-dashed border-border-light rounded-lg bg-bg-secondary/10 flex flex-col items-center">
+             <Server size={32} className="text-text-muted/30 mb-4" />
+             <p className="text-text-muted font-medium text-xs">No active infrastructure nodes matching criteria</p>
           </div>
-        ) : viewMode === 'list' ? (
-          <VpsListView 
-            profiles={filteredProfiles}
-            specs={specs}
-            fetchingSpecs={fetchingSpecs}
-            connecting={connecting}
-            onNavigate={(id: string) => navigate(`/vps/${id}`)}
-            onConnect={handleConnect}
-            onDisconnect={handleDisconnect}
-          />
         ) : (
-          <VpsGridView 
-            profiles={filteredProfiles}
-            specs={specs}
-            fetchingSpecs={fetchingSpecs}
-            connecting={connecting}
-            onNavigate={(id: string) => navigate(`/vps/${id}`)}
-            onConnect={handleConnect}
-            onDisconnect={handleDisconnect}
-            onDelete={handleDelete}
-          />
+          <div className="animate-in fade-in duration-500">
+            {viewMode === 'list' ? (
+              <VpsListView 
+                profiles={filteredProfiles}
+                specs={specs}
+                fetchingSpecs={fetchingSpecs}
+                connecting={connecting}
+                onNavigate={(id: string) => navigate(`/vps/${id}`)}
+                onConnect={handleConnect}
+                onDisconnect={handleDisconnect}
+              />
+            ) : (
+              <VpsGridView 
+                profiles={filteredProfiles}
+                specs={specs}
+                fetchingSpecs={fetchingSpecs}
+                connecting={connecting}
+                onNavigate={(id: string) => navigate(`/vps/${id}`)}
+                onConnect={handleConnect}
+                onDisconnect={handleDisconnect}
+                onDelete={handleDelete}
+              />
+            )}
+          </div>
         )}
-      </section>
+      </div>
 
       {confirmDelete && (
         <ConfirmModal

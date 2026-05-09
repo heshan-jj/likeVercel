@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  likevercel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: likevercel-app
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - FRONTEND_URL=http://localhost:3001
+      - DATABASE_URL=file:/app/backend/data/db.sqlite
+      - JWT_SECRET=df0d8a594834b68078972f0992383842
+      - JWT_REFRESH_SECRET=7f5e3f1a9b1c0d4e8a2b6c9d0e1f3a5b
+      - ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    volumes:
+      - ./data:/app/backend/data
+    restart: unless-stopped

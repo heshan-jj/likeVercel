@@ -36,10 +36,10 @@ const VpsGridView: React.FC<VpsGridViewProps> = ({ profiles, specs, fetchingSpec
         <div 
           key={vps.id}
           onClick={() => onNavigate(vps.id)}
-          className="bg-bg-secondary p-4 rounded-md border border-border-light shadow-sm transition-all cursor-pointer hover:border-blue-500/50 group"
+          className="bg-bg-secondary p-4 rounded-lg border border-border-light shadow-sm transition-all cursor-pointer hover:border-blue-500/50 group"
         >
           <div className="flex items-start justify-between mb-4">
-            <div className={`p-2 rounded ${vps.isConnected ? 'bg-blue-500/10 text-blue-500' : 'bg-bg-tertiary text-text-muted'}`}>
+            <div className={`p-2 rounded-md ${vps.isConnected ? 'bg-blue-500/10 text-blue-500' : 'bg-bg-tertiary text-text-muted'}`}>
               <Server size={18} />
             </div>
             <button 
@@ -50,14 +50,15 @@ const VpsGridView: React.FC<VpsGridViewProps> = ({ profiles, specs, fetchingSpec
             </button>
           </div>
           <div>
-            <h3 className="text-sm font-bold text-text-primary mb-0.5 group-hover:text-blue-500 transition-colors uppercase tracking-tight">{vps.name}</h3>
-            <p className="text-[10px] font-mono text-text-muted mb-4">{vps.username}@{vps.host}</p>
-            <div className="mb-4 space-y-2">
+            <h3 className="text-sm font-semibold text-text-primary mb-0.5 group-hover:text-blue-500 transition-colors tracking-tight">{vps.name}</h3>
+            <p className="text-[10px] font-mono text-text-muted mb-4 tracking-tighter">{vps.username}@{vps.host}</p>
+            
+            <div className="mb-4 space-y-3">
               {/* CPU Bar */}
               <div>
-                <div className="flex justify-between text-[9px] font-bold text-text-muted uppercase tracking-wider mb-1">
+                <div className="flex justify-between text-[10px] font-medium text-text-muted mb-1">
                   <span>CPU</span>
-                  <span>{fetchingSpecs.has(vps.id) ? '...' : (vps.isConnected ? `${specs[vps.id]?.cpuLoad || 0}%` : '—')}</span>
+                  <span className="text-text-primary">{fetchingSpecs.has(vps.id) ? '...' : (vps.isConnected ? `${specs[vps.id]?.cpuLoad || 0}%` : '—')}</span>
                 </div>
                 <div className="h-1 bg-bg-tertiary rounded-full overflow-hidden">
                   <div 
@@ -68,37 +69,37 @@ const VpsGridView: React.FC<VpsGridViewProps> = ({ profiles, specs, fetchingSpec
               </div>
               {/* RAM Bar */}
               <div>
-                <div className="flex justify-between text-[9px] font-bold text-text-muted uppercase tracking-wider mb-1">
+                <div className="flex justify-between text-[10px] font-medium text-text-muted mb-1">
                   <span>RAM</span>
-                  <span>{fetchingSpecs.has(vps.id) ? '...' : (vps.isConnected ? `${specs[vps.id]?.ramLoad || 0}%` : '—')}</span>
+                  <span className="text-text-primary">{fetchingSpecs.has(vps.id) ? '...' : (vps.isConnected ? `${specs[vps.id]?.ramLoad || 0}%` : '—')}</span>
                 </div>
                 <div className="h-1 bg-bg-tertiary rounded-full overflow-hidden">
                   <div 
-                    className={`h-full transition-all duration-1000 ${vps.isConnected ? 'bg-blue-500' : 'bg-border-light'}`}
+                    className={`h-full transition-all duration-1000 ${vps.isConnected ? 'bg-indigo-400' : 'bg-border-light'}`}
                     style={{ width: `${vps.isConnected ? (specs[vps.id]?.ramLoad || 0) : 0}%` }}
                   />
                 </div>
               </div>
             </div>
             
-            <div className="flex items-center justify-between">
-              <div className={`flex items-center space-x-1.5 px-2 py-0.5 rounded border ${vps.isConnected ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-red-500/10 text-red-600 border-red-500/20'}`}>
-                <div className={`w-1.5 h-1.5 rounded-full ${vps.isConnected ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                <span className="text-[9px] font-bold uppercase tracking-widest">{vps.isConnected ? 'Live' : 'Offline'}</span>
+            <div className="flex items-center justify-between pt-2 border-t border-border-muted/50">
+              <div className={`flex items-center space-x-1.5 px-2 py-0.5 rounded-md border ${vps.isConnected ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-red-500/10 text-red-600 border-red-500/20'}`}>
+                <div className={`w-1 h-1 rounded-full ${vps.isConnected ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                <span className="text-[10px] font-medium">{vps.isConnected ? 'Online' : 'Offline'}</span>
               </div>
               <div className="flex items-center space-x-1">
                 {!vps.isConnected ? (
                   <button 
                     onClick={(e) => onConnect(vps.id, e)}
                     disabled={connecting === vps.id}
-                    className="p-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-all active:scale-95"
+                    className="p-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all active:scale-95 shadow-sm"
                   >
                     {connecting === vps.id ? <Loader2 size={14} className="animate-spin" /> : <Power size={14} />}
                   </button>
                 ) : (
                   <button 
                     onClick={(e) => onDisconnect(vps.id, e)}
-                    className="p-1.5 bg-bg-tertiary text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded transition-all active:scale-95"
+                    className="p-1.5 bg-bg-tertiary text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-md transition-all active:scale-95 shadow-sm"
                   >
                     <PowerOff size={14} />
                   </button>
@@ -109,6 +110,8 @@ const VpsGridView: React.FC<VpsGridViewProps> = ({ profiles, specs, fetchingSpec
         </div>
       ))}
     </div>
+  );
+};
   );
 };
 
