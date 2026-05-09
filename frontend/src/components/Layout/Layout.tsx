@@ -1,37 +1,18 @@
 import React from 'react';
-import Sidebar from './Sidebar';
-import { Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import FloatingNav from './FloatingNav';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
   return (
-    <div className="flex h-screen bg-bg-primary overflow-hidden w-full relative">
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+    <div className="flex flex-col min-h-screen bg-bg-primary overflow-x-hidden w-full relative">
+      <FloatingNav />
       
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        {/* Mobile Top Header */}
-        <header className="lg:hidden h-16 bg-bg-secondary border-b border-border-light flex items-center justify-between px-6 shrink-0 z-30">
-          <div className="flex items-center space-x-3">
-             <div className="p-1 icon-grad-blue rounded-lg text-white">
-                <Menu size={14} onClick={() => setIsSidebarOpen(true)} className="cursor-pointer" />
-             </div>
-             <span className="text-sm font-black tracking-tighter text-text-primary">likeVercel</span>
-          </div>
-          <button className="p-2 text-text-muted hover:text-text-primary transition-colors">
-            <X size={16} className={isSidebarOpen ? 'opacity-100' : 'opacity-0'} onClick={() => setIsSidebarOpen(false)} />
-          </button>
-        </header>
-        {/* Page Content */}
-        <main className="flex-1 overflow-y-auto custom-scrollbar relative">
-          {children}
-        </main>
-      </div>
+      <main className="flex-1 flex flex-col w-full pt-20 md:pt-24 pb-12 relative animate-in fade-in slide-in-from-bottom-2 duration-700">
+        {children}
+      </main>
     </div>
   );
 };

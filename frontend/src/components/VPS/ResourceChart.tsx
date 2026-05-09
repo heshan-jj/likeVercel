@@ -47,58 +47,58 @@ const ResourceChart: React.FC<ResourceChartProps> = ({ vpsId, isConnected, compa
 
   if (compact) {
     return (
-      <div className="flex items-center space-x-4 bg-bg-secondary/50 backdrop-blur-md border border-border-light rounded-2xl px-4 py-2 shadow-sm">
+      <div className="flex items-center space-x-4 bg-bg-secondary/40 backdrop-blur-md border border-border-light rounded-xl px-4 py-1.5 shadow-sm shadow-black/[0.02]">
         <div className="flex items-center space-x-2">
-          <Cpu size={14} className="text-blue-500" />
-          <span className="text-[10px] font-black text-text-muted uppercase tracking-widest mr-1">CPU</span>
-          <span className="text-xs font-black text-text-primary">{latest ? `${latest.cpu}%` : '--%'}</span>
+          <Cpu size={14} className="text-blue-500 opacity-80" />
+          <span className="text-[11px] font-semibold text-text-muted mr-1">CPU</span>
+          <span className="text-xs font-bold text-text-primary tabular-nums">{latest ? `${latest.cpu}%` : '--%'}</span>
         </div>
-        <div className="w-px h-3 bg-border-light" />
+        <div className="w-px h-3 bg-border-light/60" />
         <div className="flex items-center space-x-2">
-          <MemoryStick size={14} className="text-emerald-500" />
-          <span className="text-[10px] font-black text-text-muted uppercase tracking-widest mr-1">RAM</span>
-          <span className="text-xs font-black text-text-primary">{latest ? `${latest.ram}%` : '--%'}</span>
+          <MemoryStick size={14} className="text-emerald-500 opacity-80" />
+          <span className="text-[11px] font-semibold text-text-muted mr-1">RAM</span>
+          <span className="text-xs font-bold text-text-primary tabular-nums">{latest ? `${latest.ram}%` : '--%'}</span>
         </div>
-        <div className="w-px h-3 bg-border-light" />
+        <div className="w-px h-3 bg-border-light/60" />
         <Activity size={12} className="text-blue-500 animate-pulse" />
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-8">
+    <div className="flex items-center gap-10">
       {/* Stat pills */}
-      <div className="flex items-center space-x-3">
-        <div className="p-2 bg-blue-500/10 rounded-xl border border-blue-500/10">
-          <Cpu size={16} className="text-blue-500" />
+      <div className="flex items-center space-x-3.5">
+        <div className="p-2 bg-blue-500/10 rounded-xl border border-blue-500/10 shadow-inner">
+          <Cpu size={18} className="text-blue-500" />
         </div>
         <div>
-          <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-0.5">CPU Usage</p>
+          <p className="text-[11px] font-semibold text-text-muted mb-0.5">Host CPU</p>
           <div className="flex items-baseline space-x-1">
-            <p className="text-xl font-black text-text-primary tracking-tighter">
+            <p className="text-xl font-bold text-text-primary tracking-tight tabular-nums">
               {latest ? `${latest.cpu}%` : '--%'}
             </p>
           </div>
         </div>
       </div>
 
-      <div className="flex items-center space-x-3">
-        <div className="p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/10">
-          <MemoryStick size={16} className="text-emerald-500" />
+      <div className="flex items-center space-x-3.5">
+        <div className="p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/10 shadow-inner">
+          <MemoryStick size={18} className="text-emerald-500" />
         </div>
         <div>
-          <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-0.5">RAM Usage</p>
+          <p className="text-[11px] font-semibold text-text-muted mb-0.5">Host RAM</p>
           <div className="flex items-baseline space-x-1">
-            <p className="text-xl font-black text-text-primary tracking-tighter">
+            <p className="text-xl font-bold text-text-primary tracking-tight tabular-nums">
               {latest ? `${latest.ram}%` : '--%'}
             </p>
           </div>
         </div>
       </div>
 
-      <div className="ml-auto flex items-center space-x-2 px-3 py-1.5 bg-blue-500/5 rounded-full border border-blue-500/10">
+      <div className="ml-auto flex items-center space-x-2 px-4 py-1.5 bg-blue-500/5 rounded-full border border-blue-500/10 shadow-sm">
         <Activity size={12} className="text-blue-500 animate-pulse" />
-        <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Live telemetry</span>
+        <span className="text-[11px] font-semibold text-blue-600 tracking-tight">Active Telemetry</span>
       </div>
     </div>
   );

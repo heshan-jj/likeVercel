@@ -5,8 +5,7 @@ import {
   Key, 
   Settings, 
   Plus,
-  User,
-  Power
+  User
 } from 'lucide-react';
 import Logo from '../Logo';
 import { useAuth } from '../../context/AuthContext';

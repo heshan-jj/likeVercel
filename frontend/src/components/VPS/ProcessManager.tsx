@@ -18,6 +18,10 @@ import {
 import api from '../../utils/api';
 import ConfirmModal from '../ConfirmModal';
 import { useToast } from '../../context/ToastContext';
+import Button from '../UI/Button';
+import Input from '../UI/Input';
+import Card from '../UI/Card';
+import Badge from '../UI/Badge';
 
 interface Deployment {
   id: string;
@@ -60,24 +64,26 @@ interface DeployRequest {
 }
 
 function getStatusBadge(status: string): React.ReactNode {
-  let colorClass = 'bg-gray-500';
+  let variant: 'emerald' | 'blue' | 'amber' | 'rose' | 'gray' = 'gray';
   switch (status) {
     case 'online':
     case 'running':
-      colorClass = 'bg-emerald-500';
+      variant = 'emerald';
       break;
     case 'stopping':
     case 'launching':
-      colorClass = 'bg-amber-500';
+      variant = 'amber';
       break;
     case 'errored':
-      colorClass = 'bg-red-500';
+      variant = 'rose';
       break;
   }
   return (
     <div className="flex items-center space-x-2">
-      <div className={`h-2 w-2 rounded-full ${colorClass}`} />
-      <span className="text-[10px] font-bold uppercase tracking-tight">{status}</span>
+      <div className={`h-1.5 w-1.5 rounded-full ${variant === 'emerald' ? 'bg-emerald-500' : variant === 'amber' ? 'bg-amber-500' : variant === 'rose' ? 'bg-red-500' : 'bg-gray-500'} ${variant === 'emerald' ? 'animate-pulse' : ''}`} />
+      <span className={`text-[10px] font-semibold tracking-tight ${variant === 'emerald' ? 'text-emerald-600' : variant === 'amber' ? 'text-amber-600' : variant === 'rose' ? 'text-red-600' : 'text-text-muted'}`}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </span>
     </div>
   );
 }
@@ -312,131 +318,132 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
   );
 
   return (
-    <div className="flex flex-col h-full space-y-4">
+    <div className="flex flex-col h-full space-y-6">
       {/* Search and Action Bar */}
       <div className="flex items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" size={14} />
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={14} />
           <input 
             type="text" 
-            placeholder="Search processes..."
+            placeholder="Search active clusters..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-bg-secondary border border-border-light rounded-md pl-8 pr-3 py-1.5 text-xs text-text-primary outline-none focus:border-blue-500/50"
+            className="w-full bg-bg-secondary border border-border-light rounded-lg pl-9 pr-4 py-2 text-xs text-text-primary outline-none focus:border-blue-500/50 shadow-sm"
           />
         </div>
-        <button 
+        <Button 
           onClick={() => setShowDeploy(true)}
-          className="flex items-center space-x-2 px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded"
+          size="sm"
+          className="px-5 h-9"
         >
-          <Plus size={14} />
-          <span>New App</span>
-        </button>
+          <Plus size={16} className="mr-1.5" />
+          <span>Provision Deployment</span>
+        </Button>
       </div>
 
       {error && (
-        <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded flex items-center justify-between text-xs">
-          <div className="flex items-center space-x-2">
-            <X size={14} />
+        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-600 rounded-xl flex items-center justify-between text-xs font-semibold shadow-sm">
+          <div className="flex items-center space-x-3">
+            <X size={16} />
             <span>{error}</span>
           </div>
           <button onClick={() => setError('')} className="p-1 hover:bg-red-500/20 rounded">
-            <X size={12} />
+            <X size={14} />
           </button>
         </div>
       )}
 
       {showDeploy && (
-        <div className="p-4 bg-bg-secondary border border-blue-500/20 rounded-lg space-y-4">
-          <div className="flex items-center justify-between border-b border-border-light pb-2">
-            <div className="flex items-center space-x-2">
-              <Rocket className="text-blue-500" size={16} />
-              <h4 className="font-bold text-text-primary text-xs">Deploy New Application</h4>
+        <Card className="p-6 space-y-6" glass>
+          <div className="flex items-center justify-between border-b border-border-light/60 pb-4">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-blue-500/10 rounded-lg text-blue-600 shadow-inner">
+                <Rocket size={18} />
+              </div>
+              <div>
+                <h4 className="font-semibold text-text-primary text-sm tracking-tight">Establish New Workload</h4>
+                <p className="text-[11px] text-text-muted font-medium">Deploy an application to the current host</p>
+              </div>
             </div>
-            <button onClick={() => setShowDeploy(false)} className="text-text-muted hover:text-text-primary">
-              <X size={16} />
+            <button onClick={() => setShowDeploy(false)} className="p-1.5 text-text-muted hover:text-text-primary transition-all">
+              <X size={18} />
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-text-muted uppercase">Target Path</label>
-              <input
-                placeholder="/var/www/app"
-                value={deployForm.projectPath}
-                onChange={(e) => setDeployForm({ ...deployForm, projectPath: e.target.value })}
-                className="w-full bg-bg-primary border border-border-light rounded px-3 py-2 text-xs font-mono"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-text-muted uppercase">Process Name (Optional)</label>
-              <input
-                placeholder="my-app"
-                value={deployForm.processName}
-                onChange={(e) => setDeployForm({ ...deployForm, processName: e.target.value })}
-                className="w-full bg-bg-primary border border-border-light rounded px-3 py-2 text-xs font-mono"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-text-muted uppercase">Port (Optional)</label>
-              <input
-                placeholder="3000"
-                type="number"
-                value={deployForm.port}
-                onChange={(e) => setDeployForm({ ...deployForm, port: e.target.value })}
-                className="w-full bg-bg-primary border border-border-light rounded px-3 py-2 text-xs font-mono"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-text-muted uppercase">Start Command (Optional)</label>
-              <input
-                placeholder="npm start"
-                value={deployForm.command}
-                onChange={(e) => setDeployForm({ ...deployForm, command: e.target.value })}
-                className="w-full bg-bg-primary border border-border-light rounded px-3 py-2 text-xs font-mono"
-              />
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Input
+              label="Host Filepath"
+              placeholder="/var/www/app"
+              value={deployForm.projectPath}
+              onChange={(e) => setDeployForm({ ...deployForm, projectPath: e.target.value })}
+              className="font-mono text-[11px]"
+            />
+            <Input
+              label="Process Identifier (Alias)"
+              placeholder="my-production-app"
+              value={deployForm.processName}
+              onChange={(e) => setDeployForm({ ...deployForm, processName: e.target.value })}
+              className="font-mono text-[11px]"
+            />
+            <Input
+              label="Ingress Port"
+              placeholder="3000"
+              type="number"
+              value={deployForm.port}
+              onChange={(e) => setDeployForm({ ...deployForm, port: e.target.value })}
+              className="font-mono text-[11px]"
+            />
+            <Input
+              label="Runtime Execution Command"
+              placeholder="npm start"
+              value={deployForm.command}
+              onChange={(e) => setDeployForm({ ...deployForm, command: e.target.value })}
+              className="font-mono text-[11px]"
+            />
           </div>
 
-          <div className="flex justify-end space-x-2 pt-2">
-            <button onClick={() => setShowDeploy(false)} className="px-4 py-1.5 text-text-muted hover:text-text-primary text-xs font-bold">Cancel</button>
-            <button 
+          <div className="flex justify-end space-x-3 pt-2">
+            <Button variant="ghost" onClick={() => setShowDeploy(false)} size="sm">Cancel</Button>
+            <Button 
               onClick={handleDeploy} 
               disabled={deploying || !deployForm.projectPath.trim()}
-              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded text-xs disabled:opacity-50"
+              isLoading={deploying}
+              size="sm"
+              className="px-8"
             >
-              {deploying ? <Loader2 size={14} className="animate-spin" /> : 'Deploy'}
-            </button>
+              Execute Deployment
+            </Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Deployments Table */}
-      <div className="flex-1 overflow-auto border border-border-light rounded-lg bg-bg-secondary/20">
+      <div className="flex-1 overflow-auto border border-border-light rounded-xl bg-bg-secondary/40 shadow-sm shadow-black/[0.02]">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-border-light bg-bg-tertiary/50">
-              <th className="px-4 py-2 text-[10px] font-bold text-text-muted uppercase">Status</th>
-              <th className="px-4 py-2 text-[10px] font-bold text-text-muted uppercase">Name</th>
-              <th className="px-4 py-2 text-[10px] font-bold text-text-muted uppercase">Path</th>
-              <th className="px-4 py-2 text-[10px] font-bold text-text-muted uppercase">Port</th>
-              <th className="px-4 py-2 text-[10px] font-bold text-text-muted uppercase text-right">Actions</th>
+            <tr className="border-b border-border-light bg-bg-tertiary/20 backdrop-blur-sm">
+              <th className="px-5 py-3.5 text-[11px] font-semibold text-text-secondary tracking-tight">Node Integrity</th>
+              <th className="px-5 py-3.5 text-[11px] font-semibold text-text-secondary tracking-tight">Identity</th>
+              <th className="px-5 py-3.5 text-[11px] font-semibold text-text-secondary tracking-tight hidden md:table-cell">Target Path</th>
+              <th className="px-5 py-3.5 text-[11px] font-semibold text-text-secondary tracking-tight">Port</th>
+              <th className="px-5 py-3.5 text-[11px] font-semibold text-text-secondary tracking-tight text-right">Cluster Controls</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border-light">
+          <tbody className="divide-y divide-border-light/60">
             {loading ? (
               <tr>
-                <td colSpan={5} className="py-12 text-center">
+                <td colSpan={5} className="py-20 text-center">
                   <div className="flex flex-col items-center">
-                    <Loader2 size={24} className="text-blue-500 animate-spin mb-2" />
-                    <span className="text-[10px] font-bold text-text-muted uppercase">Loading workloads...</span>
+                    <Loader2 size={32} className="text-blue-500 animate-spin mb-4 opacity-80" />
+                    <span className="text-[11px] font-semibold text-text-muted">Pulling workload telemetry...</span>
                   </div>
                 </td>
               </tr>
             ) : filteredDeployments.length === 0 ? (
               <tr>
-                <td colSpan={5} className="py-12 text-center text-text-muted text-xs">
-                  No active deployments found.
+                <td colSpan={5} className="py-20 text-center text-text-muted">
+                  <Activity size={40} className="mx-auto opacity-10 mb-4" />
+                  <p className="text-[11px] font-medium">No active managed deployments detected</p>
                 </td>
               </tr>
             ) : (
@@ -445,75 +452,77 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
                 const isOnline = status === 'online' || status === 'running';
                 
                 return (
-                  <tr key={dep.id} className="hover:bg-bg-tertiary/30 transition-colors">
-                    <td className="px-4 py-2 whitespace-nowrap">
+                  <tr key={dep.id} className="hover:bg-bg-tertiary/20 transition-colors group">
+                    <td className="px-5 py-4 whitespace-nowrap">
                       {getStatusBadge(status)}
                     </td>
-                    <td className="px-4 py-2 font-bold text-text-primary text-xs">
-                      {dep.processName}
+                    <td className="px-5 py-4">
+                       <span className="text-xs font-semibold text-text-primary group-hover:text-blue-500 transition-colors">{dep.processName}</span>
                     </td>
-                    <td className="px-4 py-2 text-text-muted text-xs font-mono truncate max-w-[200px]" title={dep.projectPath}>
+                    <td className="px-5 py-4 text-text-muted text-[11px] font-mono truncate max-w-[200px] hidden md:table-cell" title={dep.projectPath}>
                       {dep.projectPath}
                     </td>
-                    <td className="px-4 py-2 text-text-muted text-xs">
-                      {dep.port || '-'}
+                    <td className="px-5 py-4 text-text-muted text-[11px] font-mono">
+                      {dep.port ? (
+                        <span className="px-2 py-0.5 bg-blue-500/5 text-blue-500 border border-blue-500/10 rounded-md font-bold">{dep.port}</span>
+                      ) : '—'}
                     </td>
-                    <td className="px-4 py-2">
-                      <div className="flex items-center justify-end space-x-1">
+                    <td className="px-5 py-4">
+                      <div className="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => handleViewLogs(dep.id, dep.processName)}
-                          className="p-1.5 hover:bg-bg-tertiary rounded text-text-muted hover:text-text-primary transition-colors"
+                          className="p-2 hover:bg-bg-tertiary rounded-lg text-text-muted hover:text-blue-500 transition-colors border border-transparent hover:border-border-light shadow-sm"
                           title="View Logs"
                         >
-                          <ScrollText size={14} />
+                          <ScrollText size={16} />
                         </button>
                         <button
                           onClick={() => handleViewEnv(dep)}
-                          className="p-1.5 hover:bg-bg-tertiary rounded text-text-muted hover:text-text-primary transition-colors"
-                          title="Env Vars"
+                          className="p-2 hover:bg-bg-tertiary rounded-lg text-text-muted hover:text-blue-500 transition-colors border border-transparent hover:border-border-light shadow-sm"
+                          title="Configuration"
                         >
-                          <SlidersHorizontal size={14} />
+                          <SlidersHorizontal size={16} />
                         </button>
                         
-                        <div className="w-px h-3 bg-border-light mx-1" />
+                        <div className="w-px h-4 bg-border-light mx-2 opacity-50" />
 
                         {isOnline ? (
                           <>
                             <button
                               onClick={() => handleAction(dep.id, 'restart')}
-                              className="p-1.5 hover:bg-bg-tertiary rounded text-text-muted hover:text-amber-500 transition-colors"
+                              className="p-2 hover:bg-bg-tertiary rounded-lg text-text-muted hover:text-amber-500 transition-colors border border-transparent hover:border-border-light shadow-sm"
                               disabled={actionLoading === `${dep.id}-restart`}
                               title="Restart"
                             >
-                              {actionLoading === `${dep.id}-restart` ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
+                              {actionLoading === `${dep.id}-restart` ? <Loader2 size={16} className="animate-spin" /> : <RotateCcw size={16} />}
                             </button>
                             <button
                               onClick={() => handleAction(dep.id, 'stop')}
-                              className="p-1.5 hover:bg-bg-tertiary rounded text-text-muted hover:text-red-500 transition-colors"
+                              className="p-2 hover:bg-bg-tertiary rounded-lg text-text-muted hover:text-red-500 transition-colors border border-transparent hover:border-border-light shadow-sm"
                               disabled={actionLoading === `${dep.id}-stop`}
                               title="Stop"
                             >
-                              {actionLoading === `${dep.id}-stop` ? <Loader2 size={14} className="animate-spin" /> : <Square size={14} />}
+                              {actionLoading === `${dep.id}-stop` ? <Loader2 size={16} className="animate-spin" /> : <Square size={16} />}
                             </button>
                           </>
                         ) : (
                           <button
                             onClick={() => handleAction(dep.id, 'restart')}
-                            className="p-1.5 hover:bg-bg-tertiary rounded text-text-muted hover:text-emerald-500 transition-colors"
+                            className="p-2 hover:bg-bg-tertiary rounded-lg text-text-muted hover:text-emerald-500 transition-colors border border-transparent hover:border-border-light shadow-sm"
                             disabled={actionLoading === `${dep.id}-restart`}
                             title="Start"
                           >
-                            {actionLoading === `${dep.id}-restart` ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+                            {actionLoading === `${dep.id}-restart` ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
                           </button>
                         )}
 
                         <button
                           onClick={() => handleAction(dep.id, 'delete')}
-                          className="p-1.5 hover:bg-red-500/10 rounded text-text-muted hover:text-red-500 transition-colors"
+                          className="p-2 hover:bg-red-500/10 rounded-lg text-text-muted hover:text-red-500 transition-colors border border-transparent hover:border-red-500/20 shadow-sm"
                           disabled={actionLoading === `${dep.id}-delete`}
-                          title="Delete"
+                          title="Purge"
                         >
-                          {actionLoading === `${dep.id}-delete` ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                          {actionLoading === `${dep.id}-delete` ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                         </button>
                       </div>
                     </td>
@@ -527,21 +536,20 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
 
       {/* Unmanaged Processes Table */}
       {filteredUnmanaged.length > 0 && (
-        <div className="mt-8 space-y-2">
-          <div className="flex items-center space-x-2 px-1 text-amber-500">
-            <Activity size={14} />
-            <h3 className="text-[10px] font-bold uppercase tracking-wider">Unmanaged Workloads Detected</h3>
+        <div className="mt-8 space-y-3">
+          <div className="flex items-center space-x-2 px-1">
+            <Activity size={14} className="text-amber-500" />
+            <h3 className="text-[11px] font-semibold text-amber-600 tracking-tight">Unmanaged Workloads Detected</h3>
           </div>
-          <div className="overflow-auto border border-amber-500/20 rounded-lg bg-amber-500/[0.02]">
+          <div className="overflow-hidden border border-amber-500/10 rounded-xl bg-amber-500/[0.02]">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-amber-500/10 bg-amber-500/5">
-                  <th className="px-4 py-2 text-[10px] font-bold text-amber-500 uppercase">Status</th>
-                  <th className="px-4 py-2 text-[10px] font-bold text-amber-500 uppercase">Name</th>
-                  <th className="px-4 py-2 text-[10px] font-bold text-amber-500 uppercase">Type</th>
-                  <th className="px-4 py-2 text-[10px] font-bold text-amber-500 uppercase">Identifier</th>
-                  <th className="px-4 py-2 text-[10px] font-bold text-amber-500 uppercase">Description</th>
-                  <th className="px-4 py-2 text-[10px] font-bold text-amber-500 uppercase text-right">Actions</th>
+                  <th className="px-5 py-3 text-[10px] font-semibold text-amber-700 tracking-tight">Status</th>
+                  <th className="px-5 py-3 text-[10px] font-semibold text-amber-700 tracking-tight">Identity</th>
+                  <th className="px-5 py-3 text-[10px] font-semibold text-amber-700 tracking-tight">Type</th>
+                  <th className="px-5 py-3 text-[10px] font-semibold text-amber-700 tracking-tight">Protocol</th>
+                  <th className="px-5 py-3 text-[10px] font-semibold text-amber-700 tracking-tight text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-amber-500/10">
@@ -549,26 +557,23 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
                   const actionKey = proc.pm_id !== undefined ? `adopt-${proc.pm_id}` : `adopt-${proc.processName}`;
                   return (
                     <tr key={proc.pm_id || `port-${proc.port}-${proc.pid}`} className="hover:bg-amber-500/5 transition-colors">
-                      <td className="px-4 py-2 whitespace-nowrap">
+                      <td className="px-5 py-3 whitespace-nowrap">
                         {getStatusBadge(proc.status)}
                       </td>
-                      <td className="px-4 py-2 font-bold text-text-primary text-xs">
-                        {proc.processName}
+                      <td className="px-5 py-3">
+                         <span className="text-[11px] font-semibold text-text-primary">{proc.processName}</span>
                       </td>
-                      <td className="px-4 py-2 text-text-muted text-xs font-mono uppercase">
-                        {proc.type || 'unknown'}
+                      <td className="px-5 py-3">
+                        <Badge variant="gray" className="font-mono text-[9px] px-2">{proc.type || 'unknown'}</Badge>
                       </td>
-                      <td className="px-4 py-2 text-text-muted text-xs font-mono">
-                        {proc.pm_id !== undefined ? `PM2:${proc.pm_id}` : proc.port ? `PORT:${proc.port}` : proc.pid ? `PID:${proc.pid}` : '-'}
+                      <td className="px-5 py-3 text-text-muted text-[11px] font-mono">
+                        {proc.pm_id !== undefined ? `PM2:${proc.pm_id}` : proc.port ? `TCP:${proc.port}` : proc.pid ? `PID:${proc.pid}` : '—'}
                       </td>
-                      <td className="px-4 py-2 text-text-muted text-[10px] italic truncate max-w-[150px]">
-                        {proc.description || '-'}
-                      </td>
-                      <td className="px-4 py-2 text-right">
+                      <td className="px-5 py-3 text-right">
                         <button 
                           onClick={() => handleAdopt(proc)}
                           disabled={actionLoading === actionKey}
-                          className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-white font-bold text-[10px] rounded uppercase disabled:opacity-50"
+                          className="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-[10px] rounded-lg transition-all shadow-sm active:scale-95 disabled:opacity-50"
                         >
                           {actionLoading === actionKey ? <Loader2 size={12} className="animate-spin" /> : 'Adopt'}
                         </button>
@@ -584,35 +589,40 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
 
       {/* Env Vars Modal */}
       {envModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => !envModal.saving && setEnvModal(null)}>
-          <div className="bg-bg-primary w-full max-w-2xl max-h-[85vh] rounded-lg border border-border-light flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="p-4 border-b border-border-light flex items-center justify-between bg-bg-secondary rounded-t-lg">
-              <div>
-                <h3 className="text-sm font-bold text-text-primary">Environment Variables: {envModal.name}</h3>
-                <p className="text-[10px] text-text-muted font-mono">{envModal.path}/.env</p>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[100] flex items-center justify-center p-6" onClick={() => !envModal.saving && setEnvModal(null)}>
+          <div className="bg-bg-secondary/95 backdrop-blur-xl w-full max-w-2xl max-h-[85vh] rounded-[2rem] border border-border-light flex flex-col shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-border-light/60 flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                 <div className="p-2.5 bg-blue-500/10 rounded-xl text-blue-600 shadow-inner">
+                    <SlidersHorizontal size={22} />
+                 </div>
+                 <div>
+                    <h3 className="text-lg font-semibold text-text-primary tracking-tight">Node Environment: {envModal.name}</h3>
+                    <p className="text-[11px] text-text-muted font-mono">{envModal.path}/.env</p>
+                 </div>
               </div>
-              <button onClick={() => !envModal.saving && setEnvModal(null)} className="p-1.5 hover:bg-bg-tertiary rounded">
-                <X size={18} />
+              <button onClick={() => !envModal.saving && setEnvModal(null)} className="p-2 text-text-muted hover:text-text-primary transition-all">
+                <X size={20} />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
               {envModal.loading ? (
-                <div className="h-48 flex flex-col items-center justify-center space-y-2">
-                  <Loader2 size={24} className="text-blue-500 animate-spin" />
-                  <p className="text-text-muted font-bold uppercase text-[10px]">Loading .env...</p>
+                <div className="h-48 flex flex-col items-center justify-center space-y-3">
+                  <Loader2 size={32} className="text-blue-500 animate-spin opacity-60" />
+                  <p className="text-text-muted font-semibold text-[11px]">Syncing environment data...</p>
                 </div>
               ) : (
-                <div className="space-y-1">
-                  <div className="grid grid-cols-[1fr_1fr_auto] gap-2 px-2 mb-1">
-                    <span className="text-[9px] font-bold uppercase text-text-muted">Key</span>
-                    <span className="text-[9px] font-bold uppercase text-text-muted">Value</span>
+                <div className="space-y-2">
+                  <div className="grid grid-cols-[1fr_1fr_auto] gap-4 px-3 mb-2">
+                    <span className="text-[11px] font-semibold text-text-muted">Configuration Key</span>
+                    <span className="text-[11px] font-semibold text-text-muted">Encrypted Value</span>
                   </div>
 
                   {Object.entries(envModal.vars).map(([key, value]) => (
-                    <div key={key} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center group">
+                    <div key={key} className="grid grid-cols-[1fr_1fr_auto] gap-3 items-center">
                       <input
-                        className="bg-bg-secondary border border-border-light rounded px-2 py-1.5 text-xs font-mono text-text-primary outline-none focus:border-blue-500"
+                        className="bg-bg-primary/40 border border-border-light rounded-lg px-3 py-2 text-[11px] font-mono text-text-primary outline-none focus:border-blue-500 shadow-inner"
                         defaultValue={key}
                         onBlur={(e) => {
                           if (e.target.value !== key) handleEnvChange(e.target.value, value, key);
@@ -620,49 +630,52 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
                         spellCheck={false}
                       />
                       <input
-                        className="bg-bg-secondary border border-border-light rounded px-2 py-1.5 text-xs font-mono text-text-primary outline-none focus:border-blue-500"
+                        className="bg-bg-primary/40 border border-border-light rounded-lg px-3 py-2 text-[11px] font-mono text-text-primary outline-none focus:border-blue-500 shadow-inner"
                         value={value}
                         onChange={(e) => handleEnvChange(key, e.target.value)}
                         spellCheck={false}
                       />
                       <button
                         onClick={() => handleEnvDelete(key)}
-                        className="p-1.5 text-text-muted hover:text-red-500 transition-colors"
+                        className="p-2 text-text-muted hover:text-red-500 transition-colors hover:bg-red-500/5 rounded-lg"
                       >
-                        <Trash2 size={12} />
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   ))}
 
                   <button
                     onClick={handleEnvAddRow}
-                    className="w-full mt-2 py-2 border border-dashed border-border-light hover:border-blue-500/40 rounded text-[10px] font-bold text-text-muted hover:text-blue-400 transition-all flex items-center justify-center space-x-2"
+                    className="w-full mt-4 py-3 border border-dashed border-border-light hover:border-blue-500/40 hover:bg-blue-500/[0.02] rounded-xl text-[11px] font-semibold text-text-muted hover:text-blue-500 transition-all flex items-center justify-center space-x-2 group"
                   >
-                    <Plus size={12} />
-                    <span>Add Variable</span>
+                    <Plus size={14} className="group-hover:rotate-90 transition-transform" />
+                    <span>Provision New Variable</span>
                   </button>
                 </div>
               )}
             </div>
 
             {!envModal.loading && (
-              <div className="p-4 border-t border-border-light bg-bg-secondary rounded-b-lg flex items-center justify-end space-x-2">
-                <button
+              <div className="p-6 border-t border-border-light/60 flex items-center justify-end space-x-3">
+                <Button
+                  variant="secondary"
                   onClick={() => handleSaveEnv(false)}
                   disabled={envModal.saving}
-                  className="px-4 py-1.5 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-secondary font-bold rounded text-xs border border-border-light disabled:opacity-50 flex items-center space-x-2"
+                  isLoading={envModal.saving}
+                  className="px-6"
                 >
-                  {envModal.saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-                  <span>Save Only</span>
-                </button>
-                <button
+                  <Save size={14} className="mr-2" />
+                  <span>Persist Only</span>
+                </Button>
+                <Button
                   onClick={() => handleSaveEnv(true)}
                   disabled={envModal.saving}
-                  className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded text-xs disabled:opacity-50 flex items-center space-x-2"
+                  isLoading={envModal.saving}
+                  className="px-8 shadow-blue-600/20"
                 >
-                  {envModal.saving ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
-                  <span>Save & Restart</span>
-                </button>
+                  <RotateCcw size={14} className="mr-2" />
+                  <span>Persist & Hot Reload</span>
+                </Button>
               </div>
             )}
           </div>
@@ -671,46 +684,56 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
 
       {/* Log Modal */}
       {logModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6" onClick={() => setLogModal(null)}>
-          <div className="bg-bg-primary w-full max-w-5xl h-full max-h-[80vh] rounded-lg border border-border-light flex flex-col shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="p-4 border-b border-border-light flex items-center justify-between bg-bg-secondary">
-              <div className="flex items-center space-x-2">
-                <ScrollText size={16} className="text-blue-500" />
-                <h3 className="text-sm font-bold text-text-primary">Process Logs: {logModal.name}</h3>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[100] flex items-center justify-center p-6" onClick={() => setLogModal(null)}>
+          <div className="bg-bg-secondary/95 backdrop-blur-xl w-full max-w-5xl h-full max-h-[85vh] rounded-[2rem] border border-border-light flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-border-light/60 flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="p-2.5 bg-blue-500/10 rounded-xl text-blue-600 shadow-inner">
+                   <ScrollText size={22} />
+                </div>
+                <div>
+                   <h3 className="text-lg font-semibold text-text-primary tracking-tight">Host Logs: {logModal.name}</h3>
+                   <p className="text-[11px] text-text-muted font-medium opacity-60">Real-time STDOUT/STDERR telemetry</p>
+                </div>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-3">
                 <button 
                   onClick={() => handleViewLogs(logModal.id, logModal.name)}
-                  className="p-1.5 hover:bg-bg-tertiary rounded text-text-muted"
+                  className="p-2.5 hover:bg-bg-tertiary rounded-xl text-text-muted hover:text-blue-500 border border-transparent hover:border-border-light shadow-sm transition-all"
+                  title="Refresh Log Stream"
                 >
-                  <RotateCcw size={16} className={logLoading ? 'animate-spin' : ''} />
+                  <RotateCcw size={18} className={logLoading ? 'animate-spin' : ''} />
                 </button>
                 <button 
                   onClick={() => setLogModal(null)}
-                  className="p-1.5 hover:bg-red-500/10 hover:text-red-500 rounded text-text-muted"
+                  className="p-2.5 hover:bg-red-500/10 hover:text-red-500 rounded-xl text-text-muted transition-all"
                 >
-                  <X size={16} />
+                  <X size={20} />
                 </button>
               </div>
             </div>
             
-            <div ref={logBodyRef} className="flex-1 bg-[#0c0c0c] p-4 overflow-auto font-mono text-[11px] leading-relaxed text-gray-300 selection:bg-blue-500/30">
+            <div ref={logBodyRef} className="flex-1 bg-[#09090b] p-6 overflow-auto font-mono text-[12px] leading-relaxed text-slate-300 selection:bg-blue-500/30 custom-scrollbar shadow-inner">
                {logLoading ? (
-                 <div className="h-full flex flex-col items-center justify-center space-y-2">
-                   <Loader2 size={32} className="text-blue-500 animate-spin opacity-50" />
-                   <p className="text-text-muted font-bold uppercase text-[10px]">Fetching logs...</p>
+                 <div className="h-full flex flex-col items-center justify-center space-y-4">
+                   <Loader2 size={40} className="text-blue-500 animate-spin opacity-40" />
+                   <p className="text-text-muted font-semibold text-[11px] tracking-widest uppercase opacity-40">Streaming Data...</p>
                  </div>
                ) : (
-                 <pre className="whitespace-pre-wrap break-all">
-                   {logModal.logs || 'No log output detected.'}
+                 <pre className="whitespace-pre-wrap break-all antialiased">
+                   {logModal.logs || 'No log output detected from this node cluster.'}
                  </pre>
                )}
             </div>
 
-            <div className="p-3 border-t border-border-light bg-bg-secondary flex items-center justify-between px-4">
-               <div className="flex items-center space-x-2 text-[10px] font-bold text-text-muted uppercase">
-                  <Clock size={12} />
-                  <span>Last Refresh: {new Date().toLocaleTimeString()}</span>
+            <div className="p-4 border-t border-border-light/60 flex items-center justify-between px-8 bg-bg-primary/40">
+               <div className="flex items-center space-x-2 text-[10px] font-semibold text-text-muted">
+                  <Clock size={14} className="opacity-50" />
+                  <span>Telemetry Timestamp: {new Date().toLocaleTimeString()}</span>
+               </div>
+               <div className="flex items-center space-x-1">
+                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[10px] font-bold text-emerald-600 tracking-wider">LIVE FEED</span>
                </div>
             </div>
           </div>

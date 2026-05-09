@@ -6,6 +6,20 @@ import { useToast } from '../context/ToastContext';
 import { useVps } from '../context/VpsContext';
 import { useKeys } from '../context/KeyContext';
 import type { SshKey } from '../context/KeyContext';
+import Button from '../components/UI/Button';
+import Input from '../components/UI/Input';
+import Card from '../components/UI/Card';
+
+interface FormData {
+  name: string;
+  host: string;
+  port: number;
+  username: string;
+  authType: string;
+  password?: string;
+  privateKey?: string;
+  passphrase?: string;
+}
 
 const AddVps: React.FC = () => {
   const navigate = useNavigate();
@@ -14,7 +28,7 @@ const AddVps: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     host: '',
     port: 22,
@@ -87,87 +101,82 @@ const AddVps: React.FC = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-8 px-6 bg-bg-primary min-h-full">
+    <div className="max-w-3xl mx-auto py-8 px-6 min-h-full">
       <button 
         onClick={() => navigate('/dashboard')}
-        className="flex items-center space-x-2 text-text-secondary hover:text-text-primary transition-colors mb-6 group text-[10px] font-bold uppercase tracking-wider"
+        className="flex items-center space-x-2 text-text-secondary hover:text-text-primary transition-colors mb-8 group text-[11px] font-semibold tracking-tight"
       >
         <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
         <span>Return to Dashboard</span>
       </button>
 
-      <div className="mb-8 border-b border-border-light pb-6">
-        <h1 className="text-xl font-bold text-text-primary tracking-tight uppercase">Register New Endpoint</h1>
-        <p className="mt-1 text-text-secondary text-xs font-medium">Add a remote server connection to your management cluster.</p>
+      <div className="mb-10">
+        <h1 className="text-2xl font-semibold text-text-primary tracking-tight">Register New Endpoint</h1>
+        <p className="mt-1.5 text-text-secondary text-sm font-medium">Add a remote server connection to your management cluster.</p>
       </div>
 
-      <div className="bg-bg-secondary rounded border border-border-light shadow-sm p-6 relative">
+      <Card className="p-8 relative" glass>
         {error && (
-          <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 text-red-600 rounded flex items-center space-x-2 text-xs font-bold">
-             <Shield size={14} />
+          <div className="mb-8 p-4 bg-red-500/10 border border-red-500/20 text-red-600 rounded-lg flex items-center space-x-3 text-[13px] font-semibold">
+             <Shield size={16} />
              <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="md:col-span-2 space-y-1">
-              <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">Instance Name</label>
-              <input 
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="md:col-span-2">
+              <Input 
+                label="Instance Name"
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full bg-bg-primary border border-border-light focus:border-blue-500 rounded px-3 py-2 text-text-primary outline-none transition-all font-bold text-xs" 
                 placeholder="e.g. Production API Node" 
                 required 
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">Hostname / IP</label>
-              <input 
-                name="host"
-                value={formData.host}
-                onChange={handleChange}
-                className="w-full bg-bg-primary border border-border-light focus:border-blue-500 rounded px-3 py-2 text-text-primary outline-none transition-all font-mono text-xs" 
-                placeholder="192.168.1.1" 
-                required 
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">Port</label>
-              <input 
-                name="port"
-                type="number"
-                value={formData.port}
-                onChange={handleChange}
-                className="w-full bg-bg-primary border border-border-light focus:border-blue-500 rounded px-3 py-2 text-text-primary outline-none transition-all font-mono text-xs" 
-                required 
-              />
-            </div>
+            <Input 
+              label="Hostname / IP"
+              name="host"
+              value={formData.host}
+              onChange={handleChange}
+              className="font-mono"
+              placeholder="192.168.1.1" 
+              required 
+            />
+            
+            <Input 
+              label="Port"
+              name="port"
+              type="number"
+              value={formData.port}
+              onChange={handleChange}
+              className="font-mono"
+              required 
+            />
 
-            <div className="md:col-span-2 space-y-1">
-              <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">SSH Username</label>
-              <input 
+            <div className="md:col-span-2">
+              <Input 
+                label="SSH Username"
                 name="username"
                 value={formData.username}
                 onChange={handleChange}
-                className="w-full bg-bg-primary border border-border-light focus:border-blue-500 rounded px-3 py-2 text-text-primary outline-none transition-all font-bold text-xs" 
                 placeholder="root" 
                 required 
               />
             </div>
 
-            <div className="md:col-span-2 space-y-2">
-              <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">Authentication Protocol</label>
-              <div className="grid grid-cols-2 gap-2">
+            <div className="md:col-span-2 space-y-2.5">
+              <label className="text-[11px] font-semibold text-text-secondary ml-1">Authentication Protocol</label>
+              <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, authType: 'password' }))}
-                  className={`p-2.5 rounded border text-[10px] font-bold uppercase transition-all ${
+                  className={`py-2.5 rounded-lg border text-xs font-semibold transition-all shadow-sm ${
                     formData.authType === 'password' 
                     ? 'bg-blue-600 text-white border-blue-600' 
-                    : 'bg-bg-primary border-border-light text-text-muted hover:border-blue-500/50'
+                    : 'bg-bg-primary/40 border-border-light text-text-muted hover:border-blue-500/50'
                   }`}
                 >
                   Password
@@ -175,10 +184,10 @@ const AddVps: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, authType: 'privateKey' }))}
-                  className={`p-2.5 rounded border text-[10px] font-bold uppercase transition-all ${
+                  className={`py-2.5 rounded-lg border text-xs font-semibold transition-all shadow-sm ${
                     formData.authType === 'privateKey' 
                     ? 'bg-blue-600 text-white border-blue-600' 
-                    : 'bg-bg-primary border-border-light text-text-muted hover:border-blue-500/50'
+                    : 'bg-bg-primary/40 border-border-light text-text-muted hover:border-blue-500/50'
                   }`}
                 >
                   SSH Key
@@ -187,95 +196,92 @@ const AddVps: React.FC = () => {
             </div>
 
             {formData.authType === 'password' ? (
-              <div className="md:col-span-2 space-y-1">
-                <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">Access Password</label>
-                <input 
+              <div className="md:col-span-2">
+                <Input 
+                  label="Access Password"
                   name="password"
                   type="password"
-                  value={formData.password}
+                  value={formData.password || ''}
                   onChange={handleChange}
-                  className="w-full bg-bg-primary border border-border-light focus:border-blue-500 rounded px-3 py-2 text-text-primary outline-none transition-all font-bold text-xs" 
                   placeholder="••••••••"
                   required={formData.authType === 'password'}
                 />
               </div>
             ) : (
-              <div className="md:col-span-2 space-y-4 bg-bg-primary border border-border-light rounded p-4">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">Vault Key Selector</label>
-                    <Link to="/keys" className="text-[9px] font-bold text-blue-500 hover:underline uppercase">Manage Vault</Link>
+              <div className="md:col-span-2 space-y-5 p-5 bg-bg-primary/30 border border-border-light rounded-xl shadow-inner">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between px-1">
+                    <label className="text-[11px] font-semibold text-text-secondary">Vault Key Selector</label>
+                    <Link to="/keys" className="text-[10px] font-semibold text-blue-500 hover:underline">Manage Vault</Link>
                   </div>
                   {savedKeys.length === 0 ? (
-                    <p className="text-[10px] text-text-muted font-bold opacity-60">No keys in vault.</p>
+                    <p className="text-[11px] text-text-muted font-medium px-1 opacity-60">No keys in vault.</p>
                   ) : (
                     <div className="relative">
                       <select
                         value={selectedKeyId}
                         onChange={e => handleSelectKey(e.target.value)}
-                        className="w-full bg-bg-secondary border border-border-light focus:border-blue-500 rounded px-3 py-2 text-text-primary outline-none transition-all font-bold text-xs cursor-pointer appearance-none"
+                        className="w-full bg-bg-secondary border border-border-light focus:border-blue-500 rounded-lg px-4 py-2.5 text-text-primary outline-none transition-all font-semibold text-xs cursor-pointer appearance-none shadow-sm"
                       >
-                        <option value="">— SELECT SAVED KEY —</option>
+                        <option value="">— Select Saved Key —</option>
                         {savedKeys.map((k: SshKey) => (
                           <option key={k.id} value={k.id}>{k.label}</option>
                         ))}
                       </select>
-                      <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+                      <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
                     </div>
                   )}
                   {loadingKey && (
-                    <div className="flex items-center space-x-2 mt-1 text-[9px] text-text-muted font-bold animate-pulse">
-                      <Loader2 size={10} className="animate-spin" />
-                      <span>HYDRATING PAYLOAD...</span>
+                    <div className="flex items-center space-x-2 mt-2 text-[10px] text-text-muted font-semibold animate-pulse px-1">
+                      <Loader2 size={12} className="animate-spin" />
+                      <span>Fetching key from vault...</span>
                     </div>
                   )}
                 </div>
 
-                <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">Private Key Content</label>
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-semibold text-text-secondary px-1">Private Key Content</label>
                   <textarea 
                     name="privateKey"
-                    value={formData.privateKey}
+                    value={formData.privateKey || ''}
                     onChange={handleChange}
-                    className="w-full bg-bg-secondary border border-border-light focus:border-blue-500 rounded px-3 py-2 text-text-primary outline-none transition-all font-mono text-[10px] leading-tight resize-none" 
-                    rows={6}
+                    className="w-full bg-bg-secondary border border-border-light focus:border-blue-500 rounded-lg px-4 py-3 text-text-primary outline-none transition-all font-mono text-[11px] leading-relaxed resize-none shadow-sm h-40" 
                     placeholder="-----BEGIN OPENSSH PRIVATE KEY-----" 
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">Key Passphrase</label>
-                  <input 
-                    name="passphrase"
-                    type="password"
-                    value={formData.passphrase}
-                    onChange={handleChange}
-                    className="w-full bg-bg-secondary border border-border-light focus:border-blue-500 rounded px-3 py-2 text-text-primary outline-none transition-all font-bold text-xs" 
-                    placeholder="Optional"
-                  />
-                </div>
+                
+                <Input 
+                  label="Key Passphrase"
+                  name="passphrase"
+                  type="password"
+                  value={formData.passphrase || ''}
+                  onChange={handleChange}
+                  placeholder="Optional"
+                />
               </div>
             )}
           </div>
 
-          <div className="flex items-center justify-end space-x-3 pt-6 border-t border-border-light">
-            <button 
-              type="button" 
+          <div className="flex items-center justify-end space-x-4 pt-6 border-t border-border-light">
+            <Button 
+              variant="ghost"
+              type="button"
               onClick={() => navigate('/dashboard')}
-              className="px-4 py-2 text-text-muted hover:text-text-primary text-[10px] font-bold uppercase tracking-widest transition-colors"
+              className="font-semibold text-[11px]"
             >
               Cancel
-            </button>
-            <button 
+            </Button>
+            <Button 
               type="submit" 
-              className="flex items-center space-x-2 px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded shadow-sm text-xs uppercase transition-all disabled:opacity-50"
-              disabled={loading}
+              isLoading={loading}
+              className="px-8 py-2.5"
             >
-              {loading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-              <span>Establish Connection</span>
-            </button>
+              <Save size={16} className="mr-2" />
+              Establish Connection
+            </Button>
           </div>
         </form>
-      </div>
+      </Card>
     </div>
   );
 };

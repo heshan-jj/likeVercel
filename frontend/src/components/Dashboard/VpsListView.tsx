@@ -141,7 +141,5 @@ const VpsListView: React.FC<VpsListViewProps> = ({ profiles, specs, fetchingSpec
     </div>
   );
 };
-  );
-};
 
 export default VpsListView;

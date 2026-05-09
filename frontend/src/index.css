@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 html {
-  font-size: 80%; /* Reduced scale from 1 (100%) to 0.8 (80%) */
+  font-size: 125%; /* Significant increase for visibility */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;

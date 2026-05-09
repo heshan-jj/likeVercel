@@ -112,7 +112,5 @@ const VpsGridView: React.FC<VpsGridViewProps> = ({ profiles, specs, fetchingSpec
     </div>
   );
 };
-  );
-};
 
 export default VpsGridView;

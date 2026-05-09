@@ -40,7 +40,6 @@ const Dashboard: React.FC = () => {
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
   
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline'>('all');
   const [sortBy, setSortBy] = useState<'name' | 'status'>('name');
   const [refreshing, setRefreshing] = useState(false);
   const [connectingAll, setConnectingAll] = useState(false);
@@ -130,10 +129,7 @@ const Dashboard: React.FC = () => {
     .filter((p: VPSProfile) => {
       const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                             p.host.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || 
-                            (statusFilter === 'online' && p.isConnected) || 
-                            (statusFilter === 'offline' && !p.isConnected);
-      return matchesSearch && matchesStatus;
+      return matchesSearch;
     })
     .sort((a: VPSProfile, b: VPSProfile) => {
       if (sortBy === 'name') return a.name.localeCompare(b.name);
@@ -143,17 +139,23 @@ const Dashboard: React.FC = () => {
 
   if (loading) return (
     <div className="p-6 max-w-[1600px] mx-auto space-y-8">
-      <div>
-        <Skeleton className="h-6 w-32 mb-2" />
-        <Skeleton className="h-3 w-48" />
-      </div>
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[1, 2, 3].map(i => <MetricCard key={i} label="" value="" sub="" icon={<Server/>} color="blue" isLoading />)}
-      </section>
-      <div className="space-y-4">
-        <Skeleton className="h-5 w-24" />
+      <div className="flex justify-between items-center">
         <div className="space-y-2">
-          {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 w-full rounded" />)}
+          <Skeleton className="h-7 w-48 rounded" />
+          <Skeleton className="h-3 w-32 rounded" />
+        </div>
+        <div className="flex space-x-2">
+          <Skeleton className="h-9 w-32 rounded" />
+          <Skeleton className="h-9 w-9 rounded" />
+        </div>
+      </div>
+      <div className="space-y-4">
+        <div className="flex justify-between gap-4">
+          <Skeleton className="h-10 flex-1 rounded" />
+          <Skeleton className="h-10 w-48 rounded" />
+        </div>
+        <div className="space-y-3">
+          {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-20 w-full rounded-lg" />)}
         </div>
       </div>
     </div>

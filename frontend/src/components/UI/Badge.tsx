@@ -8,15 +8,15 @@ interface BadgeProps {
 
 const Badge: React.FC<BadgeProps> = ({ children, variant = 'gray', className = '' }) => {
   const variants = {
-    blue: 'bg-blue-50 text-blue-600 border-blue-200',
-    emerald: 'bg-emerald-50 text-emerald-600 border-emerald-200',
-    amber: 'bg-amber-50 text-amber-600 border-amber-200',
-    rose: 'bg-rose-50 text-rose-600 border-rose-200',
-    gray: 'bg-gray-50 text-gray-600 border-gray-200',
+    blue: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+    emerald: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+    amber: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+    rose: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
+    gray: 'bg-bg-tertiary text-text-secondary border-border-light',
   };
 
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${variants[variant]} ${className}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold border tracking-tight ${variants[variant]} ${className}`}>
       {children}
     </span>
   );

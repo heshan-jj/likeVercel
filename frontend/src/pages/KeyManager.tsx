@@ -18,6 +18,11 @@ interface SshKey {
   lastUsedAt: string | null;
 }
 
+import Button from '../components/UI/Button';
+import Input from '../components/UI/Input';
+import Card from '../components/UI/Card';
+import Badge from '../components/UI/Badge';
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function parseKeyType(publicKey: string): string {
@@ -29,11 +34,11 @@ function parseKeyType(publicKey: string): string {
   return prefix || 'Unknown';
 }
 
-function keyTypeBadgeColor(type: string) {
-  if (type === 'Ed25519') return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
-  if (type === 'RSA') return 'text-blue-500 bg-blue-500/10 border-blue-500/20';
-  if (type === 'ECDSA') return 'text-purple-500 bg-purple-500/10 border-purple-500/20';
-  return 'text-text-muted bg-bg-tertiary border-border-light';
+function keyTypeBadgeVariant(type: string): 'emerald' | 'blue' | 'amber' | 'rose' | 'gray' {
+  if (type === 'Ed25519') return 'emerald';
+  if (type === 'RSA') return 'blue';
+  if (type === 'ECDSA') return 'amber';
+  return 'gray';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -160,69 +165,71 @@ const KeyManager: React.FC = () => {
   return (
     <div className="flex flex-col h-full bg-bg-primary overflow-y-auto custom-scrollbar">
       {/* Header */}
-      <header className="sticky top-0 z-30 px-6 py-6 flex items-end justify-between border-b border-border-light bg-bg-primary">
-        <div>
-          <div className="flex items-center space-x-2 text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1">
-             <KeyRound size={12} />
-             <span>Access Vault</span>
+      <header className="sticky top-0 z-30 border-b border-border-light bg-bg-primary/80 backdrop-blur-md">
+        <div className="max-w-4xl mx-auto px-6 py-6 flex items-end justify-between">
+          <div>
+            <div className="flex items-center space-x-2 text-[11px] font-semibold text-blue-500 mb-1">
+               <KeyRound size={12} />
+               <span>Access Vault</span>
+            </div>
+            <h1 className="text-xl font-semibold tracking-tight text-text-primary">SSH Key Manager</h1>
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-text-primary uppercase">SSH Key Manager</h1>
+          <Button
+            onClick={handleToggleForm}
+            variant={showAddForm ? 'outline' : 'primary'}
+            size="sm"
+            className="px-5 py-2"
+          >
+            {showAddForm ? <X size={14} className="mr-2" /> : <Plus size={14} className="mr-2" />}
+            <span>{showAddForm ? 'Cancel' : 'Provision Key'}</span>
+          </Button>
         </div>
-        <button
-          onClick={handleToggleForm}
-          className="flex items-center space-x-2 px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded transition-all active:scale-95"
-        >
-          {showAddForm ? <X size={14} /> : <Plus size={14} />}
-          <span>{showAddForm ? 'Cancel' : 'New Key'}</span>
-        </button>
       </header>
 
-      <div className="p-6 space-y-6 max-w-4xl">
+      <div className="p-6 space-y-8 max-w-4xl mx-auto w-full">
         {/* Add Key Form */}
         {showAddForm && (
-          <div className="bg-bg-secondary border border-border-light rounded-md p-6 space-y-6 shadow-sm">
-            <div className="flex items-center space-x-3 mb-4">
-              <KeyRound size={18} className="text-blue-500" />
-              <h2 className="text-xs font-bold text-text-primary uppercase tracking-wider">Provision Key</h2>
+          <Card className="p-6 space-y-6" glass>
+            <div className="flex items-center space-x-3 mb-2">
+              <div className="p-1.5 bg-blue-500/10 rounded-lg text-blue-600">
+                <KeyRound size={18} />
+              </div>
+              <h2 className="text-sm font-semibold text-text-primary">New Security Provision</h2>
             </div>
 
-            <div className="flex bg-bg-primary border border-border-light rounded p-1 w-fit">
+            <div className="flex bg-bg-primary/40 border border-border-light rounded-lg p-1 w-fit shadow-inner">
               <button
                 onClick={() => setAddMode('paste')}
-                className={`px-3 py-1 rounded text-[10px] font-bold uppercase transition-all ${addMode === 'paste' ? 'bg-blue-600 text-white' : 'text-text-muted hover:text-text-primary'}`}
+                className={`px-4 py-1.5 rounded-md text-[11px] font-semibold transition-all ${addMode === 'paste' ? 'bg-blue-600 text-white shadow-sm' : 'text-text-muted hover:text-text-primary'}`}
               >
                 Paste Content
               </button>
               <button
                 onClick={() => setAddMode('generate')}
-                className={`flex items-center space-x-1.5 px-3 py-1 rounded text-[10px] font-bold uppercase transition-all ${addMode === 'generate' ? 'bg-blue-600 text-white' : 'text-text-muted hover:text-text-primary'}`}
+                className={`flex items-center space-x-1.5 px-4 py-1.5 rounded-md text-[11px] font-semibold transition-all ${addMode === 'generate' ? 'bg-blue-600 text-white shadow-sm' : 'text-text-muted hover:text-text-primary'}`}
               >
-                <Wand2 size={10} />
-                <span>Generate New</span>
+                <Wand2 size={12} />
+                <span>Generate Pair</span>
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">Key Label</label>
-                <input
-                  type="text"
-                  value={addLabel}
-                  onChange={e => setAddLabel(e.target.value)}
-                  placeholder="e.g. Production Access Key"
-                  className="w-full bg-bg-primary border border-border-light rounded px-3 py-2 text-text-primary outline-none focus:border-blue-500 font-bold text-xs"
-                />
-              </div>
+            <div className="space-y-5">
+              <Input
+                label="Key Label"
+                value={addLabel}
+                onChange={e => setAddLabel(e.target.value)}
+                placeholder="e.g. Production Access Key"
+              />
 
               {addMode === 'paste' ? (
                 <>
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Private Payload</label>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between px-1">
+                      <label className="text-[11px] font-semibold text-text-secondary">Private Payload</label>
                       <button
                         type="button"
                         onClick={() => setShowPrivate(v => !v)}
-                        className="text-[10px] font-bold text-blue-500 hover:text-blue-400 uppercase"
+                        className="text-[11px] font-semibold text-blue-500 hover:text-blue-400"
                       >
                         {showPrivate ? 'Hide' : 'Reveal'}
                       </button>
@@ -232,34 +239,34 @@ const KeyManager: React.FC = () => {
                       onChange={e => setAddPrivateKey(e.target.value)}
                       rows={showPrivate ? 6 : 2}
                       placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
-                      className="w-full bg-bg-primary border border-border-light rounded px-3 py-2 text-[10px] text-red-500 outline-none focus:border-blue-500 font-mono leading-tight resize-none transition-all"
+                      className="w-full bg-bg-primary/40 border border-border-light rounded-lg px-3 py-2 text-[11px] text-red-500 outline-none focus:border-blue-500 font-mono leading-relaxed resize-none transition-all shadow-inner shadow-black/[0.02]"
                       style={{ filter: showPrivate ? 'none' : 'blur(4px)' }}
                     />
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">Public Identity (Optional)</label>
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] font-semibold text-text-secondary px-1">Public Identity (Optional)</label>
                     <textarea
                       value={addPublicKey}
                       onChange={e => setAddPublicKey(e.target.value)}
                       rows={2}
                       placeholder="ssh-ed25519 AAAA..."
-                      className="w-full bg-bg-primary border border-border-light rounded px-3 py-2 text-[10px] text-emerald-500 outline-none focus:border-blue-500 font-mono leading-tight resize-none"
+                      className="w-full bg-bg-primary/40 border border-border-light rounded-lg px-3 py-2 text-[11px] text-emerald-600 outline-none focus:border-blue-500 font-mono leading-relaxed resize-none shadow-inner shadow-black/[0.02]"
                     />
                   </div>
                 </>
               ) : generatedPrivateKey ? (
-                <div className="space-y-3 bg-bg-primary border border-emerald-500/20 p-4 rounded">
-                  <div className="flex items-center space-x-2 text-emerald-500">
-                    <ShieldCheck size={14} />
-                    <p className="text-[10px] font-bold uppercase tracking-wider">Key pair ready. Capture private key below.</p>
+                <div className="space-y-4 bg-emerald-500/5 border border-emerald-500/10 p-5 rounded-xl">
+                  <div className="flex items-center space-x-2 text-emerald-600">
+                    <ShieldCheck size={16} />
+                    <p className="text-[11px] font-semibold">Key pair ready. Capture private key below.</p>
                   </div>
                   <div className="relative">
                     <textarea
                       readOnly
                       value={generatedPrivateKey}
                       rows={6}
-                      className="w-full bg-bg-secondary border border-border-light rounded px-3 py-2 text-[10px] text-red-500 font-mono leading-tight resize-none"
+                      className="w-full bg-bg-secondary border border-border-light rounded-lg px-3 py-2 text-[11px] text-red-500 font-mono leading-relaxed resize-none shadow-inner"
                     />
                     <button
                       onClick={async () => {
@@ -267,12 +274,12 @@ const KeyManager: React.FC = () => {
                         setCopiedGenKey(true);
                         setTimeout(() => setCopiedGenKey(false), 2000);
                       }}
-                      className="absolute top-2 right-2 px-2 py-1 bg-bg-tertiary rounded text-[9px] font-bold text-text-muted hover:text-text-primary border border-border-light transition-all"
+                      className="absolute top-2 right-2 px-2.5 py-1 bg-bg-tertiary rounded-md text-[10px] font-semibold text-text-muted hover:text-text-primary border border-border-light transition-all shadow-sm"
                     >
-                      {copiedGenKey ? 'COPIED' : 'COPY'}
+                      {copiedGenKey ? 'Copied' : 'Copy'}
                     </button>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-3">
                     <button
                       onClick={() => {
                         const blob = new Blob([generatedPrivateKey], { type: 'text/plain' });
@@ -283,108 +290,110 @@ const KeyManager: React.FC = () => {
                         a.click();
                         URL.revokeObjectURL(url);
                       }}
-                      className="flex items-center space-x-2 px-3 py-1.5 bg-bg-tertiary border border-border-light rounded text-[10px] font-bold text-text-muted hover:text-text-primary transition-all"
+                      className="flex items-center space-x-2 px-3 py-1.5 bg-bg-tertiary border border-border-light rounded-md text-[10px] font-semibold text-text-muted hover:text-text-primary transition-all shadow-sm"
                     >
-                      <Download size={12} />
-                      <span className="uppercase">Download File</span>
+                      <Download size={14} />
+                      <span>Download File</span>
                     </button>
                     <button
                       onClick={() => { setGeneratedPrivateKey(null); setShowAddForm(false); }}
-                      className="flex-1 text-right text-[10px] font-bold text-blue-500 hover:underline uppercase"
+                      className="flex-1 text-right text-[11px] font-semibold text-blue-500 hover:underline"
                     >
                       Dismiss →
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="p-3 bg-blue-600/5 border border-blue-500/10 rounded">
-                  <p className="text-[10px] text-text-muted font-medium">
-                    A secure <span className="text-blue-500 font-bold uppercase tracking-wider">Ed25519</span> key pair will be generated. 
-                    The private payload will be displayed <span className="text-text-primary font-bold">ONLY ONCE</span>.
+                <div className="p-4 bg-blue-500/5 border border-blue-500/10 rounded-lg">
+                  <p className="text-[11px] text-text-muted leading-relaxed">
+                    A secure <span className="text-blue-600 font-semibold">Ed25519</span> key pair will be generated. 
+                    The private payload will be displayed <span className="text-text-primary font-semibold underline underline-offset-4 decoration-blue-500/30">ONLY ONCE</span>.
                   </p>
                 </div>
               )}
             </div>
 
             {!generatedPrivateKey && (
-              <div className="flex items-center justify-between pt-4 border-t border-border-light">
-                <div className="flex items-center space-x-2 text-amber-600 opacity-70">
-                  <AlertTriangle size={12} />
-                  <p className="text-[9px] font-bold uppercase tracking-wider">AES-256-GCM Encrypted</p>
+              <div className="flex items-center justify-between pt-5 border-t border-border-light">
+                <div className="flex items-center space-x-2 text-amber-600 opacity-80">
+                  <AlertTriangle size={14} />
+                  <p className="text-[10px] font-semibold">AES-256-GCM Encrypted</p>
                 </div>
-                <button
+                <Button
                   onClick={addMode === 'paste' ? handleSave : handleGenerate}
                   disabled={saving || !addLabel.trim() || (addMode === 'paste' && !addPrivateKey.trim())}
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-[10px] uppercase tracking-wider rounded transition-all shadow-sm"
+                  isLoading={saving}
+                  size="md"
+                  className="px-6"
                 >
-                  {saving ? <Loader2 size={12} className="animate-spin" /> : 'Execute Provision'}
-                </button>
+                  Execute Provision
+                </Button>
               </div>
             )}
-          </div>
+          </Card>
         )}
 
         {/* Saved Keys List */}
-        <div className="bg-bg-secondary border border-border-light rounded-md p-6 space-y-4 shadow-sm">
-          <div className="flex items-center justify-between border-b border-border-light pb-3 mb-2">
-            <h2 className="text-xs font-bold text-text-primary uppercase tracking-wider">Registered Keys</h2>
-            <span className="text-[10px] text-text-muted font-bold px-2 py-0.5 bg-bg-primary rounded border border-border-light">
-              {keys.length} ENTRIES
-            </span>
+        <Card className="p-6 space-y-5">
+          <div className="flex items-center justify-between border-b border-border-light pb-4">
+            <h2 className="text-sm font-semibold text-text-primary">Registered Identities</h2>
+            <Badge variant="gray" className="px-2 py-0.5">
+              {keys.length} Entries
+            </Badge>
           </div>
 
           {loadingKeys ? (
-            <div className="flex flex-col items-center py-8">
-              <Loader2 size={24} className="animate-spin text-blue-500 mb-2" />
-              <span className="text-[10px] font-bold text-text-muted uppercase">Scanning vault...</span>
+            <div className="flex flex-col items-center py-12">
+              <Loader2 size={32} className="animate-spin text-blue-500 mb-3 opacity-80" />
+              <span className="text-[11px] font-medium text-text-muted">Scanning vault...</span>
             </div>
           ) : keys.length === 0 ? (
-            <div className="py-12 text-center text-text-muted">
-              <KeyRound size={32} className="mx-auto opacity-20 mb-2" />
-              <p className="text-[10px] font-bold uppercase tracking-widest">Vault is empty</p>
+            <div className="py-16 text-center text-text-muted bg-bg-primary/20 rounded-xl border border-dashed border-border-light">
+              <KeyRound size={40} className="mx-auto opacity-10 mb-3" />
+              <p className="text-xs font-medium">Vault is currently empty</p>
             </div>
           ) : (
-            <div className="overflow-hidden border border-border-light rounded">
+            <div className="overflow-hidden border border-border-light rounded-lg shadow-sm shadow-black/[0.01]">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-bg-tertiary/40 border-b border-border-light">
-                    <th className="px-4 py-2 text-[9px] font-bold text-text-muted uppercase">Key Label</th>
-                    <th className="px-4 py-2 text-[9px] font-bold text-text-muted uppercase hidden sm:table-cell">Type</th>
-                    <th className="px-4 py-2 text-[9px] font-bold text-text-muted uppercase text-right">Actions</th>
+                  <tr className="bg-bg-tertiary/20 border-b border-border-light">
+                    <th className="px-5 py-3 text-[11px] font-semibold text-text-secondary tracking-tight">Key Identity</th>
+                    <th className="px-5 py-3 text-[11px] font-semibold text-text-secondary tracking-tight hidden sm:table-cell text-center">Type</th>
+                    <th className="px-5 py-3 text-[11px] font-semibold text-text-secondary tracking-tight text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-light">
                   {keys.map(key => {
                     const keyType = parseKeyType(key.publicKey);
                     return (
-                      <tr key={key.id} className="bg-bg-primary hover:bg-bg-tertiary/20 transition-colors group">
-                        <td className="px-4 py-3">
+                      <tr key={key.id} className="bg-bg-secondary hover:bg-bg-tertiary/20 transition-colors group">
+                        <td className="px-5 py-4">
                            <div className="flex flex-col">
-                              <span className="text-xs font-bold text-text-primary">{key.label}</span>
-                              <span className="text-[10px] font-mono text-text-muted opacity-60">MD5:{key.fingerprint}</span>
+                              <span className="text-xs font-semibold text-text-primary group-hover:text-blue-600 transition-colors">{key.label}</span>
+                              <span className="text-[10px] font-mono text-text-muted opacity-60 mt-0.5">MD5:{key.fingerprint}</span>
                            </div>
                         </td>
-                        <td className="px-4 py-3 hidden sm:table-cell">
-                           <span className={`px-1.5 py-0.5 rounded border text-[8px] font-bold uppercase ${keyTypeBadgeColor(keyType)}`}>
+                        <td className="px-5 py-4 hidden sm:table-cell text-center">
+                           <Badge variant={keyTypeBadgeVariant(keyType)} className="px-2 font-mono text-[9px]">
                              {keyType}
-                           </span>
+                           </Badge>
                         </td>
-                        <td className="px-4 py-3 text-right">
-                           <div className="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <td className="px-5 py-4 text-right">
+                           <div className="flex items-center justify-end space-x-2 sm:opacity-0 group-hover:opacity-100 transition-all">
                               <button
                                 onClick={() => handleCopy(key)}
-                                className="p-1.5 hover:bg-bg-tertiary rounded text-text-muted hover:text-blue-500"
+                                className="p-2 hover:bg-bg-tertiary rounded-lg text-text-muted hover:text-blue-500 transition-colors border border-transparent hover:border-border-light"
                                 title="Copy Public Key"
                               >
-                                {copied === key.id ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                                {copied === key.id ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />}
                               </button>
                               <button
                                 onClick={() => handleDelete(key.id)}
                                 disabled={deleting === key.id}
-                                className="p-1.5 hover:bg-red-500/10 rounded text-text-muted hover:text-red-500"
+                                className="p-2 hover:bg-red-500/10 rounded-lg text-text-muted hover:text-red-500 transition-colors border border-transparent hover:border-red-500/20"
                                 title="Delete"
                               >
-                                {deleting === key.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                                {deleting === key.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                               </button>
                            </div>
                         </td>
@@ -395,81 +404,85 @@ const KeyManager: React.FC = () => {
               </table>
             </div>
           )}
-        </div>
+        </Card>
 
         {/* Deploy Public Key */}
         {keys.length > 0 && connectedVps.length > 0 && (
-          <div className="bg-bg-secondary border border-border-light rounded-md p-6 space-y-4 shadow-sm">
-            <div className="flex items-center space-x-3 mb-4">
-              <FileUp size={18} className="text-blue-500" />
-              <h2 className="text-xs font-bold text-text-primary uppercase tracking-wider">Distribute Keys</h2>
+          <Card className="p-6 space-y-5" glass>
+            <div className="flex items-center space-x-3 mb-2">
+              <div className="p-1.5 bg-blue-500/10 rounded-lg text-blue-600">
+                <FileUp size={18} />
+              </div>
+              <h2 className="text-sm font-semibold text-text-primary">Cluster Distribution</h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               <div className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">Target Public Key</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+               <div className="space-y-5">
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] font-semibold text-text-secondary px-1">Source Public Key</label>
                     <div className="relative">
                       <select
                         value={installKeyId}
                         onChange={e => setInstallKeyId(e.target.value)}
-                        className="w-full bg-bg-primary border border-border-light rounded px-3 py-2 text-xs text-text-primary outline-none focus:border-blue-500 font-bold appearance-none cursor-pointer"
+                        className="w-full bg-bg-primary/40 border border-border-light rounded-lg px-4 py-2.5 text-xs text-text-primary outline-none focus:border-blue-500 font-semibold appearance-none cursor-pointer shadow-sm"
                       >
-                        <option value="">— SELECT KEY —</option>
+                        <option value="">— Select source key —</option>
                         {keys.map(k => (
                           <option key={k.id} value={k.id}>{k.label}</option>
                         ))}
                       </select>
-                      <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+                      <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
                     </div>
                   </div>
 
-                  <div className="p-3 bg-bg-primary border border-border-light rounded">
-                     <p className="text-[10px] text-text-muted leading-tight font-medium">
-                        Deployment will append the selected public identity to <code className="text-text-primary font-bold">~/.ssh/authorized_keys</code> on target nodes.
+                  <div className="p-4 bg-bg-primary/40 border border-border-light rounded-lg shadow-inner">
+                     <p className="text-[11px] text-text-muted leading-relaxed">
+                        Deployment will append the selected public identity to <code className="text-text-primary font-semibold bg-bg-tertiary px-1 rounded">authorized_keys</code> on target nodes.
                      </p>
                   </div>
                </div>
 
-               <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">Destination Cluster</label>
-                  <div className="space-y-1 max-h-40 overflow-y-auto custom-scrollbar border border-border-light rounded bg-bg-primary p-2">
+               <div className="space-y-2">
+                  <label className="block text-[11px] font-semibold text-text-secondary px-1">Destination Nodes</label>
+                  <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar border border-border-light rounded-lg bg-bg-primary/40 p-3 shadow-inner">
                     {connectedVps.map(v => {
                       const checked = installVpsIds.includes(v.id);
                       return (
                         <label
                           key={v.id}
-                          className={`flex items-center space-x-2 px-2 py-1.5 rounded cursor-pointer transition-all ${
-                            checked ? 'bg-blue-600/10' : 'hover:bg-bg-tertiary/40'
+                          className={`flex items-center space-x-3 px-3 py-2 rounded-lg cursor-pointer transition-all border ${
+                            checked ? 'bg-blue-600/10 border-blue-500/20' : 'hover:bg-bg-tertiary/60 border-transparent'
                           }`}
                         >
                           <input
                             type="checkbox"
                             checked={checked}
                             onChange={() => toggleVpsSelection(v.id)}
-                            className="accent-blue-600 w-3.5 h-3.5"
+                            className="accent-blue-600 w-4 h-4 rounded"
                           />
                           <div className="min-w-0">
-                            <p className="text-[11px] font-bold text-text-primary truncate uppercase">{v.name}</p>
-                            <p className="text-[9px] text-text-muted font-mono">{v.host}</p>
+                            <p className="text-[11px] font-semibold text-text-primary truncate">{v.name}</p>
+                            <p className="text-[10px] text-text-muted font-mono opacity-70">{v.host}</p>
                           </div>
                         </label>
                       );
                     })}
                   </div>
-                  <div className="flex justify-end pt-3">
-                    <button
+                  <div className="flex justify-end pt-4">
+                    <Button
                       onClick={handleInstall}
                       disabled={installing || !installKeyId || installVpsIds.length === 0}
-                      className="flex items-center space-x-2 px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-[10px] uppercase tracking-wider rounded transition-all active:scale-95 shadow-sm"
+                      isLoading={installing}
+                      size="sm"
+                      className="px-6"
                     >
-                      {installing ? <Loader2 size={12} className="animate-spin" /> : <Server size={12} />}
+                      <Server size={14} className="mr-2" />
                       <span>Distribute to {installVpsIds.length || '?'} Nodes</span>
-                    </button>
+                    </Button>
                   </div>
                </div>
             </div>
-          </div>
+          </Card>
         )}
       </div>
     </div>
