@@ -24,7 +24,7 @@ const COOKIE_OPTIONS: CookieSerializeOptions = {
   httpOnly: true,
   secure: config.nodeEnv === 'production',
   sameSite: 'strict',
-  path: '/api',
+  path: '/',
 };
 
 function setAuthCookies(res: Response, accessToken: string, refreshToken: string) {

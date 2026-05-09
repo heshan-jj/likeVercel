@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import api from '../utils/api';
@@ -25,7 +24,6 @@ const Unlock: React.FC = () => {
       setError(true);
       setPin('');
       showToast(err.response?.data?.error || 'Invalid PIN', 'error');
-      // Reset error state after animation
       setTimeout(() => setError(false), 500);
     } finally {
       setLoading(false);
@@ -39,49 +37,38 @@ const Unlock: React.FC = () => {
   }, [pin]);
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-bg-primary relative overflow-hidden">
-      {/* Background Decoration */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-accent-primary/5 rounded-full blur-[120px]" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent-primary/5 rounded-full blur-[120px]" />
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md p-8 flex flex-col items-center z-10"
-      >
-        <div className="mb-12">
-          <Logo className="w-16 h-16" />
+    <div className="min-h-screen w-full flex items-center justify-center bg-bg-primary p-6">
+      <div className="w-full max-w-sm flex flex-col items-center">
+        <div className="mb-10 p-3 bg-blue-600 rounded shadow-lg">
+          <Logo className="w-10 h-10 text-white" size={40} />
         </div>
 
-        <div className="text-center mb-12">
-          <h1 className="text-3xl font-bold text-text-primary mb-2">Secure Access</h1>
-          <p className="text-text-secondary">Enter your 6-digit PIN to unlock the dashboard</p>
+        <div className="text-center mb-10">
+          <h1 className="text-xl font-bold text-text-primary tracking-tight uppercase">Dashboard Lock</h1>
+          <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mt-1">Personnel Authorization Required</p>
         </div>
 
-        <div className="glass-effect p-12 rounded-[2.5rem] w-full">
+        <div className="bg-bg-secondary border border-border-light rounded-md p-8 w-full shadow-sm">
           <PinKeypad pin={pin} setPin={setPin} error={error} maxLength={6} />
           
-          <div className="mt-8 text-center h-6">
-            <AnimatePresence>
-              {loading && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="text-accent-primary font-medium flex items-center justify-center gap-2"
-                >
-                  <div className="w-4 h-4 border-2 border-accent-primary border-t-transparent rounded-full animate-spin" />
-                  Verifying Security...
-                </motion.div>
-              )}
-            </AnimatePresence>
+          <div className="mt-8 text-center h-6 flex items-center justify-center">
+            {loading && (
+              <div className="text-blue-500 text-[10px] font-bold uppercase tracking-[0.2em] flex items-center space-x-2 animate-pulse">
+                <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                <span>Syncing...</span>
+              </div>
+            )}
           </div>
         </div>
 
-        <p className="mt-12 text-text-muted text-sm">
-          LikeVercel Security Protocol Active
-        </p>
-      </motion.div>
+        <div className="mt-12 flex items-center space-x-2 opacity-30 grayscale">
+           <div className="h-1 w-1 rounded-full bg-border-light" />
+           <p className="text-[8px] font-bold text-text-muted uppercase tracking-[0.3em]">
+             Authorized Access Only
+           </p>
+           <div className="h-1 w-1 rounded-full bg-border-light" />
+        </div>
+      </div>
     </div>
   );
 };

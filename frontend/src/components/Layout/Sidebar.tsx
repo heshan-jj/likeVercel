@@ -25,18 +25,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
   const navItems = [
     { 
-      icon: <LayoutDashboard size={20} />, 
+      icon: <LayoutDashboard size={16} />, 
       label: 'Dashboard', 
       path: '/dashboard',
       badge: offlineCount > 0 ? { count: offlineCount, color: 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.4)]' } : null 
     },
     { 
-      icon: <Key size={20} />, 
+      icon: <Key size={16} />, 
       label: 'SSH Keys', 
       path: '/keys',
       badge: totalKeys > 0 ? { count: totalKeys, color: 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.4)]' } : null
     },
-    { icon: <Settings size={20} />, label: 'Settings', path: '/settings' },
+    { icon: <Settings size={16} />, label: 'Settings', path: '/settings' },
   ];
 
   return (
@@ -54,25 +54,26 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       }`}>
       {/* Brand Header */}
       <div className="p-8 pb-6">
-        <div className="flex items-center space-x-3 mb-1 cursor-pointer group" onClick={() => navigate('/dashboard')}>
-          <div className="p-1.5 icon-grad-blue rounded-lg text-white shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform">
-            <Logo size={24} />
+        <div className="flex items-center space-x-3 group cursor-pointer" onClick={() => navigate('/')}>
+          <div className="p-1.5 bg-blue-600 rounded text-white shadow-sm group-hover:scale-105 transition-transform">
+            <Logo size={18} />
           </div>
-          <span className="text-xl font-black tracking-tighter text-text-primary bg-clip-text">likeVercel</span>
+          <span className="text-xl font-black tracking-tighter text-text-primary">likeVercel</span>
         </div>
-        <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest pl-1">Infrastructure V2.1</p>
-      </div>
+        <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest pl-1">V2.1 Infrastructure</p>
+        </div>
 
-      {/* Action Button */}
-      <div className="px-6 mb-8">
-        <button 
+        {/* Action Button */}
+        <div className="px-6 mb-8">
+        <button
           onClick={() => navigate('/vps/add')}
-          className="w-full py-3 icon-grad-blue hover:opacity-90 text-white rounded-xl text-xs font-bold shadow-xl shadow-blue-600/20 transition-all active:scale-95 flex items-center justify-center space-x-2 border border-blue-400/20"
+          className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-bold shadow-md transition-all active:scale-95 flex items-center justify-center space-x-2"
         >
-          <Plus size={16} />
+          <Plus size={14} />
           <span>New Instance</span>
         </button>
-      </div>
+        </div>
+
 
       {/* Navigation */}
       <nav className="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar">
@@ -103,9 +104,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
       {/* User Support & Profile */}
       <div className="p-4 mt-auto border-t border-border-light bg-bg-tertiary/30">
-        <div className="flex items-center space-x-3 p-3 bg-bg-primary border border-border-light rounded-2xl shadow-sm">
-          <div className="w-9 h-9 bg-orange-100 rounded-xl flex items-center justify-center text-orange-600">
-            <User size={18} />
+        <div className="flex items-center space-x-3 p-3 bg-bg-primary dark:bg-white/[0.02] border border-border-light rounded-2xl shadow-sm">
+          <div className="w-9 h-9 bg-orange-100 dark:bg-orange-500/10 rounded-xl flex items-center justify-center text-orange-600 dark:text-orange-400">
+            <User size={14} />
           </div>
           <div className="flex-1 min-w-0 text-left">
             <p className="text-xs font-bold text-text-primary truncate">Authorized Operator</p>

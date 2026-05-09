@@ -15,10 +15,7 @@ import {
   FileCode,
   Image as ImageIcon,
   Archive,
-  Film,
-  Music,
   X,
-  Check,
   Loader2,
   Search
 } from 'lucide-react';
@@ -60,37 +57,31 @@ function timeAgo(dateStr: string): string {
 
 function getFileIcon(name: string, isDirectory: boolean) {
   if (isDirectory) return (
-    <div className="p-2 rounded-xl icon-grad-blue shadow-lg shadow-blue-500/20 text-white">
-      <Folder size={18} />
+    <div className="p-1 rounded bg-blue-500/10 text-blue-600">
+      <Folder size={12} />
     </div>
   );
   
   const ext = name.split('.').pop()?.toLowerCase() || '';
-  let grad = 'bg-bg-tertiary';
-  let icon = <File size={18} />;
+  let colorClass = 'bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-slate-400';
+  let icon = <File size={12} />;
 
   if (['js', 'ts', 'jsx', 'tsx', 'py', 'rb', 'go', 'rs', 'java', 'c', 'cpp', 'h', 'css', 'scss', 'html', 'vue', 'svelte'].includes(ext)) {
-    grad = 'icon-grad-indigo';
-    icon = <FileCode size={18} />;
+    colorClass = 'bg-indigo-50 text-indigo-600';
+    icon = <FileCode size={12} />;
   } else if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico', 'bmp'].includes(ext)) {
-    grad = 'icon-grad-rose';
-    icon = <ImageIcon size={18} />;
+    colorClass = 'bg-rose-50 text-rose-600';
+    icon = <ImageIcon size={12} />;
   } else if (['zip', 'gz', 'tar', 'rar', '7z', 'bz2'].includes(ext)) {
-    grad = 'icon-grad-amber';
-    icon = <Archive size={18} />;
-  } else if (['mp4', 'avi', 'mov', 'mkv', 'webm'].includes(ext)) {
-    grad = 'icon-grad-emerald';
-    icon = <Film size={18} />;
-  } else if (['mp3', 'wav', 'ogg', 'flac', 'aac'].includes(ext)) {
-    grad = 'icon-grad-amber'; // reuse amber or add orange
-    icon = <Music size={18} />;
+    colorClass = 'bg-amber-50 text-amber-600';
+    icon = <Archive size={12} />;
   } else if (['md', 'txt', 'log', 'json', 'yaml', 'yml', 'toml', 'xml', 'csv', 'env'].includes(ext)) {
-    grad = 'bg-text-secondary';
-    icon = <FileText size={18} />;
+    colorClass = 'bg-slate-50 text-slate-600';
+    icon = <FileText size={12} />;
   }
 
   return (
-    <div className={`p-2 rounded-xl ${grad} text-white shadow-md`}>
+    <div className={`p-1 rounded ${colorClass}`}>
       {icon}
     </div>
   );
@@ -117,7 +108,7 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
     setLoading(true);
     setError('');
     try {
-      const { data } = await api.get(`/vps/${vpsId}/files`, { params: { path } });
+      const { data } = await api.get(`/vps/${vpsId}/files`, { params: { path, systemAccess: true } });
       setFiles(data.files);
       setCurrentPath(data.path);
     } catch (err: unknown) {
@@ -155,7 +146,8 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
       setUploadProgress(0);
       try {
         await api.post(`/vps/${vpsId}/files/upload`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
+        params: { systemAccess: true },
+        headers: { 'Content-Type': 'multipart/form-data' },
           onUploadProgress: (progressEvent) => {
             if (progressEvent.total) {
               setUploadProgress(Math.round((progressEvent.loaded * 100) / progressEvent.total));
@@ -190,7 +182,7 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
     setActionLoading('mkdir');
     try {
       const newPath = currentPath === '/' ? `/${newFolderName}` : `${currentPath}/${newFolderName}`;
-      await api.post(`/vps/${vpsId}/files/mkdir`, { path: newPath });
+      await api.post(`/vps/${vpsId}/files/mkdir`, { path: newPath, systemAccess: true });
       setShowNewFolder(false);
       setNewFolderName('');
       fetchFiles(currentPath);
@@ -210,7 +202,7 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
     if (!confirmDeletePath) return;
     setActionLoading(confirmDeletePath.path);
     try {
-      await api.delete(`/vps/${vpsId}/files`, { params: { path: confirmDeletePath.path } });
+      await api.delete(`/vps/${vpsId}/files`, { params: { path: confirmDeletePath.path, systemAccess: true } });
       showToast(`"${confirmDeletePath.name}" deleted`, 'success');
       fetchFiles(currentPath);
     } catch (err: unknown) {
@@ -225,7 +217,7 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
   const handleDownload = async (filePath: string, fileName: string) => {
     try {
       const response = await api.get(`/vps/${vpsId}/files/download`, {
-        params: { path: filePath },
+        params: { path: filePath, systemAccess: true },
         responseType: 'blob',
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -235,21 +227,20 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
       document.body.appendChild(link);
       link.click();
       link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch {
-      setError('Download failed');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } } };
+      showToast(error.response?.data?.error || 'Download failed', 'error');
     }
   };
 
-  const handleRename = async (oldPath: string) => {
-    if (!renameValue.trim()) return;
-    setActionLoading(oldPath);
-    const parentDir = oldPath.split('/').slice(0, -1).join('/') || '/';
-    const newPath = parentDir === '/' ? `/${renameValue}` : `${parentDir}/${renameValue}`;
+  const handleRename = async () => {
+    if (!renamingFile || !renameValue.trim()) return;
+    setActionLoading('rename');
     try {
-      await api.put(`/vps/${vpsId}/files/rename`, { oldPath, newPath });
+      const parentPath = currentPath === '/' ? '' : currentPath;
+      const newPath = `${parentPath}/${renameValue}`;
+      await api.put(`/vps/${vpsId}/files/rename`, { oldPath: renamingFile, newPath, systemAccess: true });
       setRenamingFile(null);
-      setRenameValue('');
       fetchFiles(currentPath);
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } };
@@ -259,280 +250,244 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
     }
   };
 
-  const filteredFiles = files.filter(f => f.name.toLowerCase().includes(searchTerm.toLowerCase()));
-
   return (
-    <>
-    <div
-      className={`flex flex-col h-full space-y-5 relative transition-all ${isDragging ? 'ring-4 ring-blue-500/20 ring-inset rounded-[32px]' : ''}`}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-    >
-      {/* Drag Overlay */}
-      {isDragging && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center rounded-[32px] bg-blue-600/10 border-4 border-dashed border-blue-500/50 backdrop-blur-md pointer-events-none animate-in fade-in duration-300">
-          <div className="text-center p-12 bg-bg-secondary/90 rounded-[40px] shadow-2xl border border-blue-500/20">
-            <div className="p-6 icon-grad-blue rounded-full text-white shadow-xl shadow-blue-500/30 w-fit mx-auto mb-6">
-              <Upload size={48} className="animate-bounce" />
-            </div>
-            <p className="text-xl font-black text-text-primary tracking-tight mb-2">Release files to ingest</p>
-            <p className="text-sm font-bold text-text-muted uppercase tracking-widest">Protocol Upload Mode</p>
-          </div>
+    <div className="flex flex-col h-full space-y-4">
+      {/* Search and Action Bar */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" size={14} />
+          <input 
+            type="text" 
+            placeholder="Search files..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-bg-secondary border border-border-light rounded pl-8 pr-3 py-1.5 text-xs text-text-primary outline-none focus:border-blue-500/50"
+          />
         </div>
-      )}
-
-      {/* Navigation and Toolbar */}
-      <div className="flex flex-col xl:flex-row items-stretch xl:items-center gap-4">
-        {/* Modern Breadcrumb */}
-        <div className="flex items-center flex-1 min-w-0 bg-bg-secondary border border-border-light rounded-[20px] p-1.5 shadow-sm group">
-          <button
-            onClick={() => navigateTo('/')}
-            className="p-3 text-blue-500 hover:bg-blue-500/10 rounded-2xl transition-all flex-shrink-0"
-          >
-            <Home size={18} />
-          </button>
-          
-          <div className="flex items-center overflow-x-auto no-scrollbar px-2 space-x-1">
-            {breadcrumbs.map((crumb, i) => (
-              <React.Fragment key={i}>
-                <ChevronRight size={14} className="text-text-muted/40 flex-shrink-0 mx-1" />
-                <button
-                  onClick={() => navigateTo('/' + breadcrumbs.slice(0, i + 1).join('/'))}
-                  className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all uppercase tracking-tight ${
-                    i === breadcrumbs.length - 1 
-                    ? 'text-text-primary bg-bg-tertiary cursor-default shadow-sm border border-border-light/50' 
-                    : 'text-text-secondary hover:text-blue-500 hover:bg-blue-500/10'
-                  }`}
-                >
-                  {crumb}
-                </button>
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
-
-        {/* Unified Search & Actions */}
-        <div className="flex items-center space-x-3">
-          <div className="relative group flex-1 xl:flex-none">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-blue-500 transition-colors" />
-            <input 
-              type="text" 
-              placeholder="Search directory..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full xl:w-64 bg-bg-secondary border border-border-light rounded-[20px] pl-11 pr-5 py-3 text-xs text-text-primary outline-none focus:border-blue-500/30 transition-all font-bold placeholder:text-text-muted shadow-sm"
-            />
-          </div>
-
-          <div className="flex items-center bg-bg-secondary border border-border-light rounded-[20px] p-1 shadow-sm">
-            <button onClick={navigateUp} className="p-2.5 text-text-secondary hover:text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all" title="Go Up">
-              <ArrowUp size={18} />
-            </button>
-            <button onClick={() => fetchFiles(currentPath)} className="p-2.5 text-text-secondary hover:text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all" title="Refresh">
-              <RefreshCw className={loading ? 'animate-spin' : ''} size={18} />
-            </button>
-            <div className="w-px h-6 bg-border-light mx-1" />
-            <button onClick={() => setShowNewFolder(true)} className="p-2.5 text-text-secondary hover:text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all" title="New Directory">
-              <FolderPlus size={18} />
-            </button>
-          </div>
-
+        <div className="flex items-center space-x-2">
           <button 
-            onClick={() => fileInputRef.current?.click()} 
-            className="flex items-center space-x-2 px-6 py-3 icon-grad-blue hover:opacity-90 text-white font-black text-xs rounded-[20px] transition-all shadow-xl shadow-blue-600/20 active:scale-95 border border-blue-400/20 uppercase tracking-widest"
+             onClick={() => navigateTo(currentPath)}
+             className="p-1.5 bg-bg-tertiary hover:bg-bg-tertiary text-text-secondary rounded border border-border-light"
           >
-            <Upload size={18} />
-            <span className="hidden sm:inline">Upload</span>
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
-          <input ref={fileInputRef} type="file" multiple onChange={handleInputChange} className="hidden" />
+          <button 
+             onClick={() => setShowNewFolder(true)}
+             className="p-1.5 bg-bg-tertiary hover:bg-bg-tertiary text-text-secondary rounded border border-border-light"
+             title="New Folder"
+          >
+            <FolderPlus size={14} />
+          </button>
+          <label className="p-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded cursor-pointer transition-all">
+            <Upload size={14} />
+            <input type="file" multiple className="hidden" onChange={handleInputChange} ref={fileInputRef} />
+          </label>
         </div>
       </div>
 
-      {uploadProgress !== null && (
-        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner border border-slate-200/50">
-           <div className="h-full icon-grad-blue transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
-        </div>
-      )}
-
       {error && (
-        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-600 rounded-2xl flex items-center justify-between text-[11px] font-black uppercase tracking-widest animate-in slide-in-from-top-2">
-          <div className="flex items-center space-x-3">
-             <X className="text-red-500" size={16} />
+        <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-600 rounded flex items-center justify-between text-xs font-bold">
+          <div className="flex items-center space-x-2">
+             <X size={16} />
              <span>{error}</span>
           </div>
-          <button onClick={() => setError('')} className="p-1 hover:bg-red-500/20 rounded-lg transition-all"><X size={14} /></button>
+          <button onClick={() => setError('')} className="p-1 hover:bg-red-500/20 rounded"><X size={14} /></button>
         </div>
       )}
 
-      {showNewFolder && (
-        <div className="p-4 bg-bg-secondary border border-blue-500/20 rounded-[24px] flex items-center space-x-4 animate-in zoom-in-95 duration-200 shadow-2xl premium-card">
-           <div className="p-2 icon-grad-blue rounded-xl text-white">
-             <Folder size={18} />
-           </div>
-           <input 
-              autoFocus
-              className="flex-1 bg-transparent border-none text-text-primary outline-none text-sm placeholder:text-text-muted font-bold tracking-tight"
-              placeholder="System will initialize folder name..."
-              value={newFolderName}
-              onChange={e => setNewFolderName(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') handleCreateFolder();
-                if (e.key === 'Escape') setShowNewFolder(false);
-              }}
-           />
-           <div className="flex space-x-2">
-              <button 
-                onClick={handleCreateFolder}
-                className="p-2.5 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-xl transition-all border border-emerald-500/20"
-              >
-                {actionLoading === 'mkdir' ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
-              </button>
-              <button 
-                onClick={() => setShowNewFolder(false)}
-                className="p-2.5 bg-slate-100 text-slate-500 hover:bg-slate-200 rounded-xl transition-all"
-              >
-                <X size={18} />
-              </button>
-           </div>
-        </div>
-      )}
+      {/* Breadcrumbs */}
+      <div className="flex items-center space-x-1 text-xs font-bold overflow-hidden px-1">
+        <button 
+          onClick={() => navigateTo('/')}
+          className="p-1 hover:bg-bg-tertiary rounded text-text-muted hover:text-blue-500 transition-colors"
+        >
+          <Home size={14} />
+        </button>
+        {breadcrumbs.map((crumb, i) => (
+          <React.Fragment key={i}>
+            <ChevronRight size={12} className="text-text-muted/30 shrink-0" />
+            <button 
+              onClick={() => navigateTo('/' + breadcrumbs.slice(0, i + 1).join('/'))}
+              className="px-1.5 py-0.5 hover:bg-bg-tertiary rounded text-text-secondary hover:text-blue-500 transition-colors whitespace-nowrap"
+            >
+              {crumb}
+            </button>
+          </React.Fragment>
+        ))}
+      </div>
 
-      {/* Main File Table */}
-      <div className="flex-1 bg-bg-secondary rounded-[32px] border border-border-light overflow-hidden flex flex-col shadow-xl">
-        <div className="overflow-x-auto flex-1 custom-scrollbar">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-bg-tertiary/80 backdrop-blur-sm text-[10px] font-black uppercase tracking-widest text-text-muted sticky top-0 z-10 border-b border-border-light">
-                <th className="px-8 py-5">Name</th>
-                <th className="px-8 py-5 w-32 text-right">Size</th>
-                <th className="px-8 py-5 w-40 text-right">Permissions</th>
-                <th className="px-8 py-5 w-40 text-right">Modified</th>
-                <th className="px-8 py-5 w-32 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border-light/50">
-              {loading ? (
-                <tr>
-                  <td colSpan={5} className="py-24 text-center">
-                    <div className="flex flex-col items-center">
-                      <Loader2 size={48} className="text-blue-500 animate-spin mb-6 opacity-30" />
-                      <span className="uppercase tracking-widest font-black text-text-muted/40 text-[10px]">Scanning File Clusters...</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : filteredFiles.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-24 text-center">
-                     <div className="p-6 bg-bg-tertiary rounded-full w-fit mx-auto mb-4 border border-border-light">
-                       <Folder size={48} className="text-text-muted/30" />
+      {/* File List Table */}
+      <div 
+        className={`flex-1 overflow-auto border border-border-light rounded bg-bg-secondary/20 transition-all ${isDragging ? 'ring-2 ring-blue-500 bg-blue-500/5' : ''}`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="border-b border-border-light bg-bg-tertiary/40">
+              <th className="px-4 py-2 text-[10px] font-bold text-text-muted uppercase">Name</th>
+              <th className="px-4 py-2 text-[10px] font-bold text-text-muted uppercase hidden sm:table-cell text-right">Size</th>
+              <th className="px-4 py-2 text-[10px] font-bold text-text-muted uppercase hidden md:table-cell text-right">Modified</th>
+              <th className="px-4 py-2 text-[10px] font-bold text-text-muted uppercase text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border-light">
+            {currentPath !== '/' && (
+              <tr 
+                onClick={navigateUp}
+                className="hover:bg-bg-tertiary/30 cursor-pointer group"
+              >
+                <td colSpan={4} className="px-4 py-2">
+                   <div className="flex items-center space-x-3">
+                     <div className="p-1 rounded bg-bg-tertiary text-text-muted">
+                        <ArrowUp size={12} />
                      </div>
-                     <span className="uppercase tracking-widest font-black text-text-muted/40 text-[10px]">Directory contains no active buffers</span>
-                  </td>
-                </tr>
-              ) : (
-                filteredFiles.map((file) => (
+                     <span className="text-xs font-bold text-text-muted italic">..</span>
+                   </div>
+                </td>
+              </tr>
+            )}
+
+            {loading ? (
+              <tr>
+                <td colSpan={4} className="py-12 text-center">
+                   <Loader2 size={24} className="text-blue-500 animate-spin mx-auto mb-2" />
+                   <span className="text-[10px] font-bold text-text-muted uppercase">Indexing...</span>
+                </td>
+              </tr>
+            ) : files.filter(f => f.name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (
+              <tr>
+                <td colSpan={4} className="py-12 text-center text-text-muted text-xs font-bold">No files found.</td>
+              </tr>
+            ) : (
+              files
+                .filter(f => f.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                .sort((a, b) => (b.isDirectory ? 1 : 0) - (a.isDirectory ? 1 : 0))
+                .map((file) => (
                   <tr 
-                    key={file.path}
-                    className="group hover:bg-bg-tertiary/50 transition-all cursor-pointer relative premium-card"
+                    key={file.path} 
+                    onClick={() => file.isDirectory && navigateTo(file.path)}
+                    className="hover:bg-bg-tertiary/30 cursor-pointer transition-colors group"
                   >
-                    <td className="px-8 py-5">
-                      <div className="flex items-center space-x-4">
-                        <div className="transition-all duration-300 group-hover:scale-110">
-                          {getFileIcon(file.name, file.isDirectory)}
-                        </div>
-                        {renamingFile === file.path ? (
-                          <div className="flex-1 flex items-center space-x-2 animate-in slide-in-from-left-2 duration-300">
-                             <input 
-                                autoFocus
-                                className="bg-bg-secondary border-2 border-blue-500/50 rounded-xl px-4 py-2 text-xs text-text-primary outline-none font-bold shadow-lg"
-                                value={renameValue}
-                                onChange={e => setRenameValue(e.target.value)}
-                                onKeyDown={e => {
-                                  if (e.key === 'Enter') handleRename(file.path);
-                                  if (e.key === 'Escape') setRenamingFile(null);
-                                }}
-                             />
-                             <button onClick={() => handleRename(file.path)} className="text-emerald-500 p-2 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white rounded-xl transition-all"><Check size={20} /></button>
-                             <button onClick={() => setRenamingFile(null)} className="text-red-500 p-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all"><X size={20} /></button>
-                          </div>
-                        ) : (
-                          <span 
-                            onClick={() => file.isDirectory && navigateTo(file.path)}
-                            className={`text-[13px] font-bold truncate max-w-[300px] xl:max-w-md tracking-tight ${file.isDirectory ? 'text-text-primary group-hover:text-blue-500' : 'text-text-secondary'} transition-colors`}
+                    <td className="px-4 py-2">
+                       <div className="flex items-center space-x-3">
+                          <div className="shrink-0">{getFileIcon(file.name, file.isDirectory)}</div>
+                          <span className="text-xs font-bold text-text-primary group-hover:text-blue-500 transition-colors truncate max-w-[200px]">{file.name}</span>
+                       </div>
+                    </td>
+                    <td className="px-4 py-2 text-right text-[10px] font-mono text-text-muted hidden sm:table-cell">
+                       {file.isDirectory ? 'DIR' : formatBytes(file.size)}
+                    </td>
+                    <td className="px-4 py-2 text-right text-[10px] font-bold text-text-muted hidden md:table-cell uppercase">
+                       {timeAgo(file.modifiedAt)}
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                       <div className="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {!file.isDirectory && (
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleDownload(file.path, file.name); }}
+                              className="p-1 hover:bg-bg-tertiary rounded text-text-muted hover:text-blue-500"
+                            >
+                              <Download size={14} />
+                            </button>
+                          )}
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); setRenamingFile(file.path); setRenameValue(file.name); }}
+                            className="p-1 hover:bg-bg-tertiary rounded text-text-muted hover:text-blue-500"
                           >
-                            {file.name}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-8 py-5 text-right font-mono text-[10px] text-text-muted/60 font-bold">
-                      {file.isDirectory ? '—' : formatBytes(file.size)}
-                    </td>
-                    <td className="px-8 py-5 text-right font-mono text-[10px] text-text-muted tracking-widest opacity-60">
-                      {file.permissions || '—'}
-                    </td>
-                    <td className="px-8 py-5 text-right text-[10px] text-text-muted font-black tracking-tight uppercase">
-                      {timeAgo(file.modifiedAt)}
-                    </td>
-                    <td className="px-8 py-5 text-right">
-                      <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
-                        {!file.isDirectory && (
-                          <button onClick={() => handleDownload(file.path, file.name)} className="p-2.5 bg-bg-tertiary text-text-secondary hover:text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all shadow-sm" title="Download">
-                            <Download size={16} />
+                            <Edit3 size={14} />
                           </button>
-                        )}
-                        <button onClick={() => { setRenamingFile(file.path); setRenameValue(file.name); }} className="p-2.5 bg-bg-tertiary text-text-secondary hover:text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all shadow-sm" title="Rename">
-                          <Edit3 size={16} />
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(file.path, file.name)} 
-                          className="p-2.5 bg-bg-tertiary text-text-secondary hover:bg-red-500 hover:text-white transition-all rounded-xl shadow-sm" 
-                          disabled={actionLoading === file.path}
-                        >
-                          {actionLoading === file.path ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                        </button>
-                      </div>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleDelete(file.path, file.name); }}
+                            className="p-1 hover:bg-red-500/10 rounded text-text-muted hover:text-red-500"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                       </div>
                     </td>
                   </tr>
                 ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        
-        {/* Modern Footer Status Bar */}
-        <div className="px-10 py-4 bg-bg-tertiary/80 backdrop-blur-sm border-t border-border-light flex items-center justify-between text-[10px] font-black text-text-muted uppercase tracking-widest">
-           <div className="flex items-center space-x-6">
-              <div className="flex items-center space-x-2">
-                 <span className="text-text-primary">{filteredFiles.length}</span>
-                 <span>Buffers Detected</span>
-              </div>
-              <span className="h-1 w-1 bg-border-light rounded-full" />
-              <div className="flex items-center space-x-2">
-                 <span className="text-text-primary">{files.filter(f => f.isDirectory).length}</span>
-                 <span>Clusters</span>
-              </div>
-           </div>
-           <div className="flex items-center space-x-3 group cursor-help">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
-              <span className="font-mono text-blue-500 transition-all group-hover:text-blue-400">{currentPath}</span>
-           </div>
-        </div>
+            )}
+          </tbody>
+        </table>
       </div>
-    </div>
 
-    {confirmDeletePath && (
-      <ConfirmModal
-        title="Purge Object"
-        message={`Authorize permanent deletion of "${confirmDeletePath.name}" from storage array?`}
-        confirmLabel="Purge"
-        danger
-        onConfirm={confirmDelete}
-        onCancel={() => setConfirmDeletePath(null)}
-      />
-    )}
-    </>
+      {uploadProgress !== null && (
+        <div className="p-3 bg-bg-secondary border border-blue-500/20 rounded shadow-lg">
+           <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Streaming Payload</span>
+              <span className="text-[10px] font-mono font-bold text-text-primary">{uploadProgress}%</span>
+           </div>
+           <div className="h-1 bg-bg-tertiary rounded-full overflow-hidden">
+              <div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+           </div>
+        </div>
+      )}
+
+      {/* Modals */}
+      {showNewFolder && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-bg-primary w-full max-w-sm rounded border border-border-light shadow-2xl p-6">
+            <h3 className="text-sm font-bold text-text-primary mb-4 uppercase tracking-tight">Create New Folder</h3>
+            <input
+              autoFocus
+              className="w-full bg-bg-secondary border border-border-light rounded px-3 py-2 text-xs font-mono mb-6 outline-none focus:border-blue-500"
+              placeholder="folder-name"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
+            />
+            <div className="flex justify-end space-x-2">
+              <button onClick={() => setShowNewFolder(false)} className="px-3 py-1.5 text-text-muted hover:text-text-primary text-xs font-bold">Cancel</button>
+              <button 
+                onClick={handleCreateFolder}
+                disabled={actionLoading === 'mkdir' || !newFolderName.trim()}
+                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded text-xs disabled:opacity-50"
+              >
+                {actionLoading === 'mkdir' ? <Loader2 size={14} className="animate-spin" /> : 'Create'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {renamingFile && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-bg-primary w-full max-w-sm rounded border border-border-light shadow-2xl p-6">
+            <h3 className="text-sm font-bold text-text-primary mb-4 uppercase tracking-tight">Rename Asset</h3>
+            <input
+              autoFocus
+              className="w-full bg-bg-secondary border border-border-light rounded px-3 py-2 text-xs font-mono mb-6 outline-none focus:border-blue-500"
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleRename()}
+            />
+            <div className="flex justify-end space-x-2">
+              <button onClick={() => setRenamingFile(null)} className="px-3 py-1.5 text-text-muted hover:text-text-primary text-xs font-bold">Cancel</button>
+              <button 
+                onClick={handleRename}
+                disabled={actionLoading === 'rename' || !renameValue.trim()}
+                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded text-xs disabled:opacity-50"
+              >
+                {actionLoading === 'rename' ? <Loader2 size={14} className="animate-spin" /> : 'Rename'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmDeletePath && (
+        <ConfirmModal
+          title="Permanently Delete?"
+          message={`Are you absolutely sure you want to remove "${confirmDeletePath.name}"? This action is irreversible.`}
+          confirmLabel="Delete"
+          danger
+          onConfirm={confirmDelete}
+          onCancel={() => setConfirmDeletePath(null)}
+        />
+      )}
+    </div>
   );
 };
 

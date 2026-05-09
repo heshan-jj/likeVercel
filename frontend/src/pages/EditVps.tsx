@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Loader2, Save, Terminal, Shield, Trash2, KeyRound, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Loader2, Save, Shield, Trash2, ChevronDown } from 'lucide-react';
+
 import api from '../utils/api';
 
 const EditVps: React.FC = () => {
@@ -37,12 +38,12 @@ const EditVps: React.FC = () => {
           port: p.port,
           username: p.username,
           authType: p.authType,
-          password: '', // Password/Keys aren't returned for security
+          password: '',
           privateKey: '',
           passphrase: ''
         });
       } catch {
-        setError('Failed to load VPS credentials for editing');
+        setError('Failed to load VPS credentials');
       } finally {
         setFetching(false);
       }
@@ -90,7 +91,6 @@ const EditVps: React.FC = () => {
         authType: formData.authType,
       };
 
-      // Only include credentials if they were typed in
       if (formData.authType === 'password' && formData.password) {
         payload.password = formData.password;
       } else if (formData.authType === 'privateKey' && formData.privateKey) {
@@ -119,224 +119,210 @@ const EditVps: React.FC = () => {
   };
 
   if (fetching) return (
-    <div className="flex flex-col h-full bg-bg-primary items-center justify-center space-y-4">
-       <Loader2 size={40} className="text-blue-500 animate-spin" />
-       <span className="text-text-secondary font-bold tracking-widest text-xs uppercase">Pulling Node Config...</span>
+    <div className="flex flex-col h-full bg-bg-primary items-center justify-center space-y-2">
+       <Loader2 size={32} className="text-blue-500 animate-spin" />
+       <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Pulling Config...</span>
     </div>
   );
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4 bg-bg-primary min-h-full">
+    <div className="max-w-3xl mx-auto py-8 px-6 bg-bg-primary min-h-full">
       <button 
         onClick={() => navigate(`/vps/${id}`)}
-        className="flex items-center space-x-2 text-text-secondary hover:text-text-primary transition-colors mb-8 group font-bold text-xs uppercase tracking-widest"
+        className="flex items-center space-x-2 text-text-secondary hover:text-text-primary transition-colors mb-6 group text-[10px] font-bold uppercase tracking-wider"
       >
-        <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-        <span className="font-bold">Return to Node</span>
+        <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+        <span>Return to Node</span>
       </button>
 
-      <div className="flex items-center justify-between mb-10">
+      <div className="flex items-center justify-between mb-8 border-b border-border-light pb-6">
         <div>
-          <h1 className="text-3xl font-bold text-text-primary tracking-tight">Configure Node</h1>
-          <p className="mt-2 text-text-secondary text-sm font-medium">Update access credentials and connection parameters for this cluster.</p>
+          <h1 className="text-xl font-bold text-text-primary tracking-tight uppercase">Update Endpoint</h1>
+          <p className="mt-1 text-text-secondary text-xs font-medium">Modify credentials and connection parameters.</p>
         </div>
         <button 
            onClick={handleDelete}
-           className="p-3 text-red-500 hover:bg-red-500/10 rounded-xl transition-all border border-red-500/20 shadow-sm"
+           className="p-2 text-red-600 hover:bg-red-500/10 rounded transition-all border border-red-500/20"
            title="Decommission Node"
         >
-           <Trash2 size={22} />
+           <Trash2 size={18} />
         </button>
       </div>
 
-      <div className="glass-effect rounded-[32px] overflow-hidden p-8 border border-border-light shadow-2xl relative">
-        <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
-          <Terminal size={120} className="text-text-primary" />
-        </div>
-
+      <div className="bg-bg-secondary rounded border border-border-light shadow-sm p-6 relative">
         {error && (
-          <div className="mb-8 p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl flex items-center space-x-3 text-xs font-bold">
-             <Shield size={18} className="text-red-500" />
+          <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 text-red-600 rounded flex items-center space-x-2 text-xs font-bold">
+             <Shield size={14} />
              <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-text-muted mb-2 uppercase tracking-widest">Connection Name</label>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="md:col-span-2 space-y-1">
+              <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">Instance Name</label>
               <input 
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full bg-bg-primary/50 border border-border-light focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-8 focus:ring-blue-500/5 font-bold" 
-                placeholder="e.g. Production Web Server" 
+                className="w-full bg-bg-primary border border-border-light focus:border-blue-500 rounded px-3 py-2 text-text-primary outline-none transition-all font-bold text-xs" 
                 required 
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-text-muted mb-2 uppercase tracking-widest">Hostname / IP</label>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">Hostname / IP</label>
               <input 
                 name="host"
                 value={formData.host}
                 onChange={handleChange}
-                className="w-full bg-bg-primary/50 border border-border-light focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-8 focus:ring-blue-500/5 font-mono text-sm" 
-                placeholder="192.168.1.100" 
+                className="w-full bg-bg-primary border border-border-light focus:border-blue-500 rounded px-3 py-2 text-text-primary outline-none transition-all font-mono text-xs" 
                 required 
               />
             </div>
-            <div>
-              <label className="block text-xs font-bold text-text-muted mb-2 uppercase tracking-widest">SSH Port</label>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">Port</label>
               <input 
                 name="port"
                 type="number"
                 value={formData.port}
                 onChange={handleChange}
-                className="w-full bg-bg-primary/50 border border-border-light focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-8 focus:ring-blue-500/5 font-mono text-sm" 
+                className="w-full bg-bg-primary border border-border-light focus:border-blue-500 rounded px-3 py-2 text-text-primary outline-none transition-all font-mono text-xs" 
                 required 
               />
             </div>
 
-            <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-text-muted mb-2 uppercase tracking-widest">Username</label>
+            <div className="md:col-span-2 space-y-1">
+              <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">SSH Username</label>
               <input 
                 name="username"
                 value={formData.username}
                 onChange={handleChange}
-                className="w-full bg-bg-primary/50 border border-border-light focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-8 focus:ring-blue-500/5 font-bold" 
-                placeholder="root" 
+                className="w-full bg-bg-primary border border-border-light focus:border-blue-500 rounded px-3 py-2 text-text-primary outline-none transition-all font-bold text-xs" 
                 required 
               />
             </div>
 
-            <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-text-muted mb-3 uppercase tracking-widest">Authentication Type</label>
-              <div className="grid grid-cols-2 gap-4">
-                <label 
-                  className={`cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-center space-y-2 transition-all ${
+            <div className="md:col-span-2 space-y-2">
+              <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">Authentication Protocol</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, authType: 'password' }))}
+                  className={`p-2.5 rounded border text-[10px] font-bold uppercase transition-all ${
                     formData.authType === 'password' 
-                    ? 'border-blue-500 bg-blue-500/10 text-blue-500 shadow-xl shadow-blue-500/5' 
-                    : 'border-border-light bg-bg-primary text-text-muted hover:border-text-secondary'
+                    ? 'bg-blue-600 text-white border-blue-600' 
+                    : 'bg-bg-primary border-border-light text-text-muted hover:border-blue-500/50'
                   }`}
                 >
-                  <input type="radio" name="authType" value="password" checked={formData.authType === 'password'} onChange={handleChange} className="hidden" />
-                  <div className={`p-2 rounded-lg ${formData.authType === 'password' ? 'bg-blue-600 text-white' : 'bg-bg-tertiary text-text-muted'}`}>
-                    <Save size={18} />
-                  </div>
-                  <span className="font-bold text-xs uppercase tracking-widest">Password</span>
-                </label>
-                <label 
-                  className={`cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-center space-y-2 transition-all ${
+                  Password
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, authType: 'privateKey' }))}
+                  className={`p-2.5 rounded border text-[10px] font-bold uppercase transition-all ${
                     formData.authType === 'privateKey' 
-                    ? 'border-blue-500 bg-blue-500/10 text-blue-500 shadow-xl shadow-blue-500/5' 
-                    : 'border-border-light bg-bg-primary text-text-muted hover:border-text-secondary'
+                    ? 'bg-blue-600 text-white border-blue-600' 
+                    : 'bg-bg-primary border-border-light text-text-muted hover:border-blue-500/50'
                   }`}
                 >
-                  <input type="radio" name="authType" value="privateKey" checked={formData.authType === 'privateKey'} onChange={handleChange} className="hidden" />
-                  <div className={`p-2 rounded-lg ${formData.authType === 'privateKey' ? 'bg-blue-600 text-white' : 'bg-bg-tertiary text-text-muted'}`}>
-                    <Shield size={18} />
-                  </div>
-                  <span className="font-bold text-xs uppercase tracking-widest">SSH Key</span>
-                </label>
+                  SSH Key
+                </button>
               </div>
             </div>
 
-            <div className="md:col-span-2 p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl text-[10px] font-bold text-amber-600 uppercase tracking-widest flex items-center space-x-3">
-              <Shield size={16} />
-              <span>Leave password/key blank to keep existing credentials.</span>
+            <div className="md:col-span-2 p-3 bg-amber-500/5 border border-amber-500/10 rounded flex items-start space-x-2">
+               <Shield size={14} className="text-amber-600 opacity-50 shrink-0 mt-0.5" />
+               <p className="text-[9px] leading-tight text-amber-600 font-bold uppercase tracking-wider">
+                  SECURITY NOTE: LEAVE CREDENTIAL FIELDS BLANK TO MAINTAIN CURRENT NODE AUTHORIZATION.
+               </p>
             </div>
 
-            {formData.authType === 'password' && (
-              <div className="md:col-span-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                <label className="block text-xs font-bold text-text-muted mb-2 uppercase tracking-widest">New SSH Password</label>
+            {formData.authType === 'password' ? (
+              <div className="md:col-span-2 space-y-1">
+                <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">Update Password</label>
                 <input 
                   name="password"
                   type="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full bg-bg-primary/50 border border-border-light focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-8 focus:ring-blue-500/5 font-bold" 
-                  placeholder="Leave blank to keep current" 
+                  className="w-full bg-bg-primary border border-border-light focus:border-blue-500 rounded px-3 py-2 text-text-primary outline-none transition-all font-bold text-xs" 
+                  placeholder="Enter new password or leave blank"
                 />
               </div>
-            )}
-
-            {formData.authType === 'privateKey' && (
-              <div className="md:col-span-2 space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
-                {/* Saved key picker */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-bold text-text-muted uppercase tracking-widest">Use Saved Key</label>
-                    <Link to="/keys" className="flex items-center space-x-1 text-xs text-blue-500 hover:text-blue-400 font-bold transition-colors">
-                      <KeyRound size={11} />
-                      <span>Manage Keys</span>
-                    </Link>
+            ) : (
+              <div className="md:col-span-2 space-y-4 bg-bg-primary border border-border-light rounded p-4">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">Vault Key Selector</label>
+                    <Link to="/keys" className="text-[9px] font-bold text-blue-500 hover:underline uppercase">Manage Vault</Link>
                   </div>
                   {savedKeys.length === 0 ? (
-                    <p className="text-xs text-text-muted py-2">No saved keys — <Link to="/keys" className="text-blue-500 hover:underline">add one in Key Manager</Link> or paste below.</p>
+                    <p className="text-[10px] text-text-muted font-bold opacity-60">No keys in vault.</p>
                   ) : (
                     <div className="relative">
-                      <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
                       <select
                         value={selectedKeyId}
                         onChange={e => handleSelectKey(e.target.value)}
-                        className="w-full appearance-none bg-bg-primary/50 border border-border-light focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all font-bold text-sm cursor-pointer"
+                        className="w-full bg-bg-secondary border border-border-light focus:border-blue-500 rounded px-3 py-2 text-text-primary outline-none transition-all font-bold text-xs cursor-pointer appearance-none"
                       >
-                        <option value="">— select a saved key or paste below —</option>
+                        <option value="">— SELECT SAVED KEY —</option>
                         {savedKeys.map(k => (
-                          <option key={k.id} value={k.id}>{k.label} (MD5:{k.fingerprint})</option>
+                          <option key={k.id} value={k.id}>{k.label}</option>
                         ))}
                       </select>
+                      <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
                     </div>
                   )}
                   {loadingKey && (
-                    <div className="flex items-center space-x-2 mt-2 text-xs text-text-muted">
-                      <Loader2 size={12} className="animate-spin" />
-                      <span>Loading key...</span>
+                    <div className="flex items-center space-x-2 mt-1 text-[9px] text-text-muted font-bold animate-pulse">
+                      <Loader2 size={10} className="animate-spin" />
+                      <span>REHYDRATING...</span>
                     </div>
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-text-muted mb-2 uppercase tracking-widest">New Private Key Content</label>
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">Update Private Key</label>
                   <textarea 
                     name="privateKey"
                     value={formData.privateKey}
                     onChange={handleChange}
-                    className="w-full bg-bg-primary/50 border border-border-light focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-8 focus:ring-blue-500/5 font-mono text-xs leading-relaxed" 
+                    className="w-full bg-bg-secondary border border-border-light focus:border-blue-500 rounded px-3 py-2 text-text-primary outline-none transition-all font-mono text-[10px] leading-tight resize-none" 
                     rows={6}
-                    placeholder="Leave blank to keep current" 
+                    placeholder="Paste new key content or leave blank" 
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-text-muted mb-2 uppercase tracking-widest">New Key Passphrase (Optional)</label>
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">Passphrase</label>
                   <input 
                     name="passphrase"
                     type="password"
                     value={formData.passphrase}
                     onChange={handleChange}
-                    className="w-full bg-bg-primary/50 border border-border-light focus:border-blue-500 rounded-xl px-4 py-3 text-text-primary outline-none transition-all focus:ring-8 focus:ring-blue-500/5 font-bold" 
+                    className="w-full bg-bg-secondary border border-border-light focus:border-blue-500 rounded px-3 py-2 text-text-primary outline-none transition-all font-bold text-xs" 
+                    placeholder="Optional"
                   />
                 </div>
               </div>
             )}
           </div>
 
-          <div className="flex items-center justify-end space-x-4 pt-8 border-t border-border-light mt-8">
+          <div className="flex items-center justify-end space-x-3 pt-6 border-t border-border-light">
             <button 
               type="button" 
               onClick={() => navigate(`/vps/${id}`)}
-              className="px-6 py-3 text-text-secondary hover:text-text-primary font-bold transition-all hover:bg-bg-tertiary/20 rounded-xl"
+              className="px-4 py-2 text-text-muted hover:text-text-primary text-[10px] font-bold uppercase tracking-widest transition-colors"
             >
-              Cancel Changes
+              Cancel
             </button>
             <button 
               type="submit" 
-              className="flex items-center space-x-2 px-10 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-xl shadow-blue-600/20 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+              className="flex items-center space-x-2 px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded shadow-sm text-xs uppercase transition-all disabled:opacity-50"
               disabled={loading}
             >
-              {loading ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
-              <span>Sync Node Config</span>
+              {loading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+              <span>Sync Node</span>
             </button>
           </div>
         </form>

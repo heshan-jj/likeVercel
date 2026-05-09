@@ -13,37 +13,37 @@ interface MetricCardProps {
 }
 
 const MetricCard: React.FC<MetricCardProps> = ({ label, value, sub, icon, color, isLoading, onClick, active = false }) => {
-  const getGradClass = () => {
+  const getColorClass = () => {
     switch (color) {
-      case 'blue': return 'icon-grad-blue shadow-[0_4px_12px_rgba(59,130,246,0.3)]';
-      case 'emerald': return 'icon-grad-emerald shadow-[0_4px_12px_rgba(16,185,129,0.3)]';
-      default: return 'icon-grad-rose shadow-[0_4px_12px_rgba(244,63,94,0.3)]';
+      case 'blue': return 'text-blue-500 bg-blue-500/10';
+      case 'emerald': return 'text-emerald-500 bg-emerald-500/10';
+      default: return 'text-red-500 bg-red-500/10';
     }
   };
 
   return (
     <div 
       onClick={onClick}
-      className={`bg-bg-secondary p-6 rounded-[24px] border shadow-sm premium-card transition-all group overflow-hidden relative ${
-        onClick ? 'cursor-pointer hover:shadow-xl hover:border-blue-500/30' : ''
-      } ${active ? 'border-blue-500 ring-4 ring-blue-500/10' : 'border-border-light'}`}
+      className={`bg-bg-secondary p-4 rounded-md border shadow-sm transition-all ${
+        onClick ? 'cursor-pointer hover:border-blue-500/50' : ''
+      } ${active ? 'border-blue-500' : 'border-border-light'}`}
     >
-      <div className="flex items-start justify-between mb-4">
-        <div className={`p-3 rounded-2xl text-white ${getGradClass()}`}>
-          {icon}
+      <div className="flex items-start justify-between mb-2">
+        <div className={`p-2 rounded ${getColorClass()}`}>
+          {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<any>, { size: 16 }) : icon}
         </div>
-        <span className="text-[9px] font-black text-text-muted uppercase tracking-widest pt-1">{sub}</span>
+        <span className="text-[10px] font-bold text-text-muted uppercase tracking-tight pt-1">{sub}</span>
       </div>
       <div>
         {isLoading ? (
           <>
-            <Skeleton className="h-8 w-16 mb-2" />
-            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-6 w-16 mb-1" />
+            <Skeleton className="h-3 w-20" />
           </>
         ) : (
           <>
-            <p className="text-3xl font-black text-text-primary tracking-tighter mb-0.5">{value}</p>
-            <p className="text-xs font-bold text-text-muted uppercase tracking-wider">{label}</p>
+            <p className="text-xl font-bold text-text-primary tracking-tight">{value}</p>
+            <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider">{label}</p>
           </>
         )}
       </div>

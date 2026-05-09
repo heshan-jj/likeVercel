@@ -46,21 +46,25 @@ router.get('/:id/processes', async (req: AuthRequest, res: Response): Promise<vo
       type: 'pm2'
     }));
 
-    // Scan for systemctl running services
+    // 3. Scan for systemctl running services
     const systemctlProcesses: any[] = [];
     try {
+      // Improved systemctl scan: gets Description and LoadState
       const sysOutput = await sshManager.executeCommand(vpsId, "systemctl list-units --type=service --state=running --no-pager --no-legend");
       const sysLines = sysOutput.split('\n').filter(l => l.trim());
       for (const line of sysLines) {
         const parts = line.split(/\s+/).filter(Boolean);
         if (parts.length > 0) {
           const serviceName = parts[0].replace('.service', '');
+          // Description is often the rest of the line starting from index 4
+          const description = parts.slice(4).join(' ');
           systemctlProcesses.push({
             processName: serviceName,
             cpu: 0,
             memory: 0,
             status: 'running',
-            type: 'systemctl'
+            type: 'systemctl',
+            description
           });
         }
       }
@@ -68,7 +72,45 @@ router.get('/:id/processes', async (req: AuthRequest, res: Response): Promise<vo
       console.warn('[Process] Systemctl scan failed:', err);
     }
 
-    const allUnmanaged = [...unmanagedPm2Processes, ...systemctlProcesses];
+    // 4. DEEP SCAN: Listening Sockets (Raw Processes)
+    const rawListeningProcesses: any[] = [];
+    try {
+      // This command extracts PID and Process Name from listening sockets
+      const ssOutput = await sshManager.executeCommand(vpsId, "ss -tlnp 2>/dev/null | tail -n +2 || true");
+      const ssLines = ssOutput.split('\n').filter(l => l.trim());
+      
+      for (const line of ssLines) {
+        // Parse: LISTEN 0 128 0.0.0.0:80 0.0.0.0:* users:(("nginx",pid=123,fd=10))
+        const pidMatch = line.match(/pid=(\d+)/);
+        const nameMatch = line.match(/"([^"]+)"/);
+        const portMatch = line.match(/:(\d+)\s/);
+        
+        if (pidMatch && portMatch) {
+          const pid = pidMatch[1];
+          const port = parseInt(portMatch[1]);
+          const name = nameMatch ? nameMatch[1] : 'unknown';
+
+          // Skip if already found in PM2 or Systemd
+          if (pm2Processes.some(p => p.pm2_env?.axm_options?.pid == pid || p.pid == pid)) continue;
+          if (systemctlProcesses.some(p => p.processName === name)) continue;
+          if (rawListeningProcesses.some(p => p.pid == pid)) continue;
+
+          rawListeningProcesses.push({
+            processName: name,
+            pid,
+            port,
+            status: 'running',
+            type: 'port',
+            cpu: 0,
+            memory: 0
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('[Process] Deep scan failed:', err);
+    }
+
+    const allUnmanaged = [...unmanagedPm2Processes, ...systemctlProcesses, ...rawListeningProcesses];
 
     const processesWithStatus = deployments.map((d: any) => {
       const pm2Process = pm2Processes.find((p: any) => p.name === d.processName);
@@ -175,6 +217,28 @@ router.post('/:id/processes/start', async (req: AuthRequest, res: Response): Pro
       const escapedMainFile = escapeShellArg(mainFile);
       startCommand = `cd ${escapedPath} && pip install -r requirements.txt && pm2 start -- ${escapedMainFile} --name ${escapedProcessName}`;
       projectType = 'python';
+    } else if (fileList.includes('go.mod') || fileList.includes('main.go')) {
+      processName = data.processName || `go-${port}`;
+      const escapedProcessName = escapeShellArg(processName);
+      const mainFile = fileList.includes('main.go') ? 'main.go' : '.';
+      startCommand = `cd ${escapedPath} && go build -o app_binary ${mainFile} && pm2 start ./app_binary --name ${escapedProcessName}`;
+      projectType = 'go';
+    } else if (fileList.includes('Cargo.toml')) {
+      processName = data.processName || `rust-${port}`;
+      const escapedProcessName = escapeShellArg(processName);
+      startCommand = `cd ${escapedPath} && cargo build --release && pm2 start ./target/release/${escapedProcessName} --name ${escapedProcessName}`;
+      projectType = 'rust';
+    } else if (fileList.includes('index.php')) {
+      processName = data.processName || `php-${port}`;
+      const escapedProcessName = escapeShellArg(processName);
+      startCommand = `cd ${escapedPath} && pm2 start php --name ${escapedProcessName} -- -S 0.0.0.0:${port} index.php`;
+      projectType = 'php';
+    } else if (fileList.some(f => f.endsWith('*'))) { // ls -F marks executables with *
+      const binary = fileList.find(f => f.endsWith('*'))?.replace('*', '') || '';
+      processName = data.processName || `binary-${port}`;
+      const escapedProcessName = escapeShellArg(processName);
+      startCommand = `cd ${escapedPath} && pm2 start ./${escapeShellArg(binary)} --name ${escapedProcessName}`;
+      projectType = 'binary';
     } else if (fileList.includes('index.html')) {
       processName = data.processName || `static-${port}`;
       const escapedProcessName = escapeShellArg(processName);
@@ -387,6 +451,13 @@ router.post('/:id/processes/adopt', async (req: AuthRequest, res: Response): Pro
           const mainFile = fileList.find(f => f.endsWith('.py') && !f.startsWith('.')) || 'app.py';
           startCommand = `cd ${escapedPath} && pm2 start -- ${escapeShellArg(mainFile)} --name ${escapedProcessName}`;
           projectType = 'python';
+        } else if (fileList.includes('go.mod') || fileList.includes('main.go')) {
+          const mainFile = fileList.includes('main.go') ? 'main.go' : '.';
+          startCommand = `cd ${escapedPath} && go build -o adopted_binary ${mainFile} && pm2 start ./adopted_binary --name ${escapedProcessName}`;
+          projectType = 'go';
+        } else if (fileList.includes('Cargo.toml')) {
+          startCommand = `cd ${escapedPath} && cargo build --release && pm2 start ./target/release/${escapedProcessName} --name ${escapedProcessName}`;
+          projectType = 'rust';
         } else if (fileList.includes('index.html')) {
           startCommand = `pm2 serve ${escapedPath} ${finalPort} --name ${escapedProcessName} --spa`;
           projectType = 'static';

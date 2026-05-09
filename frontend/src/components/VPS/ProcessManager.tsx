@@ -9,16 +9,10 @@ import {
   X,
   Loader2,
   Rocket,
-  ChevronDown,
   Clock,
-  FolderOpen,
-  ExternalLink,
   Search,
   Activity,
-  Filter,
-  Maximize2,
   SlidersHorizontal,
-  KeyRound,
   Save
 } from 'lucide-react';
 import api from '../../utils/api';
@@ -51,6 +45,7 @@ interface UnmanagedProcess {
   port?: number;
   pid?: number;
   type?: 'pm2' | 'port' | 'systemctl';
+  description?: string;
 }
 
 interface ProcessManagerProps {
@@ -64,32 +59,27 @@ interface DeployRequest {
   processName?: string;
 }
 
-function getStatusClasses(status: string): string {
+function getStatusBadge(status: string): React.ReactNode {
+  let colorClass = 'bg-gray-500';
   switch (status) {
     case 'online':
     case 'running':
-      return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
+      colorClass = 'bg-emerald-500';
+      break;
     case 'stopping':
     case 'launching':
-      return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
+      colorClass = 'bg-amber-500';
+      break;
     case 'errored':
-      return 'bg-red-500/10 text-red-100 border-red-500/30';
-    default:
-      return 'bg-bg-tertiary text-text-secondary border-border-light';
+      colorClass = 'bg-red-500';
+      break;
   }
-}
-
-function getDotColor(status: string): string {
-  switch (status) {
-    case 'online':
-    case 'running':
-      return 'bg-emerald-500';
-    case 'stopping':
-    case 'launching':
-      return 'bg-amber-500';
-    default:
-      return 'bg-red-500';
-  }
+  return (
+    <div className="flex items-center space-x-2">
+      <div className={`h-2 w-2 rounded-full ${colorClass}`} />
+      <span className="text-[10px] font-bold uppercase tracking-tight">{status}</span>
+    </div>
+  );
 }
 
 const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
@@ -105,7 +95,6 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
   const [showDeploy, setShowDeploy] = useState(false);
   const [deployForm, setDeployForm] = useState({ projectPath: '', port: '', command: '', processName: '' });
   const [deploying, setDeploying] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmAdoptProc, setConfirmAdoptProc] = useState<UnmanagedProcess | null>(null);
@@ -161,7 +150,6 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
       await api.post(`/vps/${vpsId}/processes/start`, body);
       setShowDeploy(false);
       setDeployForm({ projectPath: '', port: '', command: '', processName: '' });
-      setShowAdvanced(false);
       fetchProcesses();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } };
@@ -324,318 +312,307 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
   );
 
   return (
-    <div className="flex flex-col h-full space-y-5">
+    <div className="flex flex-col h-full space-y-4">
       {/* Search and Action Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="relative flex-1 w-full sm:max-w-xs group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-blue-500 transition-colors" size={16} />
+      <div className="flex items-center justify-between gap-4">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" size={14} />
           <input 
             type="text" 
             placeholder="Search processes..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-bg-secondary border border-border-light rounded-xl pl-10 pr-4 py-2 text-xs text-text-primary outline-none focus:border-blue-500/50 transition-all focus:ring-4 focus:ring-blue-500/5"
+            className="w-full bg-bg-secondary border border-border-light rounded-md pl-8 pr-3 py-1.5 text-xs text-text-primary outline-none focus:border-blue-500/50"
           />
         </div>
-        <div className="flex items-center space-x-3 w-full sm:w-auto">
-          <button className="p-2 text-text-muted hover:text-text-primary transition-colors">
-            <Filter size={18} />
-          </button>
-          <button 
-            onClick={() => setShowDeploy(true)}
-            className="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold rounded-xl shadow-xl active:scale-95"
-          >
-            <Plus size={16} />
-            <span>New App</span>
-          </button>
-        </div>
+        <button 
+          onClick={() => setShowDeploy(true)}
+          className="flex items-center space-x-2 px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded"
+        >
+          <Plus size={14} />
+          <span>New App</span>
+        </button>
       </div>
 
       {error && (
-        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl flex items-center justify-between animate-in slide-in-from-top-2 duration-300">
-          <div className="flex items-center space-x-3">
-            <X size={18} />
-            <span className="text-xs font-bold">{error}</span>
-          </div>
-          <button onClick={() => setError('')} className="p-1 hover:bg-red-500/20 rounded transition-all">
+        <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded flex items-center justify-between text-xs">
+          <div className="flex items-center space-x-2">
             <X size={14} />
+            <span>{error}</span>
+          </div>
+          <button onClick={() => setError('')} className="p-1 hover:bg-red-500/20 rounded">
+            <X size={12} />
           </button>
         </div>
       )}
 
       {showDeploy && (
-        <div className="p-6 bg-bg-secondary/90 backdrop-blur-md border border-blue-500/20 rounded-2xl space-y-6 animate-in zoom-in-95 duration-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Rocket className="text-blue-500" size={20} />
-              <h4 className="font-bold text-text-primary tracking-tight text-[13px]">Initialize Deploy</h4>
+        <div className="p-4 bg-bg-secondary border border-blue-500/20 rounded-lg space-y-4">
+          <div className="flex items-center justify-between border-b border-border-light pb-2">
+            <div className="flex items-center space-x-2">
+              <Rocket className="text-blue-500" size={16} />
+              <h4 className="font-bold text-text-primary text-xs">Deploy New Application</h4>
             </div>
-            <button onClick={() => setShowDeploy(false)} className="text-text-muted hover:text-text-primary transition-colors">
-              <X size={20} />
+            <button onClick={() => setShowDeploy(false)} className="text-text-muted hover:text-text-primary">
+              <X size={16} />
             </button>
           </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-[10px] font-bold text-text-muted mb-2 uppercase tracking-widest">Target Path</label>
-              <div className="relative">
-                <FolderOpen className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted/50" size={16} />
-                <input
-                  placeholder="/var/www/my-node-app"
-                  value={deployForm.projectPath}
-                  onChange={(e) => setDeployForm({ ...deployForm, projectPath: e.target.value })}
-                  className="w-full bg-bg-primary border border-border-light rounded-xl pl-10 pr-4 py-3 text-xs text-text-primary outline-none focus:border-blue-500 transition-all font-mono"
-                />
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-text-muted uppercase">Target Path</label>
+              <input
+                placeholder="/var/www/app"
+                value={deployForm.projectPath}
+                onChange={(e) => setDeployForm({ ...deployForm, projectPath: e.target.value })}
+                className="w-full bg-bg-primary border border-border-light rounded px-3 py-2 text-xs font-mono"
+              />
             </div>
-
-            <button 
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              className="flex items-center space-x-2 text-[10px] font-bold text-text-muted hover:text-text-primary transition-colors uppercase tracking-widest"
-            >
-              <ChevronDown size={14} className={`transition-transform duration-300 ${showAdvanced ? 'rotate-180' : ''}`} />
-              <span>Advanced Protocol</span>
-            </button>
-
-            {showAdvanced && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-300">
-                <div>
-                  <label className="block text-[10px] font-bold text-text-muted mb-2 uppercase tracking-widest">Binding Port</label>
-                  <input
-                    placeholder="Auto"
-                    type="number"
-                    value={deployForm.port}
-                    onChange={(e) => setDeployForm({ ...deployForm, port: e.target.value })}
-                    className="w-full bg-bg-primary border border-border-light rounded-xl px-4 py-3 text-xs text-text-primary outline-none focus:border-blue-500 transition-all font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-text-muted mb-2 uppercase tracking-widest">Entry Call</label>
-                  <input
-                    placeholder="e.g. npm start"
-                    value={deployForm.command}
-                    onChange={(e) => setDeployForm({ ...deployForm, command: e.target.value })}
-                    className="w-full bg-bg-primary border border-border-light rounded-xl px-4 py-3 text-xs text-text-primary outline-none focus:border-blue-500 transition-all font-mono"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-[10px] font-bold text-text-muted mb-2 uppercase tracking-widest">Process Identifier (Optional)</label>
-                  <input
-                    placeholder="e.g. backend-api"
-                    value={deployForm.processName}
-                    onChange={(e) => setDeployForm({ ...deployForm, processName: e.target.value })}
-                    className="w-full bg-bg-primary border border-border-light rounded-xl px-4 py-3 text-xs text-text-primary outline-none focus:border-blue-500 transition-all font-mono"
-                  />
-                </div>
-              </div>
-            )}
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-text-muted uppercase">Process Name (Optional)</label>
+              <input
+                placeholder="my-app"
+                value={deployForm.processName}
+                onChange={(e) => setDeployForm({ ...deployForm, processName: e.target.value })}
+                className="w-full bg-bg-primary border border-border-light rounded px-3 py-2 text-xs font-mono"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-text-muted uppercase">Port (Optional)</label>
+              <input
+                placeholder="3000"
+                type="number"
+                value={deployForm.port}
+                onChange={(e) => setDeployForm({ ...deployForm, port: e.target.value })}
+                className="w-full bg-bg-primary border border-border-light rounded px-3 py-2 text-xs font-mono"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-text-muted uppercase">Start Command (Optional)</label>
+              <input
+                placeholder="npm start"
+                value={deployForm.command}
+                onChange={(e) => setDeployForm({ ...deployForm, command: e.target.value })}
+                className="w-full bg-bg-primary border border-border-light rounded px-3 py-2 text-xs font-mono"
+              />
+            </div>
           </div>
 
-          <div className="flex justify-end space-x-3 pt-2">
-            <button onClick={() => setShowDeploy(false)} className="px-6 py-2 text-text-muted hover:text-text-primary font-bold text-xs transition-colors">Discard</button>
+          <div className="flex justify-end space-x-2 pt-2">
+            <button onClick={() => setShowDeploy(false)} className="px-4 py-1.5 text-text-muted hover:text-text-primary text-xs font-bold">Cancel</button>
             <button 
               onClick={handleDeploy} 
               disabled={deploying || !deployForm.projectPath.trim()}
-              className="px-8 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-xl text-xs transition-all disabled:opacity-50"
+              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded text-xs disabled:opacity-50"
             >
-              {deploying ? <Loader2 size={16} className="animate-spin" /> : 'Launch'}
+              {deploying ? <Loader2 size={14} className="animate-spin" /> : 'Deploy'}
             </button>
           </div>
         </div>
       )}
 
-      {/* Deployments List */}
-      <div className="space-y-4">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-16 animate-pulse">
-            <Loader2 size={32} className="text-blue-500 animate-spin mb-4" />
-            <span className="text-text-muted font-bold uppercase tracking-widest text-[10px]">Scanning Workloads...</span>
-          </div>
-        ) : (
-          <>
-            {filteredDeployments.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 px-8 border border-dashed border-border-light rounded-[32px] bg-bg-secondary/10">
-                <div className="p-6 bg-bg-secondary rounded-full mb-6 border border-border-light">
-                  <Rocket size={48} className="text-text-muted/30" />
-                </div>
-                <h3 className="text-lg font-bold text-text-primary mb-2 tracking-tight">No Active Deploys</h3>
-                <p className="text-text-muted text-center max-w-sm mb-10 text-xs font-medium leading-relaxed">Initialize application clusters on target host to begin orchestration.</p>
-              </div>
+      {/* Deployments Table */}
+      <div className="flex-1 overflow-auto border border-border-light rounded-lg bg-bg-secondary/20">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="border-b border-border-light bg-bg-tertiary/50">
+              <th className="px-4 py-2 text-[10px] font-bold text-text-muted uppercase">Status</th>
+              <th className="px-4 py-2 text-[10px] font-bold text-text-muted uppercase">Name</th>
+              <th className="px-4 py-2 text-[10px] font-bold text-text-muted uppercase">Path</th>
+              <th className="px-4 py-2 text-[10px] font-bold text-text-muted uppercase">Port</th>
+              <th className="px-4 py-2 text-[10px] font-bold text-text-muted uppercase text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border-light">
+            {loading ? (
+              <tr>
+                <td colSpan={5} className="py-12 text-center">
+                  <div className="flex flex-col items-center">
+                    <Loader2 size={24} className="text-blue-500 animate-spin mb-2" />
+                    <span className="text-[10px] font-bold text-text-muted uppercase">Loading workloads...</span>
+                  </div>
+                </td>
+              </tr>
+            ) : filteredDeployments.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="py-12 text-center text-text-muted text-xs">
+                  No active deployments found.
+                </td>
+              </tr>
             ) : (
-              <div className="grid grid-cols-1 gap-4">
-                {filteredDeployments.map((dep) => {
-                  const status = dep.actualStatus || dep.status;
-                  const isOnline = status === 'online' || status === 'running';
-                  
-                  return (
-                    <div key={dep.id} className="group premium-card glass-effect rounded-[22px] sm:rounded-[24px] border border-border-light hover:border-blue-500/30 transition-all duration-300 overflow-hidden shadow-xl">
-                      <div className="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-5">
-                        <div className="flex items-center space-x-4">
-                          <div className={`p-4 rounded-2xl ${status === 'online' ? 'icon-grad-blue shadow-[0_0_20px_rgba(59,130,246,0.2)]' : 'bg-bg-tertiary'} transition-all shadow-inner`}>
-                             <Activity size={24} className={status === 'online' ? 'text-white' : 'text-text-muted'} />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center space-x-3 mb-1.5">
-                              <h5 className="font-bold text-text-primary truncate max-w-[150px] sm:max-w-xs tracking-tight text-[13px]">{dep.processName}</h5>
-                              <div className={`flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full border ${getStatusClasses(status)} shadow-sm`}>
-                                 <div className={`h-1.5 w-1.5 rounded-full ${getDotColor(status)} ${isOnline ? 'animate-pulse-soft shadow-[0_0_8px_currentColor]' : ''}`} />
-                                 <span className="text-[9px] font-bold uppercase tracking-widest">{status}</span>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-4 text-[10px] font-medium text-text-muted tracking-wide">
-                               <span className="flex items-center space-x-2"><FolderOpen size={10} /> <span className="truncate max-w-[150px]">{dep.projectPath}</span></span>
-                               <span className="flex items-center space-x-2"><ExternalLink size={10} /> <span>Port: {dep.port}</span></span>
-                            </div>
-                          </div>
-                        </div>
+              filteredDeployments.map((dep) => {
+                const status = dep.actualStatus || dep.status;
+                const isOnline = status === 'online' || status === 'running';
+                
+                return (
+                  <tr key={dep.id} className="hover:bg-bg-tertiary/30 transition-colors">
+                    <td className="px-4 py-2 whitespace-nowrap">
+                      {getStatusBadge(status)}
+                    </td>
+                    <td className="px-4 py-2 font-bold text-text-primary text-xs">
+                      {dep.processName}
+                    </td>
+                    <td className="px-4 py-2 text-text-muted text-xs font-mono truncate max-w-[200px]" title={dep.projectPath}>
+                      {dep.projectPath}
+                    </td>
+                    <td className="px-4 py-2 text-text-muted text-xs">
+                      {dep.port || '-'}
+                    </td>
+                    <td className="px-4 py-2">
+                      <div className="flex items-center justify-end space-x-1">
+                        <button
+                          onClick={() => handleViewLogs(dep.id, dep.processName)}
+                          className="p-1.5 hover:bg-bg-tertiary rounded text-text-muted hover:text-text-primary transition-colors"
+                          title="View Logs"
+                        >
+                          <ScrollText size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleViewEnv(dep)}
+                          className="p-1.5 hover:bg-bg-tertiary rounded text-text-muted hover:text-text-primary transition-colors"
+                          title="Env Vars"
+                        >
+                          <SlidersHorizontal size={14} />
+                        </button>
+                        
+                        <div className="w-px h-3 bg-border-light mx-1" />
 
-                        <div className="flex items-center space-x-2 flex-wrap sm:flex-nowrap gap-y-2">
-                          <button
-                            onClick={() => handleViewLogs(dep.id, dep.processName)}
-                            className="p-3 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-secondary rounded-xl transition-all border border-border-light"
-                            title="View Logs"
-                          >
-                            <ScrollText size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleViewEnv(dep)}
-                            className="p-3 bg-bg-tertiary hover:bg-blue-500/10 text-text-secondary hover:text-blue-400 rounded-xl transition-all border border-border-light"
-                            title="Env Vars"
-                          >
-                            <SlidersHorizontal size={18} />
-                          </button>
-                          
-                          {!isOnline ? (
+                        {isOnline ? (
+                          <>
                             <button
                               onClick={() => handleAction(dep.id, 'restart')}
-                              className="p-3 bg-emerald-600 text-white hover:bg-emerald-500 rounded-xl transition-all shadow-lg shadow-emerald-600/10"
+                              className="p-1.5 hover:bg-bg-tertiary rounded text-text-muted hover:text-amber-500 transition-colors"
                               disabled={actionLoading === `${dep.id}-restart`}
+                              title="Restart"
                             >
-                              {actionLoading === `${dep.id}-restart` ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} fill="currentColor" />}
+                              {actionLoading === `${dep.id}-restart` ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
                             </button>
-                          ) : (
-                            <>
-                              <button
-                                onClick={() => handleAction(dep.id, 'restart')}
-                                className="p-3 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-secondary rounded-xl transition-all border border-border-light"
-                                disabled={actionLoading === `${dep.id}-restart`}
-                                title="Restart"
-                              >
-                                {actionLoading === `${dep.id}-restart` ? <Loader2 size={18} className="animate-spin" /> : <RotateCcw size={18} />}
-                              </button>
-                              <button
-                                onClick={() => handleAction(dep.id, 'stop')}
-                                className="p-3 bg-red-500/10 hover:bg-red-500 hover:text-white text-red-500 rounded-xl transition-all border border-red-500/20"
-                                disabled={actionLoading === `${dep.id}-stop`}
-                                title="Stop"
-                              >
-                                {actionLoading === `${dep.id}-stop` ? <Loader2 size={18} className="animate-spin" /> : <Square size={18} fill="currentColor" />}
-                              </button>
-                            </>
-                          )}
-
-                          <div className="w-px h-6 bg-border-light mx-1" />
-
+                            <button
+                              onClick={() => handleAction(dep.id, 'stop')}
+                              className="p-1.5 hover:bg-bg-tertiary rounded text-text-muted hover:text-red-500 transition-colors"
+                              disabled={actionLoading === `${dep.id}-stop`}
+                              title="Stop"
+                            >
+                              {actionLoading === `${dep.id}-stop` ? <Loader2 size={14} className="animate-spin" /> : <Square size={14} />}
+                            </button>
+                          </>
+                        ) : (
                           <button
-                            onClick={() => handleAction(dep.id, 'delete')}
-                            className="p-3 bg-bg-tertiary hover:bg-red-500 hover:text-white text-text-muted rounded-xl transition-all border border-border-light"
-                            disabled={actionLoading === `${dep.id}-delete`}
+                            onClick={() => handleAction(dep.id, 'restart')}
+                            className="p-1.5 hover:bg-bg-tertiary rounded text-text-muted hover:text-emerald-500 transition-colors"
+                            disabled={actionLoading === `${dep.id}-restart`}
+                            title="Start"
                           >
-                            {actionLoading === `${dep.id}-delete` ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
+                            {actionLoading === `${dep.id}-restart` ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
                           </button>
-                        </div>
+                        )}
+
+                        <button
+                          onClick={() => handleAction(dep.id, 'delete')}
+                          className="p-1.5 hover:bg-red-500/10 rounded text-text-muted hover:text-red-500 transition-colors"
+                          disabled={actionLoading === `${dep.id}-delete`}
+                          title="Delete"
+                        >
+                          {actionLoading === `${dep.id}-delete` ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                        </button>
                       </div>
-                    </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Unmanaged Processes Table */}
+      {filteredUnmanaged.length > 0 && (
+        <div className="mt-8 space-y-2">
+          <div className="flex items-center space-x-2 px-1 text-amber-500">
+            <Activity size={14} />
+            <h3 className="text-[10px] font-bold uppercase tracking-wider">Unmanaged Workloads Detected</h3>
+          </div>
+          <div className="overflow-auto border border-amber-500/20 rounded-lg bg-amber-500/[0.02]">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-amber-500/10 bg-amber-500/5">
+                  <th className="px-4 py-2 text-[10px] font-bold text-amber-500 uppercase">Status</th>
+                  <th className="px-4 py-2 text-[10px] font-bold text-amber-500 uppercase">Name</th>
+                  <th className="px-4 py-2 text-[10px] font-bold text-amber-500 uppercase">Type</th>
+                  <th className="px-4 py-2 text-[10px] font-bold text-amber-500 uppercase">Identifier</th>
+                  <th className="px-4 py-2 text-[10px] font-bold text-amber-500 uppercase">Description</th>
+                  <th className="px-4 py-2 text-[10px] font-bold text-amber-500 uppercase text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-amber-500/10">
+                {filteredUnmanaged.map((proc) => {
+                  const actionKey = proc.pm_id !== undefined ? `adopt-${proc.pm_id}` : `adopt-${proc.processName}`;
+                  return (
+                    <tr key={proc.pm_id || `port-${proc.port}-${proc.pid}`} className="hover:bg-amber-500/5 transition-colors">
+                      <td className="px-4 py-2 whitespace-nowrap">
+                        {getStatusBadge(proc.status)}
+                      </td>
+                      <td className="px-4 py-2 font-bold text-text-primary text-xs">
+                        {proc.processName}
+                      </td>
+                      <td className="px-4 py-2 text-text-muted text-xs font-mono uppercase">
+                        {proc.type || 'unknown'}
+                      </td>
+                      <td className="px-4 py-2 text-text-muted text-xs font-mono">
+                        {proc.pm_id !== undefined ? `PM2:${proc.pm_id}` : proc.port ? `PORT:${proc.port}` : proc.pid ? `PID:${proc.pid}` : '-'}
+                      </td>
+                      <td className="px-4 py-2 text-text-muted text-[10px] italic truncate max-w-[150px]">
+                        {proc.description || '-'}
+                      </td>
+                      <td className="px-4 py-2 text-right">
+                        <button 
+                          onClick={() => handleAdopt(proc)}
+                          disabled={actionLoading === actionKey}
+                          className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-white font-bold text-[10px] rounded uppercase disabled:opacity-50"
+                        >
+                          {actionLoading === actionKey ? <Loader2 size={12} className="animate-spin" /> : 'Adopt'}
+                        </button>
+                      </td>
+                    </tr>
                   );
                 })}
-              </div>
-            )}
-
-            {/* Unmanaged Processes - Outside the managed deployments check */}
-            {filteredUnmanaged.length > 0 && (
-              <>
-                <div className="flex items-center space-x-3 mt-10 mb-4 px-1">
-                  <Activity className="text-amber-500" size={18} />
-                  <h3 className="text-[11px] font-bold text-text-muted tracking-tight uppercase tracking-widest">External Workloads detected</h3>
-                </div>
-                {filteredUnmanaged.map((proc) => (
-                  <div key={proc.pm_id || `port-${proc.port}`} className="group premium-card glass-effect rounded-[22px] sm:rounded-[24px] border border-border-light bg-amber-500/[0.02] hover:border-amber-500/30 transition-all duration-300 overflow-hidden shadow-xl">
-                    <div className="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-5">
-                      <div className="flex items-center space-x-4">
-                        <div className={`p-4 rounded-2xl ${proc.type === 'systemctl' ? 'icon-grad-amber shadow-[0_0_20px_rgba(245,158,11,0.2)]' : proc.type === 'port' ? 'icon-grad-amber shadow-[0_0_20px_rgba(245,158,11,0.2)]' : 'icon-grad-indigo shadow-[0_0_20px_rgba(79,70,229,0.2)]'} transition-all shadow-inner`}>
-                          <Activity size={24} className="text-white" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center space-x-3 mb-1.5">
-                            <h5 className="font-bold text-text-primary tracking-tight text-[13px]">{proc.processName}</h5>
-                            <div className="px-2.5 py-0.5 rounded-full border bg-amber-500/10 border-amber-500/20 text-amber-500 text-[9px] font-bold uppercase tracking-widest">
-                               {proc.type === 'systemctl' ? 'SYSTEM SERVICE' : proc.type === 'port' ? 'RAW PORT' : 'UNMANAGED'}
-                            </div>
-                          </div>
-                          <p className="text-[10px] font-medium text-text-muted tracking-wide flex items-center space-x-2">
-                             <span className={`h-1.5 w-1.5 rounded-full ${proc.status === 'online' || proc.status === 'running' ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                             <span>Status: {proc.status}</span>
-                             <span className="opacity-30">|</span>
-                             <span>{proc.pm_id ? `PM2 ID: ${proc.pm_id}` : proc.type === 'systemctl' ? 'SYSTEMD' : `PORT: ${proc.port}`}</span>
-                          </p>
-                        </div>
-                      </div>
-
-                      <button 
-                       onClick={() => handleAdopt(proc)}
-                       disabled={actionLoading === (proc.pm_id !== undefined ? `adopt-${proc.pm_id}` : `adopt-${proc.processName}`)}
-                       className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] rounded-xl transition-all border border-blue-600 shadow-xl shadow-blue-600/10 uppercase tracking-widest disabled:opacity-50 flex items-center space-x-2"
-                      >
-                        {actionLoading === (proc.pm_id !== undefined ? `adopt-${proc.pm_id}` : `adopt-${proc.processName}`) ? <Loader2 size={14} className="animate-spin" /> : <span>Take Control</span>}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </>
-            )}
-          </>
-        )}
-      </div>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Env Vars Modal */}
       {envModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 sm:p-12 animate-in fade-in duration-300" onClick={() => !envModal.saving && setEnvModal(null)}>
-          <div className="bg-bg-primary w-full max-w-2xl max-h-[90vh] rounded-[32px] border border-border-light flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
-            {/* Header */}
-            <div className="p-6 border-b border-border-light flex items-center justify-between bg-bg-secondary/40 rounded-t-[32px]">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => !envModal.saving && setEnvModal(null)}>
+          <div className="bg-bg-primary w-full max-w-2xl max-h-[85vh] rounded-lg border border-border-light flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="p-4 border-b border-border-light flex items-center justify-between bg-bg-secondary rounded-t-lg">
               <div>
-                <div className="flex items-center space-x-2 text-text-muted text-[10px] font-bold uppercase tracking-widest mb-1">
-                  <KeyRound size={14} />
-                  <span>Environment Variables</span>
-                </div>
-                <h3 className="text-lg font-bold text-text-primary tracking-tight">{envModal.name}</h3>
-                <p className="text-[10px] text-text-muted font-mono mt-0.5">{envModal.path}/.env</p>
+                <h3 className="text-sm font-bold text-text-primary">Environment Variables: {envModal.name}</h3>
+                <p className="text-[10px] text-text-muted font-mono">{envModal.path}/.env</p>
               </div>
-              <button onClick={() => !envModal.saving && setEnvModal(null)} className="p-2.5 bg-bg-tertiary hover:bg-red-500 text-white rounded-xl transition-all">
-                <X size={20} />
+              <button onClick={() => !envModal.saving && setEnvModal(null)} className="p-1.5 hover:bg-bg-tertiary rounded">
+                <X size={18} />
               </button>
             </div>
 
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
               {envModal.loading ? (
-                <div className="h-48 flex flex-col items-center justify-center space-y-4">
-                  <Loader2 size={32} className="text-blue-500 animate-spin" />
-                  <p className="text-text-muted font-bold uppercase tracking-widest text-[10px]">Reading .env file...</p>
+                <div className="h-48 flex flex-col items-center justify-center space-y-2">
+                  <Loader2 size={24} className="text-blue-500 animate-spin" />
+                  <p className="text-text-muted font-bold uppercase text-[10px]">Loading .env...</p>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {/* Column headers */}
-                  <div className="grid grid-cols-[1fr_1fr_auto] gap-2 px-3 mb-1">
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-text-muted">KEY</span>
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-text-muted">VALUE</span>
+                <div className="space-y-1">
+                  <div className="grid grid-cols-[1fr_1fr_auto] gap-2 px-2 mb-1">
+                    <span className="text-[9px] font-bold uppercase text-text-muted">Key</span>
+                    <span className="text-[9px] font-bold uppercase text-text-muted">Value</span>
                   </div>
 
-                  {/* Env var rows */}
                   {Object.entries(envModal.vars).map(([key, value]) => (
                     <div key={key} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center group">
                       <input
-                        className="bg-bg-secondary border border-border-light rounded-xl px-3 py-2 text-xs font-mono text-text-primary outline-none focus:border-blue-500 transition-all"
+                        className="bg-bg-secondary border border-border-light rounded px-2 py-1.5 text-xs font-mono text-text-primary outline-none focus:border-blue-500"
                         defaultValue={key}
                         onBlur={(e) => {
                           if (e.target.value !== key) handleEnvChange(e.target.value, value, key);
@@ -643,56 +620,48 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
                         spellCheck={false}
                       />
                       <input
-                        className="bg-bg-secondary border border-border-light rounded-xl px-3 py-2 text-xs font-mono text-text-primary outline-none focus:border-blue-500 transition-all"
+                        className="bg-bg-secondary border border-border-light rounded px-2 py-1.5 text-xs font-mono text-text-primary outline-none focus:border-blue-500"
                         value={value}
                         onChange={(e) => handleEnvChange(key, e.target.value)}
                         spellCheck={false}
                       />
                       <button
                         onClick={() => handleEnvDelete(key)}
-                        className="p-2 text-text-muted hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all rounded-lg hover:bg-red-500/10"
+                        className="p-1.5 text-text-muted hover:text-red-500 transition-colors"
                       >
-                        <X size={14} />
+                        <Trash2 size={12} />
                       </button>
                     </div>
                   ))}
 
-                  {/* Add row button */}
                   <button
                     onClick={handleEnvAddRow}
-                    className="w-full mt-3 py-2.5 border border-dashed border-border-light hover:border-blue-500/40 rounded-xl text-[10px] font-bold text-text-muted hover:text-blue-400 transition-all flex items-center justify-center space-x-2"
+                    className="w-full mt-2 py-2 border border-dashed border-border-light hover:border-blue-500/40 rounded text-[10px] font-bold text-text-muted hover:text-blue-400 transition-all flex items-center justify-center space-x-2"
                   >
-                    <Plus size={14} />
+                    <Plus size={12} />
                     <span>Add Variable</span>
                   </button>
-
-                  {Object.keys(envModal.vars).length === 0 && !envModal.loading && (
-                    <p className="text-center text-text-muted text-xs font-medium py-4">
-                      No variables found. Add some using the button above.
-                    </p>
-                  )}
                 </div>
               )}
             </div>
 
-            {/* Footer */}
             {!envModal.loading && (
-              <div className="p-5 border-t border-border-light bg-bg-secondary/40 rounded-b-[32px] flex items-center justify-end space-x-3">
+              <div className="p-4 border-t border-border-light bg-bg-secondary rounded-b-lg flex items-center justify-end space-x-2">
                 <button
                   onClick={() => handleSaveEnv(false)}
                   disabled={envModal.saving}
-                  className="px-5 py-2 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-secondary font-bold rounded-xl text-xs transition-all border border-border-light disabled:opacity-50 flex items-center space-x-2"
+                  className="px-4 py-1.5 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-secondary font-bold rounded text-xs border border-border-light disabled:opacity-50 flex items-center space-x-2"
                 >
-                  {envModal.saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                  {envModal.saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
                   <span>Save Only</span>
                 </button>
                 <button
                   onClick={() => handleSaveEnv(true)}
                   disabled={envModal.saving}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs transition-all shadow-lg shadow-blue-600/20 disabled:opacity-50 flex items-center space-x-2"
+                  className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded text-xs disabled:opacity-50 flex items-center space-x-2"
                 >
-                  {envModal.saving ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
-                  <span>Save &amp; Restart</span>
+                  {envModal.saving ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
+                  <span>Save & Restart</span>
                 </button>
               </div>
             )}
@@ -702,54 +671,47 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
 
       {/* Log Modal */}
       {logModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-6 sm:p-12 animate-in fade-in duration-300" onClick={() => setLogModal(null)}>
-          <div className="bg-bg-primary w-full max-w-5xl h-full max-h-[85vh] rounded-[32px] border border-border-light flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.5)] relative animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
-            <div className="p-6 border-b border-border-light flex items-center justify-between bg-bg-secondary/40 rounded-t-[32px]">
-              <div>
-                <div className="flex items-center space-x-2 text-text-muted text-[10px] font-bold uppercase tracking-widest mb-1">
-                  <ScrollText size={14} />
-                  <span>Interactive Log Stream</span>
-                </div>
-                <h3 className="text-lg font-bold text-text-primary tracking-tight">{logModal.name}</h3>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6" onClick={() => setLogModal(null)}>
+          <div className="bg-bg-primary w-full max-w-5xl h-full max-h-[80vh] rounded-lg border border-border-light flex flex-col shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-4 border-b border-border-light flex items-center justify-between bg-bg-secondary">
+              <div className="flex items-center space-x-2">
+                <ScrollText size={16} className="text-blue-500" />
+                <h3 className="text-sm font-bold text-text-primary">Process Logs: {logModal.name}</h3>
               </div>
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2">
                 <button 
                   onClick={() => handleViewLogs(logModal.id, logModal.name)}
-                  className="p-2.5 bg-bg-tertiary hover:bg-bg-tertiary/70 text-text-secondary rounded-xl transition-all"
+                  className="p-1.5 hover:bg-bg-tertiary rounded text-text-muted"
                 >
-                  <RotateCcw size={20} className={logLoading ? 'animate-spin' : ''} />
+                  <RotateCcw size={16} className={logLoading ? 'animate-spin' : ''} />
                 </button>
                 <button 
                   onClick={() => setLogModal(null)}
-                  className="p-2.5 bg-bg-tertiary hover:bg-red-500 text-white rounded-xl transition-all shadow-lg"
+                  className="p-1.5 hover:bg-red-500/10 hover:text-red-500 rounded text-text-muted"
                 >
-                  <X size={20} />
+                  <X size={16} />
                 </button>
               </div>
             </div>
             
-            <div ref={logBodyRef} className="flex-1 bg-black p-8 overflow-auto custom-scrollbar font-mono text-xs leading-relaxed text-text-secondary selection:bg-blue-500/30">
+            <div ref={logBodyRef} className="flex-1 bg-[#0c0c0c] p-4 overflow-auto font-mono text-[11px] leading-relaxed text-gray-300 selection:bg-blue-500/30">
                {logLoading ? (
-                 <div className="h-full flex flex-col items-center justify-center space-y-4">
-                   <Loader2 size={40} className="text-blue-500 animate-spin opacity-50" />
-                   <p className="text-text-muted font-bold uppercase tracking-widest text-[10px]">Ingesting Log Buffer...</p>
+                 <div className="h-full flex flex-col items-center justify-center space-y-2">
+                   <Loader2 size={32} className="text-blue-500 animate-spin opacity-50" />
+                   <p className="text-text-muted font-bold uppercase text-[10px]">Fetching logs...</p>
                  </div>
                ) : (
                  <pre className="whitespace-pre-wrap break-all">
-                   {logModal.logs || 'No active buffer output detected for this process.'}
+                   {logModal.logs || 'No log output detected.'}
                  </pre>
                )}
             </div>
 
-            <div className="p-5 border-t border-border-light bg-bg-secondary/40 flex items-center justify-between px-8 rounded-b-[32px]">
-               <div className="flex items-center space-x-3 text-[10px] font-bold text-text-muted uppercase tracking-widest">
-                  <Clock size={14} />
+            <div className="p-3 border-t border-border-light bg-bg-secondary flex items-center justify-between px-4">
+               <div className="flex items-center space-x-2 text-[10px] font-bold text-text-muted uppercase">
+                  <Clock size={12} />
                   <span>Last Refresh: {new Date().toLocaleTimeString()}</span>
                </div>
-               <button className="flex items-center space-x-2 text-[10px] font-bold text-blue-500/80 uppercase tracking-widest hover:text-blue-500 transition-colors">
-                  <Maximize2 size={14} />
-                  <span>Scale View</span>
-               </button>
             </div>
           </div>
         </div>

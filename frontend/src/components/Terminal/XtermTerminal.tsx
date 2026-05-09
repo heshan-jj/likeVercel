@@ -109,8 +109,19 @@ const XtermTerminal: React.FC<XtermTerminalProps> = ({ vpsId, vpsHost, vpsUserna
       term.write('\r\n\x1b[1;33m[SYSTEM] Terminal session closed.\x1b[0m\r\n');
     });
 
-    socket.on('disconnect', () => {
-      term.write('\r\n\x1b[1;31m[SYSTEM] Connection lost.\x1b[0m\r\n');
+    socket.on('connect_error', (err) => {
+      console.error('[Xterm] Socket connection error:', err);
+      term.write(`\r\n\x1b[1;31m[SYSTEM] Connection error: ${err.message}\x1b[0m\r\n`);
+    });
+
+    socket.on('error', (err) => {
+      console.error('[Xterm] Socket error:', err);
+      term.write(`\r\n\x1b[1;31m[SYSTEM] Socket error: ${err}\x1b[0m\r\n`);
+    });
+
+    socket.on('disconnect', (reason) => {
+      console.log('[Xterm] Socket disconnected:', reason);
+      term.write(`\r\n\x1b[1;31m[SYSTEM] Connection lost: ${reason}\x1b[0m\r\n`);
     });
 
     term.onData((data) => {

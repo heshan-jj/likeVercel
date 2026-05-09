@@ -80,41 +80,53 @@ function getAllowSystemAccess(req: AuthRequest): boolean {
 
 // GET /api/vps/:id/files?path=/ — list directory contents
 router.get('/:id/files', async (req: AuthRequest, res: Response): Promise<void> => {
-  let sftp: SFTPWrapper | null = null;
   try {
     const vpsId = await verifyVps(req, res);
     if (!vpsId) return;
 
     const allowSystemAccess = getAllowSystemAccess(req);
     const remotePath = sanitizePath((req.query.path as string) || '/', allowSystemAccess);
-    sftp = await sshManager.getSftp(vpsId);
 
-    sftp.readdir(remotePath, (err, list) => {
-      if (sftp) sftp.end();
-      if (err) {
-        res.status(500).json({ error: `Failed to list directory: ${err.message}` });
-        return;
-      }
+    // Use ls with sudo to get detailed list including hidden files
+    // --time-style="+%s" gives unix timestamp for easier parsing
+    const cmd = `sudo -n ls -lA --time-style="+%s" -- ${escapeShellArg(remotePath)}`;
+    const output = await sshManager.executeCommand(vpsId, cmd);
 
-      const files = list.map((item: any) => ({
-        name: item.filename,
-        path: path.posix.join(remotePath, item.filename),
-        isDirectory: item.attrs.isDirectory(),
-        size: item.attrs.size,
-        modifiedAt: new Date(item.attrs.mtime * 1000).toISOString(),
-        permissions: item.attrs.mode?.toString(8),
-      }));
+    const lines = output.split('\n');
+    const files = [];
 
-      // Sort: directories first, then alphabetically
-      files.sort((a, b) => {
-        if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
-        return a.name.localeCompare(b.name);
+    for (const line of lines) {
+      if (line.startsWith('total') || !line.trim()) continue;
+
+      // Parse ls -l output: drwxr-xr-x 2 root root 4096 1715264000 filename
+      const parts = line.split(/\s+/);
+      if (parts.length < 7) continue;
+
+      const perms = parts[0];
+      const size = parseInt(parts[4], 10);
+      const mtime = parseInt(parts[5], 10);
+      const name = parts.slice(6).join(' '); // Handle spaces in filenames
+
+      if (name === '.' || name === '..') continue;
+
+      files.push({
+        name,
+        path: path.posix.join(remotePath, name),
+        isDirectory: perms.startsWith('d'),
+        size,
+        modifiedAt: new Date(mtime * 1000).toISOString(),
+        permissions: perms,
       });
+    }
 
-      res.json({ path: remotePath, files });
+    // Sort: directories first, then alphabetically
+    files.sort((a, b) => {
+      if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
+      return a.name.localeCompare(b.name);
     });
+
+    res.json({ path: remotePath, files });
   } catch (error: any) {
-    if (sftp) sftp.end();
     res.status(500).json({ error: error.message });
   }
 });
@@ -125,7 +137,6 @@ router.post(
   checkFileSize,
   upload.single('file'),
   async (req: AuthRequest, res: Response): Promise<void> => {
-    let sftp: SFTPWrapper | null = null;
     try {
       const vpsId = await verifyVps(req, res);
       if (!vpsId) return;
@@ -138,27 +149,33 @@ router.post(
       const allowSystemAccess = getAllowSystemAccess(req);
       const remotePath = sanitizePath(req.body.path || '/', allowSystemAccess);
       const remoteFilePath = path.posix.join(remotePath, req.file.originalname);
-      sftp = await sshManager.getSftp(vpsId);
+      
+      const client = sshManager.getConnection(vpsId);
+      if (!client) throw new Error('Not connected');
 
-      const writeStream = sftp.createWriteStream(remoteFilePath);
-
-      writeStream.on('close', () => {
-        if (sftp) sftp.end();
-        if (!res.headersSent) {
-          res.json({ message: 'File uploaded', path: remoteFilePath });
+      // Use sudo dd to write the file with root privileges
+      client.exec(`sudo -n dd of=${escapeShellArg(remoteFilePath)}`, (err, stream) => {
+        if (err) {
+          return res.status(500).json({ error: `Upload failed: ${err.message}` });
         }
-      });
 
-      writeStream.on('error', (err: Error) => {
-        if (sftp) sftp.end();
-        if (!res.headersSent) {
-          res.status(500).json({ error: `Upload failed: ${err.message}` });
-        }
-      });
+        stream.on('close', (code: number) => {
+          if (code === 0) {
+            res.json({ message: 'File uploaded with sudo', path: remoteFilePath });
+          } else {
+            res.status(500).json({ error: `Upload exited with code ${code}` });
+          }
+        });
 
-      writeStream.end(req.file.buffer);
+        stream.on('error', (err: Error) => {
+          if (!res.headersSent) {
+            res.status(500).json({ error: `Upload stream error: ${err.message}` });
+          }
+        });
+
+        stream.end(req.file!.buffer);
+      });
     } catch (error: any) {
-      if (sftp) sftp.end();
       if (!res.headersSent) {
         res.status(500).json({ error: error.message });
       }
@@ -168,7 +185,6 @@ router.post(
 
 // GET /api/vps/:id/files/download?path= — download file
 router.get('/:id/files/download', async (req: AuthRequest, res: Response): Promise<void> => {
-  let sftp: SFTPWrapper | null = null;
   try {
     const vpsId = await verifyVps(req, res);
     if (!vpsId) return;
@@ -180,28 +196,28 @@ router.get('/:id/files/download', async (req: AuthRequest, res: Response): Promi
       return;
     }
 
-    sftp = await sshManager.getSftp(vpsId);
-    const filename = path.posix.basename(remotePath);
+    const client = sshManager.getConnection(vpsId);
+    if (!client) throw new Error('Not connected');
 
+    const filename = path.posix.basename(remotePath);
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Type', 'application/octet-stream');
 
-    const readStream = sftp.createReadStream(remotePath);
-
-    readStream.on('error', (err: Error) => {
-      if (sftp) sftp.end();
-      if (!res.headersSent) {
-        res.status(500).json({ error: `Download failed: ${err.message}` });
+    // Use sudo cat to read the file with root privileges
+    client.exec(`sudo -n cat -- ${escapeShellArg(remotePath)}`, (err, stream) => {
+      if (err) {
+        return res.status(500).json({ error: `Download failed: ${err.message}` });
       }
-    });
 
-    readStream.on('end', () => {
-      if (sftp) sftp.end();
-    });
+      stream.on('error', (err: Error) => {
+        if (!res.headersSent) {
+          res.status(500).json({ error: `Download stream error: ${err.message}` });
+        }
+      });
 
-    readStream.pipe(res);
+      stream.pipe(res);
+    });
   } catch (error: any) {
-    if (sftp) sftp.end();
     if (!res.headersSent) {
       res.status(500).json({ error: error.message });
     }
@@ -210,7 +226,6 @@ router.get('/:id/files/download', async (req: AuthRequest, res: Response): Promi
 
 // POST /api/vps/:id/files/mkdir — create directory
 router.post('/:id/files/mkdir', async (req: AuthRequest, res: Response): Promise<void> => {
-  let sftp: SFTPWrapper | null = null;
   try {
     const vpsId = await verifyVps(req, res);
     if (!vpsId) return;
@@ -222,17 +237,9 @@ router.post('/:id/files/mkdir', async (req: AuthRequest, res: Response): Promise
       return;
     }
 
-    sftp = await sshManager.getSftp(vpsId);
-    sftp.mkdir(remotePath, (err) => {
-      if (sftp) sftp.end();
-      if (err) {
-        res.status(500).json({ error: `Failed to create directory: ${err.message}` });
-        return;
-      }
-      res.json({ message: 'Directory created', path: remotePath });
-    });
+    await sshManager.executeCommand(vpsId, `sudo -n mkdir -p -- ${escapeShellArg(remotePath)}`);
+    res.json({ message: 'Directory created with sudo', path: remotePath });
   } catch (error: any) {
-    if (sftp) sftp.end();
     res.status(500).json({ error: error.message });
   }
 });
@@ -245,16 +252,17 @@ router.delete('/:id/files', async (req: AuthRequest, res: Response): Promise<voi
 
     const allowSystemAccess = getAllowSystemAccess(req);
     const remotePath = sanitizePath(req.query.path as string, allowSystemAccess);
-    // Extra safety for dangerous operations (Fix 29)
+    
+    // Extra safety for dangerous operations
     const forbiddenPaths = ['/', '/root', '/etc', '/bin', '/usr', '/var'];
     if (!remotePath || forbiddenPaths.includes(remotePath) || remotePath.length < 2) {
       res.status(400).json({ error: 'Invalid or forbidden path for deletion' });
       return;
     }
 
-    // Use SSH command for recursive delete
-    await sshManager.executeCommand(vpsId, `rm -rf -- ${escapeShellArg(remotePath)}`);
-    res.json({ message: 'Deleted', path: remotePath });
+    // Use sudo rm for root-level deletion
+    await sshManager.executeCommand(vpsId, `sudo -n rm -rf -- ${escapeShellArg(remotePath)}`);
+    res.json({ message: 'Deleted with sudo', path: remotePath });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -262,7 +270,6 @@ router.delete('/:id/files', async (req: AuthRequest, res: Response): Promise<voi
 
 // PUT /api/vps/:id/files/rename — rename/move file
 router.put('/:id/files/rename', async (req: AuthRequest, res: Response): Promise<void> => {
-  let sftp: SFTPWrapper | null = null;
   try {
     const vpsId = await verifyVps(req, res);
     if (!vpsId) return;
@@ -274,17 +281,13 @@ router.put('/:id/files/rename', async (req: AuthRequest, res: Response): Promise
     }
 
     const allowSystemAccess = getAllowSystemAccess(req);
-    sftp = await sshManager.getSftp(vpsId);
-    sftp.rename(sanitizePath(oldPath, allowSystemAccess), sanitizePath(newPath, allowSystemAccess), (err) => {
-      if (sftp) sftp.end();
-      if (err) {
-        res.status(500).json({ error: `Rename failed: ${err.message}` });
-        return;
-      }
-      res.json({ message: 'Renamed', oldPath, newPath });
-    });
+    const sanitizedOld = sanitizePath(oldPath, allowSystemAccess);
+    const sanitizedNew = sanitizePath(newPath, allowSystemAccess);
+
+    // Use sudo mv for root-level move/rename
+    await sshManager.executeCommand(vpsId, `sudo -n mv -- ${escapeShellArg(sanitizedOld)} ${escapeShellArg(sanitizedNew)}`);
+    res.json({ message: 'Renamed with sudo', oldPath: sanitizedOld, newPath: sanitizedNew });
   } catch (error: any) {
-    if (sftp) sftp.end();
     res.status(500).json({ error: error.message });
   }
 });

@@ -14,28 +14,43 @@ const router = Router();
 
 router.use(authMiddleware);
 
-// GET /api/vps/:id/ports — list used ports
+// GET /api/vps/:id/ports — list used ports with process mapping
 router.get('/:id/ports', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const vpsId = await verifyVps(req, res);
     if (!vpsId) return;
 
-    // Get listening ports from the server
+    // Get listening ports AND processes using them
+    // Output: LISTEN 0 128 0.0.0.0:80 0.0.0.0:* users:(("nginx",pid=123,fd=10))
     const output = await sshManager.executeCommand(
       vpsId,
-      "ss -tlnp 2>/dev/null | tail -n +2 | awk '{print $4}' | rev | cut -d: -f1 | rev | sort -un"
+      "ss -tlnp 2>/dev/null | tail -n +2 || true"
     );
 
-    const activePorts = output
-      .split('\n')
-      .filter(Boolean)
-      .map((p) => parseInt(p.trim()))
-      .filter((p) => !isNaN(p));
+    const activePortsMap: any[] = [];
+    const ssLines = output.split('\n').filter(Boolean);
+
+    for (const line of ssLines) {
+      const pidMatch = line.match(/pid=(\d+)/);
+      const nameMatch = line.match(/"([^"]+)"/);
+      const portMatch = line.match(/:(\d+)\s/);
+
+      if (portMatch) {
+        activePortsMap.push({
+          port: parseInt(portMatch[1]),
+          pid: pidMatch ? pidMatch[1] : null,
+          processName: nameMatch ? nameMatch[1] : 'unknown',
+        });
+      }
+    }
+
+    // Sort and unique ports
+    const activePorts = Array.from(new Set(activePortsMap.map(p => p.port))).sort((a, b) => a - b);
 
     // Get ports from our deployments
     const deployments = await prisma.deployment.findMany({
       where: { vpsId, status: 'running' },
-      select: { port: true, processName: true, projectPath: true },
+      select: { port: true, processName: true, projectPath: true, id: true },
     });
 
     // Get the VPS host for shareable URLs
@@ -46,13 +61,43 @@ router.get('/:id/ports', async (req: AuthRequest, res: Response): Promise<void> 
 
     res.json({
       activePorts,
-      managedPorts: deployments.map((d: ManagedPortData) => ({
+      activePortsMap,
+      managedPorts: deployments.map((d: any) => ({
+        id: d.id,
         port: d.port,
         processName: d.processName,
         projectPath: d.projectPath,
         url: `http://${vps?.host}:${d.port}`,
       })),
     });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE /api/vps/:id/ports/:port/kill — kill the process using a port
+router.delete('/:id/ports/:port/kill', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const vpsId = await verifyVps(req, res);
+    if (!vpsId) return;
+
+    const port = parseInt(req.params.port as string);
+    if (isNaN(port)) {
+      res.status(400).json({ error: 'Invalid port' });
+      return;
+    }
+
+    // Find PID using fuser or ss
+    const pidOut = await sshManager.executeCommand(vpsId, `fuser ${port}/tcp 2>/dev/null || ss -tlnp 'sport = :${port}' | grep -oP 'pid=\\K\\d+' | head -n 1 || true`);
+    const pid = pidOut.trim();
+
+    if (!pid) {
+      res.status(404).json({ error: 'No process found listening on this port' });
+      return;
+    }
+
+    await sshManager.executeCommand(vpsId, `kill -9 ${pid}`);
+    res.json({ message: `Process ${pid} on port ${port} terminated` });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

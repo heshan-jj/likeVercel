@@ -14,14 +14,7 @@ import prisma from './utils/prisma';
 import { sshManager } from './services/SSHManager';
 
 // Routes
-import authRoutes from './routes/auth';
-import vpsRoutes from './routes/vps';
-import fileRoutes from './routes/files';
-import processRoutes from './routes/processes';
-import portRoutes from './routes/ports';
-import proxyRoutes from './routes/proxy';
-import keyRoutes from './routes/keys';
-import envRoutes from './routes/env';
+import apiRoutes from './routes';
 
 const app = express();
 const httpServer = createServer(app);
@@ -87,14 +80,8 @@ const authLimiter = rateLimit({
 });
 
 // Routes
-app.use('/api/auth', authLimiter, authRoutes);
-app.use('/api/vps', vpsRoutes);
-app.use('/api/vps', fileRoutes);
-app.use('/api/vps', processRoutes);
-app.use('/api/vps', portRoutes);
-app.use('/api/vps', proxyRoutes);
-app.use('/api/keys', keyRoutes);
-app.use('/api/vps', envRoutes);
+app.use('/api/auth', authLimiter);
+app.use('/api', apiRoutes);
 
 // Health check with DB ping (Fix 18)
 app.get('/api/health', async (_req: Request, res: Response) => {
@@ -161,10 +148,20 @@ httpServer.listen(config.port, () => {
 const gracefulShutdown = async (signal: string) => {
   console.log(`[Server] ${signal} received, shutting down gracefully...`);
   
-  // Close HTTP server
-  httpServer.close(() => {
-    console.log('[Server] HTTP server closed');
+  // Close HTTP server with timeout
+  const closeServer = () => new Promise<void>((resolve) => {
+    httpServer.close(() => {
+      console.log('[Server] HTTP server closed');
+      resolve();
+    });
+    // Force close after 5s if connections persist
+    setTimeout(() => {
+      console.warn('[Server] Forced shutdown after timeout');
+      resolve();
+    }, 5000);
   });
+
+  await closeServer();
 
   // Disconnect all SSH sessions
   await sshManager.disconnectAll();

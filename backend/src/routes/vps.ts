@@ -373,6 +373,9 @@ router.post('/:id/disconnect', async (req: AuthRequest, res: Response): Promise<
   }
 });
 
+// Simple in-memory cache for hardware specs (5 minute TTL)
+const specsCache = new Map<string, { data: any, expires: number }>();
+
 // GET /api/vps/:id/specs — get dynamic server hardware specs
 router.get('/:id/specs', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -381,8 +384,17 @@ router.get('/:id/specs', async (req: AuthRequest, res: Response): Promise<void> 
       return;
     }
 
+    const vpsId = req.params.id as string;
+
+    // Check cache
+    const cached = specsCache.get(vpsId);
+    if (cached && cached.expires > Date.now()) {
+      res.json(cached.data);
+      return;
+    }
+
     const profile = await prisma.vpsProfile.findFirst({
-      where: { id: req.params.id as string, userId: req.userId },
+      where: { id: vpsId, userId: req.userId },
       select: { id: true, region: true },
     });
 
@@ -403,13 +415,18 @@ router.get('/:id/specs', async (req: AuthRequest, res: Response): Promise<void> 
       const ramStr = await sshManager.executeCommand(profile.id, "free -h | awk '/^Mem:/{print $2}'");
       const diskStr = await sshManager.executeCommand(profile.id, "df -h / | awk 'NR==2 {print $2}'");
       
-      res.json({
+      const specs = {
         os: osVersion.trim(),
         cpu: `${cpuCores} Cores`,
         ram: ramStr.trim(),
         disk: diskStr.trim(),
         region: profile.region || 'Unknown'
-      });
+      };
+
+      // Set cache
+      specsCache.set(vpsId, { data: specs, expires: Date.now() + 300000 }); // 5 minutes
+      
+      res.json(specs);
     } catch (cmdErr: any) {
       console.error('[VPS] Specs cmd error:', cmdErr);
       res.status(500).json({ error: 'Failed to execute spec commands on VPS' });
@@ -455,9 +472,9 @@ router.get('/:id/usage', async (req: AuthRequest, res: Response): Promise<void> 
     if (!profile) { res.status(404).json({ error: 'VPS not found' }); return; }
     if (!sshManager.isConnected(profile.id)) { res.status(400).json({ error: 'Not connected' }); return; }
 
-    // Two /proc/stat samples, 500ms apart for accurate CPU delta
+    // Two /proc/stat samples, 100ms apart for accurate CPU delta
     const stat1 = await sshManager.executeCommand(profile.id, "cat /proc/stat | head -1");
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise(r => setTimeout(r, 100));
     const stat2 = await sshManager.executeCommand(profile.id, "cat /proc/stat | head -1");
 
     const parse = (line: string) => line.split(/\s+/).slice(1).map(Number);

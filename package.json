@@ -11,7 +11,11 @@
     "dev:frontend": "cd frontend && npm run dev",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "build": "npm run build --workspaces",
-    "install:all": "npm install"
+    "install:all": "npm install",
+    "env:fix": "npx tsx scripts/env-manager.ts fix-relative",
+    "env:fix-abs": "npx tsx scripts/env-manager.ts fix-absolute",
+    "env:fix-no-q": "npx tsx scripts/env-manager.ts fix-no-quotes",
+    "env:comment": "npx tsx scripts/env-manager.ts comment-root"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

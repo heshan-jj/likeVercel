@@ -19,12 +19,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <header className="lg:hidden h-16 bg-bg-secondary border-b border-border-light flex items-center justify-between px-6 shrink-0 z-30">
           <div className="flex items-center space-x-3">
              <div className="p-1 icon-grad-blue rounded-lg text-white">
-                <Menu size={18} onClick={() => setIsSidebarOpen(true)} className="cursor-pointer" />
+                <Menu size={14} onClick={() => setIsSidebarOpen(true)} className="cursor-pointer" />
              </div>
              <span className="text-sm font-black tracking-tighter text-text-primary">likeVercel</span>
           </div>
           <button className="p-2 text-text-muted hover:text-text-primary transition-colors">
-            <X size={20} className={isSidebarOpen ? 'opacity-100' : 'opacity-0'} onClick={() => setIsSidebarOpen(false)} />
+            <X size={16} className={isSidebarOpen ? 'opacity-100' : 'opacity-0'} onClick={() => setIsSidebarOpen(false)} />
           </button>
         </header>
         {/* Page Content */}
