@@ -20,13 +20,13 @@ const Unlock: React.FC = () => {
       const { accessToken, refreshToken, user } = res.data;
       login(accessToken, refreshToken, user);
       showToast('Dashboard unlocked', 'success');
-    } catch (err: any) {
+      } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } } };
       setError(true);
       setPin('');
-      showToast(err.response?.data?.error || 'Invalid PIN', 'error');
+      showToast(error.response?.data?.error || 'Invalid PIN', 'error');
       setTimeout(() => setError(false), 500);
-    } finally {
-      setLoading(false);
+      } finally {      setLoading(false);
     }
   };
 

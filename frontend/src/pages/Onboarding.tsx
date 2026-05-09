@@ -42,8 +42,9 @@ const Onboarding: React.FC = () => {
         const { accessToken, refreshToken, user } = res.data;
         login(accessToken, refreshToken, user);
         showToast('System secured successfully', 'success');
-      } catch (err: any) {
-        const errorMsg = err.response?.data?.error || err.message || 'Setup failed';
+      } catch (err: unknown) {
+        const error = err as { response?: { data?: { error?: string } }; message?: string };
+        const errorMsg = error.response?.data?.error || error.message || 'Setup failed';
         showToast(errorMsg, 'error');
         setLoading(false);
       }

@@ -11,6 +11,7 @@
     "dev:frontend": "cd frontend && npm run dev",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "build": "npm run build --workspaces",
+    "lint": "npm run lint --workspaces",
     "install:all": "npm install",
     "env:fix": "npx tsx scripts/env-manager.ts fix-relative",
     "env:fix-abs": "npx tsx scripts/env-manager.ts fix-absolute",

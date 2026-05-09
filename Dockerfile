@@ -17,10 +17,16 @@ RUN npm run build
 
 # Stage 3: Production Server
 FROM node:22-alpine
+LABEL maintainer="LikeVercel Team"
+LABEL description="LikeVercel-Docker Production Image"
+
 WORKDIR /app
 
 # Install openssl for Prisma
 RUN apk add --no-cache openssl
+
+# Set environment to production
+ENV NODE_ENV=production
 
 # Copy backend dependencies and build
 COPY --from=backend-builder /app/backend/package*.json ./backend/

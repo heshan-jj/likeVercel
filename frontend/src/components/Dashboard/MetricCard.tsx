@@ -30,7 +30,7 @@ const MetricCard: React.FC<MetricCardProps> = ({ label, value, sub, icon, color,
     >
       <div className="flex items-start justify-between mb-2">
         <div className={`p-2 rounded ${getColorClass()}`}>
-          {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<any>, { size: 16 }) : icon}
+          {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<{ size?: number }>, { size: 16 }) : icon}
         </div>
         <span className="text-[10px] font-bold text-text-muted uppercase tracking-tight pt-1">{sub}</span>
       </div>
