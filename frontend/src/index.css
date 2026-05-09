@@ -4,6 +4,9 @@
 
 html {
   font-size: 80%; /* Reduced scale from 1 (100%) to 0.8 (80%) */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 :root {
@@ -53,8 +56,7 @@ html {
   --shadow-premium: 0 20px 50px -12px rgba(0, 0, 0, 0.15);
   
   /* Fonts */
-  --font-display: 'Space Grotesk', -apple-system, sans-serif;
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  --font-sans: 'Montserrat', 'Inter', -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, Monaco, 'Courier New', monospace;
 
   /* Kinetic Theme Colors (Light Mode Default) */
@@ -110,7 +112,7 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   font-weight: 600;
   letter-spacing: -0.02em;
 }
