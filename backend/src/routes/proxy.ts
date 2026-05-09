@@ -89,7 +89,7 @@ router.get('/:id/proxy', async (req: AuthRequest, res: Response): Promise<void> 
       for (const fileName of files) {
         const filePath = `/etc/nginx/sites-available/${fileName}`;
         try {
-          const content = await sshManager.executeCommand(vpsId, `cat ${escapeShellArg(filePath)}`);
+          const content = await sshManager.executeCommand(vpsId, `cat -- ${escapeShellArg(filePath)}`);
 
           // Parse domains from server_name (can be multiple)
           const domainMatch = content.match(/server_name\s+([^;]+)/);
@@ -164,7 +164,7 @@ router.post('/:id/proxy/adopt', async (req: AuthRequest, res: Response): Promise
     } catch { }
 
     // 2. Rename the file
-    await sshManager.executeCommand(vpsId, `sudo mv /etc/nginx/sites-available/${escapeShellArg(fileName)} /etc/nginx/sites-available/${escapeShellArg(newFileName)}`);
+    await sshManager.executeCommand(vpsId, `sudo mv -- /etc/nginx/sites-available/${escapeShellArg(fileName)} /etc/nginx/sites-available/${escapeShellArg(newFileName)}`);
 
     // 3. Update symlink if it was enabled
     if (wasEnabled) {

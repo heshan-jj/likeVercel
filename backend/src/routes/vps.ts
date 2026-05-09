@@ -1,14 +1,10 @@
 import { Router, Response } from 'express';
-import { execSync } from 'child_process';
-import os from 'os';
-import path from 'path';
-import fs from 'fs';
+import crypto from 'crypto';
 import { Prisma } from '@prisma/client';
 import prisma from '../utils/prisma';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { encrypt } from '../utils/crypto';
 import { sshManager } from '../services/SSHManager';
-import { generateKeyPairSync } from 'crypto';
 import { createVpsSchema, updateVpsSchema } from '../utils/validators';
 import { escapeShellArg } from '../utils/helpers';
 
@@ -481,30 +477,37 @@ router.get('/:id/usage', async (req: AuthRequest, res: Response): Promise<void> 
   }
 });
 
+function spkiToSshPublicKey(spkiPem: string): string {
+  const keyObject = crypto.createPublicKey(spkiPem);
+  const der = keyObject.export({ type: 'spki', format: 'der' });
+  // SPKI DER structure for Ed25519:
+  // SEQUENCE { SEQUENCE { OID 1.3.101.112 } BIT STRING (0 unused bits) <raw 32-byte key> }
+  // Skip past the OID and BIT STRING wrapper to get the raw key bytes
+  let offset = 15;
+  if (der[offset] !== 0x00) offset--;
+  offset++;
+  const rawKey = der.subarray(offset);
+
+  const algo = Buffer.from('ssh-ed25519', 'utf8');
+  const algoLen = Buffer.alloc(4);
+  algoLen.writeUInt32BE(algo.length, 0);
+  const keyLen = Buffer.alloc(4);
+  keyLen.writeUInt32BE(rawKey.length, 0);
+  const buf = Buffer.concat([algoLen, algo, keyLen, rawKey]);
+  return `ssh-ed25519 ${buf.toString('base64')} likeVercel-generated`;
+}
+
 // POST /api/vps/keys/generate — generate an Ed25519 SSH keypair server-side
 router.post('/keys/generate', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (!req.userId) { res.status(401).json({ error: 'Unauthorized' }); return; }
 
-    const { privateKey, publicKey } = generateKeyPairSync('ed25519', {
+    const { privateKey, publicKey } = crypto.generateKeyPairSync('ed25519', {
       privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
       publicKeyEncoding: { type: 'spki', format: 'pem' },
     });
 
-    const tmpDir = os.tmpdir();
-    const keyFile = path.join(tmpDir, `likeVercel_${Date.now()}`);
-
-    fs.writeFileSync(keyFile, privateKey, { mode: 0o600 });
-
-    let sshPublicKey = '';
-    try {
-      sshPublicKey = execSync(`ssh-keygen -y -f "${keyFile}"`, { encoding: 'utf-8' }).trim();
-      sshPublicKey += ` likeVercel-generated`;
-    } catch {
-      sshPublicKey = publicKey;
-    } finally {
-      try { fs.unlinkSync(keyFile); } catch {}
-    }
+    const sshPublicKey = spkiToSshPublicKey(publicKey);
 
     res.json({ privateKey, publicKey: sshPublicKey });
   } catch (error: any) {

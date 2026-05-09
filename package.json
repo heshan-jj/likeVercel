@@ -17,6 +17,6 @@
     "concurrently": "^8.2.2"
   },
   "overrides": {
-    "tar": "^7.5.14"
+    "tar": "7.5.15"
   }
 }

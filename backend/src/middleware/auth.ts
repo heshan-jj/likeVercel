@@ -7,14 +7,19 @@ export interface AuthRequest extends Request {
 }
 
 export function authMiddleware(req: AuthRequest, res: Response, next: NextFunction): void {
-  const authHeader = req.headers.authorization;
+  let token: string | undefined;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1];
+  } else if (req.cookies?.accessToken) {
+    token = req.cookies.accessToken;
+  }
+
+  if (!token) {
     res.status(401).json({ error: 'No token provided' });
     return;
   }
-
-  const token = authHeader.split(' ')[1];
 
   try {
     const decoded = jwt.verify(token, config.jwt.secret) as { userId: string };
@@ -23,4 +28,25 @@ export function authMiddleware(req: AuthRequest, res: Response, next: NextFuncti
   } catch (error) {
     res.status(401).json({ error: 'Invalid or expired token' });
   }
+}
+
+export function optionalAuth(req: AuthRequest, res: Response, next: NextFunction): void {
+  let token: string | undefined;
+
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1];
+  } else if (req.cookies?.accessToken) {
+    token = req.cookies.accessToken;
+  }
+
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, config.jwt.secret) as { userId: string };
+      req.userId = decoded.userId;
+    } catch {
+      // Token invalid, continue without user
+    }
+  }
+  next();
 }

@@ -18,11 +18,14 @@ export function setupTerminalWebSocket(io: SocketIOServer): void {
   io.use(async (socket: AuthenticatedSocket, next) => {
     try {
       const token = socket.handshake.auth.token || socket.handshake.query.token;
-      if (!token) {
+      const cookies = socket.handshake.headers.cookie;
+      const cookieToken = cookies?.split(';').find(c => c.trim().startsWith('accessToken='))?.split('=')[1]?.trim();
+      const resolvedToken = token || cookieToken;
+      if (!resolvedToken) {
         return next(new Error('Authentication required'));
       }
 
-      const decoded = jwt.verify(token as string, config.jwt.secret) as { userId: string };
+      const decoded = jwt.verify(resolvedToken, config.jwt.secret) as { userId: string };
       socket.userId = decoded.userId;
 
       // Check connection limits (Fix 19)

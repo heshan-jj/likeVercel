@@ -36,8 +36,6 @@ export async function verifyVps(req: AuthRequest, res: Response): Promise<string
  * Implements the POSIX sh single-quote escaping pattern.
  */
 export function escapeShellArg(arg: string): string {
-  // Replace single quotes with '\''
-  // and wrap the entire string in single quotes
   return `'${arg.replace(/'/g, "'\\''")}'`;
 }
 

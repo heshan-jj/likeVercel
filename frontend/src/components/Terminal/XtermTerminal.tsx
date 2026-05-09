@@ -59,9 +59,8 @@ const XtermTerminal: React.FC<XtermTerminalProps> = ({ vpsId, vpsHost, vpsUserna
 
     // Initialize socket
     const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3001';
-    const token = localStorage.getItem('accessToken');
     const socket = io(baseUrl, {
-      auth: { token },
+      withCredentials: true,
     });
 
     socketRef.current = socket;

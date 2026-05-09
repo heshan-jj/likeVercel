@@ -30,8 +30,15 @@ const checkFileSize = (req: AuthRequest, res: Response, next: NextFunction) => {
 
 router.use(authMiddleware);
 
+const DEFAULT_SCOPED_PATHS = ['/var/www', '/home', '/app', '/opt', '/srv'];
+const SYSTEM_PATHS = ['/etc', '/root', '/bin', '/boot', '/dev', '/lib', '/lib64', '/proc', '/sys', '/usr', '/var/lib', '/var/log', '/var/cache'];
+
+function isSystemPath(p: string): boolean {
+  return SYSTEM_PATHS.some(sysPath => p === sysPath || p.startsWith(sysPath + '/'));
+}
+
 // Helper to sanitize remote paths
-function sanitizePath(remotePath: string): string {
+function sanitizePath(remotePath: string, allowSystemAccess?: boolean): string {
   if (!remotePath) return '/';
   
   // 1. Decode URI components to catch encoded path traversal
@@ -52,14 +59,21 @@ function sanitizePath(remotePath: string): string {
   const normalized = path.posix.normalize(prepended);
   
   // 5. Ensure it didn't collapse into something that tries to go above root
-  // path.posix.normalize('/../etc/passwd') returns '/etc/passwd' which is safe 
-  // because we are in a VPS manager where / is the root.
-  // But we block any literal ".." segments that remain if they managed to sneak through
   if (normalized.includes('..')) {
     return '/'; // Fallback to safe default
   }
   
+  // 6. Filesystem scoping: restrict to allowed paths unless system access is granted
+  if (!allowSystemAccess && isSystemPath(normalized)) {
+    const fallback = DEFAULT_SCOPED_PATHS.find(p => !isSystemPath(p)) || '/var/www';
+    return fallback;
+  }
+  
   return normalized;
+}
+
+function getAllowSystemAccess(req: AuthRequest): boolean {
+  return req.query.systemAccess === 'true' || req.body?.systemAccess === true;
 }
 
 
@@ -71,7 +85,8 @@ router.get('/:id/files', async (req: AuthRequest, res: Response): Promise<void> 
     const vpsId = await verifyVps(req, res);
     if (!vpsId) return;
 
-    const remotePath = sanitizePath((req.query.path as string) || '/');
+    const allowSystemAccess = getAllowSystemAccess(req);
+    const remotePath = sanitizePath((req.query.path as string) || '/', allowSystemAccess);
     sftp = await sshManager.getSftp(vpsId);
 
     sftp.readdir(remotePath, (err, list) => {
@@ -120,7 +135,8 @@ router.post(
         return;
       }
 
-      const remotePath = sanitizePath(req.body.path || '/');
+      const allowSystemAccess = getAllowSystemAccess(req);
+      const remotePath = sanitizePath(req.body.path || '/', allowSystemAccess);
       const remoteFilePath = path.posix.join(remotePath, req.file.originalname);
       sftp = await sshManager.getSftp(vpsId);
 
@@ -157,7 +173,8 @@ router.get('/:id/files/download', async (req: AuthRequest, res: Response): Promi
     const vpsId = await verifyVps(req, res);
     if (!vpsId) return;
 
-    const remotePath = sanitizePath(req.query.path as string);
+    const allowSystemAccess = getAllowSystemAccess(req);
+    const remotePath = sanitizePath(req.query.path as string, allowSystemAccess);
     if (!remotePath || remotePath === '/') {
       res.status(400).json({ error: 'Valid path is required' });
       return;
@@ -198,7 +215,8 @@ router.post('/:id/files/mkdir', async (req: AuthRequest, res: Response): Promise
     const vpsId = await verifyVps(req, res);
     if (!vpsId) return;
 
-    const remotePath = sanitizePath(req.body.path);
+    const allowSystemAccess = getAllowSystemAccess(req);
+    const remotePath = sanitizePath(req.body.path, allowSystemAccess);
     if (!remotePath || remotePath === '/') {
       res.status(400).json({ error: 'Valid path is required' });
       return;
@@ -225,7 +243,8 @@ router.delete('/:id/files', async (req: AuthRequest, res: Response): Promise<voi
     const vpsId = await verifyVps(req, res);
     if (!vpsId) return;
 
-    const remotePath = sanitizePath(req.query.path as string);
+    const allowSystemAccess = getAllowSystemAccess(req);
+    const remotePath = sanitizePath(req.query.path as string, allowSystemAccess);
     // Extra safety for dangerous operations (Fix 29)
     const forbiddenPaths = ['/', '/root', '/etc', '/bin', '/usr', '/var'];
     if (!remotePath || forbiddenPaths.includes(remotePath) || remotePath.length < 2) {
@@ -234,7 +253,7 @@ router.delete('/:id/files', async (req: AuthRequest, res: Response): Promise<voi
     }
 
     // Use SSH command for recursive delete
-    await sshManager.executeCommand(vpsId, `rm -rf ${escapeShellArg(remotePath)}`);
+    await sshManager.executeCommand(vpsId, `rm -rf -- ${escapeShellArg(remotePath)}`);
     res.json({ message: 'Deleted', path: remotePath });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -254,8 +273,9 @@ router.put('/:id/files/rename', async (req: AuthRequest, res: Response): Promise
       return;
     }
 
+    const allowSystemAccess = getAllowSystemAccess(req);
     sftp = await sshManager.getSftp(vpsId);
-    sftp.rename(sanitizePath(oldPath), sanitizePath(newPath), (err) => {
+    sftp.rename(sanitizePath(oldPath, allowSystemAccess), sanitizePath(newPath, allowSystemAccess), (err) => {
       if (sftp) sftp.end();
       if (err) {
         res.status(500).json({ error: `Rename failed: ${err.message}` });

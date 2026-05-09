@@ -116,9 +116,7 @@ const Settings: React.FC = () => {
   const handleRotateToken = async () => {
     try {
       setFeedback(null);
-      const res = await api.post('/auth/refresh', {});
-      localStorage.setItem('accessToken', res.data.accessToken);
-      localStorage.setItem('refreshToken', res.data.refreshToken);
+      await api.post('/auth/refresh');
       setFeedback({ type: 'success', message: 'Access token rotated successfully' });
     } catch {
       setFeedback({ type: 'error', message: 'Failed to rotate token' });

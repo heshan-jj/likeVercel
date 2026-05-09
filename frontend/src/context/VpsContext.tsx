@@ -29,10 +29,6 @@ export const VpsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [error, setError] = useState('');
 
   const refreshProfiles = useCallback(async () => {
-    if (!localStorage.getItem('accessToken')) {
-      setLoading(false);
-      return;
-    }
     try {
       const { data } = await api.get('/vps');
       setProfiles(data.profiles);

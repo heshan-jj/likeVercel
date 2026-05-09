@@ -66,6 +66,11 @@ export const portSchema = z.object({
   port: z.number().int().min(1).max(65535),
 });
 
+export const restoreSchema = z.object({
+  pin: z.string().regex(/^\d{4,6}$/, 'PIN must be 4-6 digits'),
+  signature: z.string().optional(),
+});
+
 export const processStartSchema = z.object({
   projectPath: z.string()
     .min(1, 'Project path is required')

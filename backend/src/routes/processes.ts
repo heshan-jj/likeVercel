@@ -173,7 +173,7 @@ router.post('/:id/processes/start', async (req: AuthRequest, res: Response): Pro
       // Detect the main Python file instead of assuming app.py
       const mainFile = fileList.find(f => f.endsWith('.py') && !f.startsWith('.')) || 'app.py';
       const escapedMainFile = escapeShellArg(mainFile);
-      startCommand = `cd ${escapedPath} && pip install -r requirements.txt && pm2 start ${escapedMainFile} --name ${escapedProcessName}`;
+      startCommand = `cd ${escapedPath} && pip install -r requirements.txt && pm2 start -- ${escapedMainFile} --name ${escapedProcessName}`;
       projectType = 'python';
     } else if (fileList.includes('index.html')) {
       processName = data.processName || `static-${port}`;
@@ -239,7 +239,7 @@ router.post('/:id/processes/:deploymentId/stop', async (req: AuthRequest, res: R
     }
 
     try {
-      await sshManager.executeCommand(vpsId, `pm2 stop ${escapeShellArg(deployment.processName)}`);
+      await sshManager.executeCommand(vpsId, `pm2 stop -- ${escapeShellArg(deployment.processName)}`);
     } catch (error: any) {
       console.warn(`[Process] PM2 stop warning: ${error.message}`);
     }
@@ -270,7 +270,7 @@ router.post('/:id/processes/:deploymentId/restart', async (req: AuthRequest, res
       return;
     }
 
-    await sshManager.executeCommand(vpsId, `pm2 restart ${escapeShellArg(deployment.processName)}`);
+    await sshManager.executeCommand(vpsId, `pm2 restart -- ${escapeShellArg(deployment.processName)}`);
 
     await prisma.deployment.update({
       where: { id: deployment.id },
@@ -300,7 +300,7 @@ router.delete('/:id/processes/:deploymentId', async (req: AuthRequest, res: Resp
 
     // Delete from PM2
     try {
-      await sshManager.executeCommand(vpsId, `pm2 delete ${escapeShellArg(deployment.processName)}`);
+      await sshManager.executeCommand(vpsId, `pm2 delete -- ${escapeShellArg(deployment.processName)}`);
     } catch {
       // PM2 process might not exist
     }
@@ -385,7 +385,7 @@ router.post('/:id/processes/adopt', async (req: AuthRequest, res: Response): Pro
           projectType = 'node';
         } else if (fileList.includes('requirements.txt')) {
           const mainFile = fileList.find(f => f.endsWith('.py') && !f.startsWith('.')) || 'app.py';
-          startCommand = `cd ${escapedPath} && pm2 start ${escapeShellArg(mainFile)} --name ${escapedProcessName}`;
+          startCommand = `cd ${escapedPath} && pm2 start -- ${escapeShellArg(mainFile)} --name ${escapedProcessName}`;
           projectType = 'python';
         } else if (fileList.includes('index.html')) {
           startCommand = `pm2 serve ${escapedPath} ${finalPort} --name ${escapedProcessName} --spa`;
