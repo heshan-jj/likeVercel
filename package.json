@@ -16,7 +16,13 @@
     "env:fix": "npx tsx scripts/env-manager.ts fix-relative",
     "env:fix-abs": "npx tsx scripts/env-manager.ts fix-absolute",
     "env:fix-no-q": "npx tsx scripts/env-manager.ts fix-no-quotes",
-    "env:comment": "npx tsx scripts/env-manager.ts comment-root"
+    "env:comment": "npx tsx scripts/env-manager.ts comment-root",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:stop": "docker-compose stop",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:rebuild": "docker-compose up -d --build"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

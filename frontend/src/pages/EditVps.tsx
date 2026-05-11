@@ -146,7 +146,7 @@ const EditVps: React.FC = () => {
         </div>
         <button 
            onClick={handleDelete}
-           className="p-2.5 text-red-600 hover:bg-red-500/10 rounded-lg transition-all border border-red-500/20 shadow-sm"
+           className="p-2.5 text-red-500 hover:bg-red-500/10 rounded-lg transition-all border border-red-500/20 shadow-sm"
            title="Decommission Node"
         >
            <Trash2 size={20} />
@@ -155,7 +155,7 @@ const EditVps: React.FC = () => {
 
       <Card className="p-8 relative" glass>
         {error && (
-          <div className="mb-8 p-4 bg-red-500/10 border border-red-500/20 text-red-600 rounded-lg flex items-center space-x-3 text-[13px] font-semibold">
+          <div className="mb-8 p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg flex items-center space-x-3 text-[13px] font-semibold">
              <Shield size={16} />
              <span>{error}</span>
           </div>
@@ -231,7 +231,7 @@ const EditVps: React.FC = () => {
             </div>
 
             <div className="md:col-span-2 p-4 bg-amber-500/5 border border-amber-500/10 rounded-lg flex items-start space-x-3">
-               <Shield size={16} className="text-amber-600 opacity-60 shrink-0 mt-0.5" />
+               <Shield size={16} className="text-amber-500 opacity-60 shrink-0 mt-0.5" />
                <p className="text-[11px] leading-relaxed text-amber-700 font-medium">
                   Leave credential fields blank to maintain current node authorization. Only update if you want to change the password or SSH key.
                </p>

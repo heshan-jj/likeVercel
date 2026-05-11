@@ -13,11 +13,12 @@ html {
   /* Colors - White Theme Default */
   --bg-primary: #f8fafc;
   --bg-secondary: #ffffff;
-  --bg-tertiary: #e2e8f0;
+  --bg-tertiary: #f1f5f9;
+  --bg-elevated: #ffffff;
   
   --text-primary: #0f172a;
   --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  --text-muted: #64748b;
   
   --accent-primary: #3b82f6;
   --accent-primary-rgb: 59, 130, 246;
@@ -30,10 +31,10 @@ html {
   --warning: #f59e0b;
   --warning-bg: rgba(245, 158, 11, 0.1);
   
-  /* Borders - Dark Mode Aesthetic but for light theme */
+  /* Borders */
   --border-color: #e2e8f0;
-  --border-light: rgba(0, 0, 0, 0.1);
-  --border-muted: rgba(0, 0, 0, 0.05);
+  --border-light: rgba(0, 0, 0, 0.06);
+  --border-muted: rgba(0, 0, 0, 0.04);
   
   /* Spacing */
   --space-1: 0.25rem;
@@ -79,20 +80,21 @@ html {
   --bg-primary: #0d1117;
   --bg-secondary: #161b22;
   --bg-tertiary: #21262d;
+  --bg-elevated: #30363d;
 
   --text-primary: #e6edf3;
-  --text-secondary: #8b949e;
-  --text-muted: #484f58;
+  --text-secondary: #9198a1;
+  --text-muted: #6e7681;
 
   --border-color: #30363d;
-  --border-light: rgba(255, 255, 255, 0.12);
+  --border-light: rgba(255, 255, 255, 0.1);
 
-  --success: #3fb950;
-  --success-bg: rgba(63, 185, 80, 0.1);
-  --error: #f85149;
-  --error-bg: rgba(248, 81, 73, 0.1);
-  --warning: #d29922;
-  --warning-bg: rgba(210, 153, 34, 0.1);
+  --success: #4ade80;
+  --success-bg: rgba(74, 222, 128, 0.1);
+  --error: #f87171;
+  --error-bg: rgba(248, 113, 113, 0.1);
+  --warning: #fbbf24;
+  --warning-bg: rgba(251, 191, 36, 0.1);
 }
 
 * {
@@ -173,8 +175,12 @@ input, select, textarea {
 }
 
 .sidebar-active {
-  background: rgba(59, 130, 246, 0.08);
-  border-left: 2px solid #3b82f6;
+  background: rgba(var(--accent-primary-rgb), 0.08);
+  border-left: 2px solid var(--accent-primary);
+}
+
+[data-theme="dark"] .sidebar-active {
+  background: rgba(var(--accent-primary-rgb), 0.15);
 }
 
 @layer utilities {

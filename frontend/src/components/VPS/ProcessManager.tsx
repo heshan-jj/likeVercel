@@ -81,7 +81,7 @@ function getStatusBadge(status: string): React.ReactNode {
   return (
     <div className="flex items-center space-x-2">
       <div className={`h-1.5 w-1.5 rounded-full ${variant === 'emerald' ? 'bg-emerald-500' : variant === 'amber' ? 'bg-amber-500' : variant === 'rose' ? 'bg-red-500' : 'bg-gray-500'} ${variant === 'emerald' ? 'animate-pulse' : ''}`} />
-      <span className={`text-[10px] font-semibold tracking-tight ${variant === 'emerald' ? 'text-emerald-600' : variant === 'amber' ? 'text-amber-600' : variant === 'rose' ? 'text-red-600' : 'text-text-muted'}`}>
+      <span className={`text-[10px] font-semibold tracking-tight ${variant === 'emerald' ? 'text-emerald-500' : variant === 'amber' ? 'text-amber-500' : variant === 'rose' ? 'text-red-500' : 'text-text-muted'}`}>
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </span>
     </div>
@@ -318,7 +318,7 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
   );
 
   return (
-    <div className="flex flex-col h-full space-y-6">
+    <div className="flex flex-col h-full space-y-4">
       {/* Search and Action Bar */}
       <div className="flex items-center justify-between gap-4">
         <div className="relative flex-1 max-w-sm">
@@ -342,7 +342,7 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
       </div>
 
       {error && (
-        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-600 rounded-xl flex items-center justify-between text-xs font-semibold shadow-sm">
+        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl flex items-center justify-between text-xs font-semibold shadow-sm">
           <div className="flex items-center space-x-3">
             <X size={16} />
             <span>{error}</span>
@@ -357,7 +357,7 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
         <Card className="p-6 space-y-6" glass>
           <div className="flex items-center justify-between border-b border-border-light/60 pb-4">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-500/10 rounded-lg text-blue-600 shadow-inner">
+              <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500 shadow-inner">
                 <Rocket size={18} />
               </div>
               <div>
@@ -453,21 +453,21 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
                 
                 return (
                   <tr key={dep.id} className="hover:bg-bg-tertiary/20 transition-colors group">
-                    <td className="px-5 py-4 whitespace-nowrap">
+                    <td className="px-5 py-2.5 whitespace-nowrap">
                       {getStatusBadge(status)}
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-2.5">
                        <span className="text-xs font-semibold text-text-primary group-hover:text-blue-500 transition-colors">{dep.processName}</span>
                     </td>
-                    <td className="px-5 py-4 text-text-muted text-[11px] font-mono truncate max-w-[200px] hidden md:table-cell" title={dep.projectPath}>
+                    <td className="px-5 py-2.5 text-text-muted text-[11px] font-mono truncate max-w-[200px] hidden md:table-cell" title={dep.projectPath}>
                       {dep.projectPath}
                     </td>
-                    <td className="px-5 py-4 text-text-muted text-[11px] font-mono">
+                    <td className="px-5 py-2.5 text-text-muted text-[11px] font-mono">
                       {dep.port ? (
                         <span className="px-2 py-0.5 bg-blue-500/5 text-blue-500 border border-blue-500/10 rounded-md font-bold">{dep.port}</span>
                       ) : '—'}
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-2.5">
                       <div className="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => handleViewLogs(dep.id, dep.processName)}
@@ -539,7 +539,7 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
         <div className="mt-8 space-y-3">
           <div className="flex items-center space-x-2 px-1">
             <Activity size={14} className="text-amber-500" />
-            <h3 className="text-[11px] font-semibold text-amber-600 tracking-tight">Unmanaged Workloads Detected</h3>
+            <h3 className="text-[11px] font-semibold text-amber-500 tracking-tight">Unmanaged Workloads Detected</h3>
           </div>
           <div className="overflow-hidden border border-amber-500/10 rounded-xl bg-amber-500/[0.02]">
             <table className="w-full text-left border-collapse">
@@ -593,7 +593,7 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
           <div className="bg-bg-secondary/95 backdrop-blur-xl w-full max-w-2xl max-h-[85vh] rounded-[2rem] border border-border-light flex flex-col shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-border-light/60 flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                 <div className="p-2.5 bg-blue-500/10 rounded-xl text-blue-600 shadow-inner">
+                 <div className="p-2.5 bg-blue-500/10 rounded-xl text-blue-500 shadow-inner">
                     <SlidersHorizontal size={22} />
                  </div>
                  <div>
@@ -688,7 +688,7 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
           <div className="bg-bg-secondary/95 backdrop-blur-xl w-full max-w-5xl h-full max-h-[85vh] rounded-[2rem] border border-border-light flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-border-light/60 flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <div className="p-2.5 bg-blue-500/10 rounded-xl text-blue-600 shadow-inner">
+                <div className="p-2.5 bg-blue-500/10 rounded-xl text-blue-500 shadow-inner">
                    <ScrollText size={22} />
                 </div>
                 <div>
@@ -733,7 +733,7 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
                </div>
                <div className="flex items-center space-x-1">
                   <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[10px] font-bold text-emerald-600 tracking-wider">LIVE FEED</span>
+                  <span className="text-[10px] font-bold text-emerald-500 tracking-wider">LIVE FEED</span>
                </div>
             </div>
           </div>

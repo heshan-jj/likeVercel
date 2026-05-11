@@ -55,10 +55,10 @@ const Onboarding: React.FC = () => {
     <div className="min-h-screen w-full flex items-center justify-center bg-bg-primary relative overflow-hidden">
       {/* Background Decoration */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none" />
 
       <div className="w-full max-w-md p-8 flex flex-col items-center z-10">
-        <div className="mb-12 p-3.5 bg-blue-600 rounded-[1.5rem] shadow-xl shadow-blue-600/20 animate-in zoom-in duration-700">
+        <div className="mb-12 p-3.5 bg-blue-500 rounded-[1.5rem] shadow-xl shadow-blue-500/20 animate-in zoom-in duration-700">
           <Logo className="w-14 h-14 text-white" size={56} />
         </div>
 
@@ -71,12 +71,12 @@ const Onboarding: React.FC = () => {
               exit={{ opacity: 0, y: -10 }}
               className="text-center"
             >
-              <h1 className="text-4xl font-bold text-text-primary mb-4 tracking-tight">Welcome to <span className="text-blue-600">likeVercel</span></h1>
+              <h1 className="text-4xl font-bold text-text-primary mb-4 tracking-tight">Welcome to <span className="text-blue-500">likeVercel</span></h1>
               <p className="text-text-secondary mb-12 text-lg font-medium leading-relaxed">Let's secure your orchestration suite with a primary access passcode.</p>
               
               <button
                 onClick={() => setStep(2)}
-                className="w-full py-4 px-8 bg-blue-600 text-white rounded-[1.25rem] font-semibold text-lg hover:bg-blue-500 transition-all shadow-xl shadow-blue-600/20 active:scale-95"
+                className="w-full py-4 px-8 bg-blue-500 text-white rounded-[1.25rem] font-semibold text-lg hover:bg-blue-400 transition-all shadow-xl shadow-blue-500/20 active:scale-95"
               >
                 Get Started
               </button>
@@ -126,8 +126,8 @@ const Onboarding: React.FC = () => {
                       exit={{ opacity: 0 }}
                       className="absolute inset-0 bg-bg-secondary/80 backdrop-blur-sm rounded-[3rem] flex flex-col items-center justify-center gap-5"
                     >
-                      <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin shadow-lg shadow-blue-600/10" />
-                      <p className="font-semibold text-blue-600 animate-pulse">Initializing System State...</p>
+                      <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin shadow-lg shadow-blue-500/10" />
+                      <p className="font-semibold text-blue-500 animate-pulse">Initializing System State...</p>
                     </motion.div>
                   )}
                 </AnimatePresence>

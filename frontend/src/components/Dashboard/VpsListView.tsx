@@ -61,12 +61,12 @@ const VpsListView: React.FC<VpsListViewProps> = ({ profiles, specs, fetchingSpec
                 </td>
                 <td className="px-4 py-3">
                   {vps.isConnected ? (
-                    <div className="flex items-center space-x-1.5 px-2 py-0.5 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-md w-fit">
+                    <div className="flex items-center space-x-1.5 px-2 py-0.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-md w-fit">
                       <div className="w-1 h-1 rounded-full bg-emerald-500" />
                       <span className="text-[10px] font-medium">Online</span>
                     </div>
                   ) : (
-                    <div className="flex items-center space-x-1.5 px-2 py-0.5 bg-red-500/10 text-red-600 border border-red-500/20 rounded-md w-fit">
+                    <div className="flex items-center space-x-1.5 px-2 py-0.5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-md w-fit">
                       <div className="w-1 h-1 rounded-full bg-red-500" />
                       <span className="text-[10px] font-medium">Offline</span>
                     </div>

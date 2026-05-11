@@ -59,7 +59,7 @@ function timeAgo(dateStr: string): string {
 
 function getFileIcon(name: string, isDirectory: boolean) {
   if (isDirectory) return (
-    <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600 shadow-inner">
+    <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500 shadow-inner">
       <Folder size={14} />
     </div>
   );
@@ -75,7 +75,7 @@ function getFileIcon(name: string, isDirectory: boolean) {
     colorClass = 'bg-rose-50 text-rose-600';
     icon = <ImageIcon size={14} />;
   } else if (['zip', 'gz', 'tar', 'rar', '7z', 'bz2'].includes(ext)) {
-    colorClass = 'bg-amber-50 text-amber-600';
+    colorClass = 'bg-amber-50 text-amber-500';
     icon = <Archive size={14} />;
   } else if (['md', 'txt', 'log', 'json', 'yaml', 'yml', 'toml', 'xml', 'csv', 'env'].includes(ext)) {
     colorClass = 'bg-slate-50 text-slate-600';
@@ -253,7 +253,7 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
   };
 
   return (
-    <div className="flex flex-col h-full space-y-6">
+    <div className="flex flex-col h-full space-y-4">
       {/* Search and Action Bar */}
       <div className="flex items-center justify-between gap-4">
         <div className="relative flex-1 max-w-sm">
@@ -293,7 +293,7 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
       </div>
 
       {error && (
-        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-600 rounded-xl flex items-center justify-between text-xs font-semibold shadow-sm">
+        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl flex items-center justify-between text-xs font-semibold shadow-sm">
           <div className="flex items-center space-x-3">
              <X size={16} />
              <span>{error}</span>
@@ -380,19 +380,19 @@ const FileManager: React.FC<FileManagerProps> = ({ vpsId }) => {
                     onClick={() => file.isDirectory && navigateTo(file.path)}
                     className="hover:bg-bg-tertiary/20 cursor-pointer transition-colors group"
                   >
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-2.5">
                        <div className="flex items-center space-x-4">
                           <div className="shrink-0">{getFileIcon(file.name, file.isDirectory)}</div>
                           <span className="text-xs font-semibold text-text-primary group-hover:text-blue-500 transition-colors truncate max-w-[200px] tracking-tight">{file.name}</span>
                        </div>
                     </td>
-                    <td className="px-5 py-4 text-right text-[11px] font-mono text-text-muted hidden sm:table-cell opacity-70">
+                    <td className="px-4 py-2.5 text-right text-[11px] font-mono text-text-muted hidden sm:table-cell opacity-70">
                        {file.isDirectory ? 'DIR' : formatBytes(file.size)}
                     </td>
-                    <td className="px-5 py-4 text-right text-[11px] font-semibold text-text-muted hidden md:table-cell opacity-60">
+                    <td className="px-4 py-2.5 text-right text-[11px] font-semibold text-text-muted hidden md:table-cell opacity-60">
                        {timeAgo(file.modifiedAt)}
                     </td>
-                    <td className="px-5 py-4 text-right">
+                    <td className="px-4 py-2.5 text-right">
                        <div className="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           {!file.isDirectory && (
                             <button 

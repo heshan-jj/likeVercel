@@ -98,7 +98,7 @@ const ResourceChart: React.FC<ResourceChartProps> = ({ vpsId, isConnected, compa
 
       <div className="ml-auto flex items-center space-x-2 px-4 py-1.5 bg-blue-500/5 rounded-full border border-blue-500/10 shadow-sm">
         <Activity size={12} className="text-blue-500 animate-pulse" />
-        <span className="text-[11px] font-semibold text-blue-600 tracking-tight">Active Telemetry</span>
+        <span className="text-[11px] font-semibold text-blue-500 tracking-tight">Active Telemetry</span>
       </div>
     </div>
   );

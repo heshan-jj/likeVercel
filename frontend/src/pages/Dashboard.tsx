@@ -175,7 +175,7 @@ const Dashboard: React.FC = () => {
                 {profiles.length} Instances
               </span>
               <span className="text-[11px] text-text-muted">•</span>
-              <span className="flex items-center space-x-1 px-1.5 py-0.5 bg-blue-500/10 text-blue-600 rounded text-[10px] font-semibold">
+              <span className="flex items-center space-x-1 px-1.5 py-0.5 bg-blue-500/10 text-blue-500 rounded text-[10px] font-semibold">
                 <span className="w-1 h-1 rounded-full bg-blue-500 animate-pulse" />
                 <span>{profiles.filter(p => p.isConnected).length} Active</span>
               </span>
@@ -200,14 +200,14 @@ const Dashboard: React.FC = () => {
             <div className="flex bg-bg-secondary border border-border-light p-1 rounded-md shadow-sm">
               <button 
                 onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded transition-all ${viewMode === 'grid' ? 'bg-bg-tertiary text-blue-600' : 'text-text-muted hover:text-text-primary'}`}
+                className={`p-1.5 rounded transition-all ${viewMode === 'grid' ? 'bg-bg-tertiary text-blue-500' : 'text-text-muted hover:text-text-primary'}`}
                 title="Grid View"
               >
                 <LayoutGrid size={15} />
               </button>
               <button 
                 onClick={() => setViewMode('list')}
-                className={`p-1.5 rounded transition-all ${viewMode === 'list' ? 'bg-bg-tertiary text-blue-600' : 'text-text-muted hover:text-text-primary'}`}
+                className={`p-1.5 rounded transition-all ${viewMode === 'list' ? 'bg-bg-tertiary text-blue-500' : 'text-text-muted hover:text-text-primary'}`}
                 title="List View"
               >
                 <List size={15} />
@@ -255,7 +255,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {displayError && (
-        <div className="flex items-center justify-between p-3 bg-red-500/10 text-red-600 border border-red-500/20 rounded shadow-sm text-xs font-semibold">
+        <div className="flex items-center justify-between p-3 bg-red-500/10 text-red-500 border border-red-500/20 rounded shadow-sm text-xs font-semibold">
           <div className="flex items-center space-x-2">
             <X size={14} />
             <span>{displayError}</span>

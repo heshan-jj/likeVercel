@@ -159,7 +159,7 @@ const Settings: React.FC = () => {
             onClick={logout}
             variant="outline"
             size="sm"
-            className="text-red-500 border-red-500/20 hover:bg-red-500/10 hover:text-red-600 px-5"
+            className="text-red-500 border-red-500/20 hover:bg-red-500/10 hover:text-red-500 px-5"
           >
             <LogOut size={14} className="mr-2" />
             <span>Lock Session</span>
@@ -169,7 +169,7 @@ const Settings: React.FC = () => {
 
       <div className="p-6 space-y-8 max-w-2xl mx-auto w-full">
         {feedback && (
-          <div className={`p-4 rounded-lg border text-sm font-semibold animate-in fade-in slide-in-from-top-2 ${feedback.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600' : 'bg-red-500/10 border-red-500/20 text-red-600'}`}>
+          <div className={`p-4 rounded-lg border text-sm font-semibold animate-in fade-in slide-in-from-top-2 ${feedback.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
             {feedback.message}
           </div>
         )}
@@ -177,7 +177,7 @@ const Settings: React.FC = () => {
         {/* Security Card */}
         <Card className="p-6 space-y-6" glass>
           <div className="flex items-center space-x-4">
-            <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600 shadow-inner">
+            <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 shadow-inner">
               <Shield size={24} />
             </div>
             <div>
@@ -201,7 +201,7 @@ const Settings: React.FC = () => {
           {showPinForm && (
             <div className="space-y-5 p-5 bg-bg-primary/30 border border-border-light rounded-xl shadow-inner animate-in zoom-in-95 duration-200">
               {pinMsg && (
-                <div className={`p-2.5 rounded-lg text-[11px] font-semibold flex items-center space-x-2 ${pinMsg.type === 'success' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-red-500/10 text-red-600'}`}>
+                <div className={`p-2.5 rounded-lg text-[11px] font-semibold flex items-center space-x-2 ${pinMsg.type === 'success' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
                   {pinMsg.type === 'success' ? <Check size={14} /> : <AlertTriangle size={14} />}
                   <span>{pinMsg.text}</span>
                 </div>
@@ -244,7 +244,7 @@ const Settings: React.FC = () => {
         {/* Appearance Card */}
         <Card className="p-6 space-y-5">
           <div className="flex items-center space-x-3 mb-1">
-            <div className="p-2 bg-blue-500/10 rounded-lg text-blue-600">
+            <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
               <Sun size={18} />
             </div>
             <div>
@@ -273,7 +273,7 @@ const Settings: React.FC = () => {
         {/* Security & Data Card */}
         <Card className="p-6 space-y-4">
           <div className="flex items-center space-x-3 mb-2">
-            <div className="p-2 bg-blue-500/10 rounded-lg text-blue-600">
+            <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
               <Shield size={18} />
             </div>
             <div>
@@ -335,14 +335,14 @@ const Settings: React.FC = () => {
 
         {/* Danger Zone */}
         <div className="bg-red-500/[0.03] border border-red-500/10 rounded-2xl p-6 space-y-4 shadow-sm shadow-red-500/[0.02]">
-          <div className="flex items-center space-x-2 text-red-600/80 mb-1">
+          <div className="flex items-center space-x-2 text-red-500/80 mb-1">
             <Trash2 size={16} />
             <h2 className="text-[11px] font-semibold tracking-wider uppercase opacity-80">Advanced / Destructive</h2>
           </div>
           <button
             onClick={handlePurgeNodes}
             disabled={purging}
-            className="w-full p-5 bg-bg-secondary hover:bg-red-600 hover:text-white text-red-600 rounded-xl border border-red-500/20 transition-all text-left flex items-center justify-between shadow-sm group"
+            className="w-full p-5 bg-bg-secondary hover:bg-red-500 hover:text-white text-red-500 rounded-xl border border-red-500/20 transition-all text-left flex items-center justify-between shadow-sm group"
           >
             <div className="space-y-1">
               <span className="text-sm font-semibold group-hover:text-white">Factory Reset System</span>

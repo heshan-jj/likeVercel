@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   KeyRound, Plus, Trash2, Copy, Check, Server, Loader2,
   ShieldCheck, AlertTriangle, ChevronDown, X,
-  Wand2, Download, FileUp
+  Wand2, Download
 } from 'lucide-react';
 import api from '../utils/api';
 import { useToast } from '../context/ToastContext';
@@ -191,11 +191,11 @@ const KeyManager: React.FC = () => {
         {showAddForm && (
           <Card className="p-6 space-y-6" glass>
             <div className="flex items-center space-x-3 mb-2">
-              <div className="p-1.5 bg-blue-500/10 rounded-lg text-blue-600">
+              <div className="p-1.5 bg-blue-500/10 rounded-lg text-blue-500">
                 <KeyRound size={18} />
               </div>
               <h2 className="text-sm font-semibold text-text-primary">New Security Provision</h2>
-            </div>
+              </div>
 
             <div className="flex bg-bg-primary/40 border border-border-light rounded-lg p-1 w-fit shadow-inner">
               <button
@@ -251,13 +251,13 @@ const KeyManager: React.FC = () => {
                       onChange={e => setAddPublicKey(e.target.value)}
                       rows={2}
                       placeholder="ssh-ed25519 AAAA..."
-                      className="w-full bg-bg-primary/40 border border-border-light rounded-lg px-3 py-2 text-[11px] text-emerald-600 outline-none focus:border-blue-500 font-mono leading-relaxed resize-none shadow-inner shadow-black/[0.02]"
+                      className="w-full bg-bg-primary/40 border border-border-light rounded-lg px-3 py-2 text-[11px] text-emerald-500 outline-none focus:border-blue-500 font-mono leading-relaxed resize-none shadow-inner shadow-black/[0.02]"
                     />
                   </div>
                 </>
               ) : generatedPrivateKey ? (
                 <div className="space-y-4 bg-emerald-500/5 border border-emerald-500/10 p-5 rounded-xl">
-                  <div className="flex items-center space-x-2 text-emerald-600">
+                  <div className="flex items-center space-x-2 text-emerald-500">
                     <ShieldCheck size={16} />
                     <p className="text-[11px] font-semibold">Key pair ready. Capture private key below.</p>
                   </div>
@@ -306,7 +306,7 @@ const KeyManager: React.FC = () => {
               ) : (
                 <div className="p-4 bg-blue-500/5 border border-blue-500/10 rounded-lg">
                   <p className="text-[11px] text-text-muted leading-relaxed">
-                    A secure <span className="text-blue-600 font-semibold">Ed25519</span> key pair will be generated. 
+                    A secure <span className="text-blue-500 font-semibold">Ed25519</span> key pair will be generated. 
                     The private payload will be displayed <span className="text-text-primary font-semibold underline underline-offset-4 decoration-blue-500/30">ONLY ONCE</span>.
                   </p>
                 </div>
@@ -315,7 +315,7 @@ const KeyManager: React.FC = () => {
 
             {!generatedPrivateKey && (
               <div className="flex items-center justify-between pt-5 border-t border-border-light">
-                <div className="flex items-center space-x-2 text-amber-600 opacity-80">
+                <div className="flex items-center space-x-2 text-amber-500 opacity-80">
                   <AlertTriangle size={14} />
                   <p className="text-[10px] font-semibold">AES-256-GCM Encrypted</p>
                 </div>
@@ -369,7 +369,7 @@ const KeyManager: React.FC = () => {
                       <tr key={key.id} className="bg-bg-secondary hover:bg-bg-tertiary/20 transition-colors group">
                         <td className="px-5 py-4">
                            <div className="flex flex-col">
-                              <span className="text-xs font-semibold text-text-primary group-hover:text-blue-600 transition-colors">{key.label}</span>
+                              <span className="text-xs font-semibold text-text-primary group-hover:text-blue-500 transition-colors">{key.label}</span>
                               <span className="text-[10px] font-mono text-text-muted opacity-60 mt-0.5">MD5:{key.fingerprint}</span>
                            </div>
                         </td>
@@ -410,11 +410,11 @@ const KeyManager: React.FC = () => {
         {keys.length > 0 && connectedVps.length > 0 && (
           <Card className="p-6 space-y-5" glass>
             <div className="flex items-center space-x-3 mb-2">
-              <div className="p-1.5 bg-blue-500/10 rounded-lg text-blue-600">
-                <FileUp size={18} />
+              <div className="p-1.5 bg-blue-500/10 rounded-lg text-blue-500">
+                <KeyRound size={18} />
               </div>
-              <h2 className="text-sm font-semibold text-text-primary">Cluster Distribution</h2>
-            </div>
+              <h2 className="text-sm font-semibold text-text-primary">New Security Provision</h2>
+              </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                <div className="space-y-5">

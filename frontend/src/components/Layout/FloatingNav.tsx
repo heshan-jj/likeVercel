@@ -63,7 +63,7 @@ const FloatingNav: React.FC = () => {
               className={({ isActive }) => 
                 `flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all ${
                   isActive 
-                  ? 'bg-blue-500/10 text-blue-600' 
+                  ? 'bg-blue-500/10 text-blue-500' 
                   : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary'
                 }`
               }

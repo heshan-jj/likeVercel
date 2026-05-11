@@ -22,7 +22,7 @@ import ResourceChart from '../components/VPS/ResourceChart';
 
 // Shared offline state shown on all tabs when VPS is disconnected
 const OfflineState: React.FC<{ label: string; onNavigate: () => void }> = ({ label, onNavigate }) => (
-  <div className="bg-bg-secondary/40 backdrop-blur-sm border border-border-light rounded-xl p-12 text-center flex flex-col items-center justify-center space-y-6 h-full shadow-sm shadow-black/[0.02]">
+  <div className="bg-bg-secondary/60 backdrop-blur-sm border border-border-light rounded-xl p-12 text-center flex flex-col items-center justify-center space-y-6 h-full shadow-sm shadow-black/[0.02]">
     <div className="p-4 bg-bg-secondary rounded-lg border border-border-light shadow-inner">
       <PlugZap size={24} className="text-text-muted/50" />
     </div>
@@ -119,16 +119,16 @@ const VpsDetail: React.FC = () => {
   return (
     <div className="flex flex-col flex-1 bg-bg-primary">
       {/* Detail Header */}
-      <div className="px-6 py-6 border-b border-border-light bg-bg-secondary/40 backdrop-blur-sm">
+      <div className="px-6 py-4 border-b border-border-light bg-bg-secondary/40 backdrop-blur-sm">
         <button 
           onClick={() => navigate('/dashboard')}
-          className="flex items-center space-x-2 text-text-secondary hover:text-text-primary transition-colors mb-5 group text-[11px] font-semibold tracking-tight"
+          className="flex items-center space-x-2 text-text-secondary hover:text-text-primary transition-colors mb-4 group text-[11px] font-semibold tracking-tight"
         >
           <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
           <span>Back to Infrastructure</span>
         </button>
 
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center space-x-4">
             <div className={`p-2.5 rounded-xl ${profile.isConnected ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-bg-tertiary text-text-muted'} border border-border-light`}>
               <Server size={22} />
@@ -137,7 +137,7 @@ const VpsDetail: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <h1 className="text-xl font-semibold text-text-primary tracking-tight">{profile.name}</h1>
                 {profile.isConnected ? (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
                     <span className="w-1 h-1 rounded-full bg-emerald-500 mr-1.5 animate-pulse" />
                     Live
                   </span>
@@ -178,9 +178,9 @@ const VpsDetail: React.FC = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as Tab)}
-              className={`flex items-center space-x-2 py-4 border-b-2 transition-all font-semibold text-[11px] tracking-tight relative ${
+              className={`flex items-center space-x-2 py-3 border-b-2 transition-all font-semibold text-[11px] tracking-tight relative ${
                 activeTab === tab.id 
-                ? 'border-blue-500 text-blue-600' 
+                ? 'border-blue-500 text-blue-500' 
                 : 'border-transparent text-text-secondary hover:text-text-primary'
               }`}
             >
@@ -192,7 +192,7 @@ const VpsDetail: React.FC = () => {
         </div>
 
         <div className="flex-1 min-h-0 relative">
-          <div className="absolute inset-0 px-4 md:px-6 py-6 overflow-y-auto custom-scrollbar">
+          <div className="absolute inset-0 px-3 md:px-4 pt-4 pb-6 overflow-y-auto custom-scrollbar">
             {/* Map over tabs to keep them alive but hidden when not active */}
             <div className={`h-full ${activeTab !== 'terminal' ? 'hidden' : 'block'}`}>
               {!profile.isConnected ? (

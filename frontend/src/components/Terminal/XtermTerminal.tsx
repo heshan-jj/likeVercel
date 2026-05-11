@@ -190,7 +190,7 @@ const XtermTerminal: React.FC<XtermTerminalProps> = ({ vpsId, vpsHost, vpsUserna
           flex: 1,
           minHeight: '0',
           background: '#0f172a',
-          padding: '10px',
+          padding: '4px',
           overflow: 'hidden'
         }} 
       />

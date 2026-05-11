@@ -8,9 +8,9 @@ interface BadgeProps {
 
 const Badge: React.FC<BadgeProps> = ({ children, variant = 'gray', className = '' }) => {
   const variants = {
-    blue: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
-    emerald: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
-    amber: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+    blue: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+    emerald: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+    amber: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
     rose: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
     gray: 'bg-bg-tertiary text-text-secondary border-border-light',
   };

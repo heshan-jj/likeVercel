@@ -132,7 +132,7 @@ const PortManager: React.FC<PortManagerProps> = ({ vpsId }) => {
       {/* Port Checker Card */}
       <Card className="p-6 space-y-6" glass>
          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-blue-500/10 rounded-lg text-blue-600 shadow-inner">
+            <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500 shadow-inner">
                <ShieldCheck size={18} />
             </div>
             <div>
@@ -178,8 +178,8 @@ const PortManager: React.FC<PortManagerProps> = ({ vpsId }) => {
          {checkResult && (
            <div className={`p-4 rounded-xl border flex items-center space-x-3 text-xs font-semibold animate-in slide-in-from-top-2 duration-300 ${
              checkResult.available 
-             ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600' 
-             : 'bg-red-500/10 border-red-500/20 text-red-600'
+             ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' 
+             : 'bg-red-500/10 border-red-500/20 text-red-500'
            }`}>
              {checkResult.available ? <ShieldCheck size={16} /> : <ShieldAlert size={16} />}
              <span>{checkResult.message}</span>
@@ -214,18 +214,18 @@ const PortManager: React.FC<PortManagerProps> = ({ vpsId }) => {
                 ) : (
                   managedPorts.map((mp) => (
                     <tr key={mp.port} className="hover:bg-bg-tertiary/20 transition-colors group">
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2">
                         <div className="flex flex-col">
                           <span className="text-xs font-semibold text-text-primary group-hover:text-blue-500 transition-colors">{mp.processName}</span>
                           <span className="text-[10px] font-mono text-text-muted truncate max-w-[150px] opacity-60">{mp.projectPath}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2">
                         <Badge variant="emerald" className="font-mono text-[9px] px-2 font-bold tracking-widest">
                           TCP:{mp.port}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-2 text-right">
                         <a 
                           href={mp.url} 
                           target="_blank" 
@@ -311,7 +311,7 @@ const PortManager: React.FC<PortManagerProps> = ({ vpsId }) => {
           </div>
           
           <div className="p-4 bg-amber-500/[0.03] border border-amber-500/10 rounded-xl flex items-start space-x-3">
-             <ShieldAlert size={16} className="text-amber-600/50 shrink-0 mt-0.5" />
+             <ShieldAlert size={16} className="text-amber-500/50 shrink-0 mt-0.5" />
              <p className="text-[11px] leading-relaxed text-amber-700 font-medium">
                 Node Ingress: Direct host exposure should only be permitted for authorized bridge protocols and gateway sockets.
              </p>
@@ -320,7 +320,7 @@ const PortManager: React.FC<PortManagerProps> = ({ vpsId }) => {
       </div>
 
       {error && (
-        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-600 rounded-xl flex items-center justify-between text-xs font-semibold shadow-sm animate-in fade-in">
+        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl flex items-center justify-between text-xs font-semibold shadow-sm animate-in fade-in">
           <div className="flex items-center space-x-3">
              <ShieldAlert size={16} />
              <span>{error}</span>

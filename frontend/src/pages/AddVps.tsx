@@ -117,7 +117,7 @@ const AddVps: React.FC = () => {
 
       <Card className="p-8 relative" glass>
         {error && (
-          <div className="mb-8 p-4 bg-red-500/10 border border-red-500/20 text-red-600 rounded-lg flex items-center space-x-3 text-[13px] font-semibold">
+          <div className="mb-8 p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg flex items-center space-x-3 text-[13px] font-semibold">
              <Shield size={16} />
              <span>{error}</span>
           </div>

@@ -83,7 +83,7 @@ const VpsGridView: React.FC<VpsGridViewProps> = ({ profiles, specs, fetchingSpec
             </div>
             
             <div className="flex items-center justify-between pt-2 border-t border-border-muted/50">
-              <div className={`flex items-center space-x-1.5 px-2 py-0.5 rounded-md border ${vps.isConnected ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-red-500/10 text-red-600 border-red-500/20'}`}>
+              <div className={`flex items-center space-x-1.5 px-2 py-0.5 rounded-md border ${vps.isConnected ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
                 <div className={`w-1 h-1 rounded-full ${vps.isConnected ? 'bg-emerald-500' : 'bg-red-500'}`} />
                 <span className="text-[10px] font-medium">{vps.isConnected ? 'Online' : 'Offline'}</span>
               </div>

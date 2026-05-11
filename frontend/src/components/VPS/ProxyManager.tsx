@@ -149,7 +149,7 @@ const ProxyManager: React.FC<ProxyManagerProps> = ({ vpsId }) => {
     return (
       <div className="flex flex-col items-center justify-center h-full py-20 text-center">
          <Card className="p-10 max-w-lg" glass>
-            <div className="p-4 bg-blue-500/10 rounded-2xl w-fit mx-auto mb-8 text-blue-600 shadow-inner">
+            <div className="p-4 bg-blue-500/10 rounded-2xl w-fit mx-auto mb-8 text-blue-500 shadow-inner">
                <Globe size={48} />
             </div>
             <h3 className="text-xl font-semibold text-text-primary mb-3 tracking-tight">Proxy Engine Missing</h3>
@@ -166,7 +166,7 @@ const ProxyManager: React.FC<ProxyManagerProps> = ({ vpsId }) => {
                <span>Initialize Nginx Runtime</span>
             </Button>
             {error && (
-              <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 text-red-600 rounded-xl text-xs font-semibold">
+              <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl text-xs font-semibold">
                 {error}
               </div>
             )}
@@ -208,7 +208,7 @@ const ProxyManager: React.FC<ProxyManagerProps> = ({ vpsId }) => {
       </div>
 
       {error && (
-        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-600 rounded-xl flex items-center justify-between text-xs font-semibold shadow-sm">
+        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl flex items-center justify-between text-xs font-semibold shadow-sm">
           <div className="flex items-center space-x-3">
              <ShieldAlert size={16} />
              <span>{error}</span>
@@ -222,7 +222,7 @@ const ProxyManager: React.FC<ProxyManagerProps> = ({ vpsId }) => {
            <form onSubmit={handleCreate} className="space-y-6">
              <div className="flex items-center justify-between border-b border-border-light/60 pb-4">
                 <div className="flex items-center space-x-3">
-                   <div className="p-2 bg-blue-500/10 rounded-lg text-blue-600 shadow-inner">
+                   <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500 shadow-inner">
                       <Zap size={18} />
                    </div>
                    <div>
@@ -266,7 +266,7 @@ const ProxyManager: React.FC<ProxyManagerProps> = ({ vpsId }) => {
                       type="checkbox"
                       checked={form.ssl}
                       onChange={(e) => setForm({ ...form, ssl: e.target.checked })}
-                      className="rounded-md border-border-light text-blue-600 focus:ring-blue-500 w-5 h-5 transition-all shadow-inner"
+                      className="rounded-md border-border-light text-blue-500 focus:ring-blue-500 w-5 h-5 transition-all shadow-inner"
                      />
                   </div>
                   <div>
@@ -321,29 +321,29 @@ const ProxyManager: React.FC<ProxyManagerProps> = ({ vpsId }) => {
               <>
                 {managedConfigs.map((cfg) => (
                   <tr key={cfg.domain} className="hover:bg-bg-tertiary/20 transition-colors group">
-                    <td className="px-5 py-4 whitespace-nowrap">
+                    <td className="px-5 py-2.5 whitespace-nowrap">
                       <div className="flex items-center space-x-2">
                         <div className={`h-1.5 w-1.5 rounded-full ${cfg.enabled ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
-                        <span className={`text-[10px] font-semibold tracking-tight ${cfg.enabled ? 'text-emerald-600' : 'text-red-600'}`}>{cfg.enabled ? 'Active' : 'Dormant'}</span>
+                        <span className={`text-[10px] font-semibold tracking-tight ${cfg.enabled ? 'text-emerald-500' : 'text-red-500'}`}>{cfg.enabled ? 'Active' : 'Dormant'}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-4 font-semibold text-text-primary text-xs font-mono truncate max-w-[200px]">
+                    <td className="px-5 py-2.5 font-semibold text-text-primary text-xs font-mono truncate max-w-[200px]">
                       {cfg.domain}
                     </td>
-                    <td className="px-5 py-4 text-[11px] font-mono font-bold">
+                    <td className="px-5 py-2.5 text-[11px] font-mono font-bold">
                       <Badge variant="blue" className="px-2 py-0.5 tracking-widest uppercase text-[9px]">
                         L:{cfg.port}
                       </Badge>
                     </td>
-                    <td className="px-5 py-4 text-center">
+                    <td className="px-5 py-2.5 text-center">
                       <div className={`inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-lg border text-[9px] font-bold tracking-widest ${
-                        cfg.ssl ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-inner'
+                        cfg.ssl ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-inner'
                       }`}>
                         {cfg.ssl ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
                         <span>{cfg.ssl ? 'TLS' : 'PLAIN'}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-2.5">
                       <div className="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <a 
                           href={`${cfg.ssl ? 'https' : 'http'}://${cfg.domain}`} 
@@ -358,7 +358,7 @@ const ProxyManager: React.FC<ProxyManagerProps> = ({ vpsId }) => {
                           <button
                             onClick={() => handleEnableSSL(cfg.domain)}
                             disabled={actionLoading === `ssl-${cfg.domain}`}
-                            className="p-2 hover:bg-bg-tertiary rounded-lg text-amber-600 hover:bg-amber-500/10 transition-colors border border-transparent hover:border-amber-500/20 shadow-sm"
+                            className="p-2 hover:bg-bg-tertiary rounded-lg text-amber-500 hover:bg-amber-500/10 transition-colors border border-transparent hover:border-amber-500/20 shadow-sm"
                             title="Activate TLS"
                           >
                              {actionLoading === `ssl-${cfg.domain}` ? <Loader2 size={16} className="animate-spin" /> : <Lock size={16} />}
@@ -380,7 +380,7 @@ const ProxyManager: React.FC<ProxyManagerProps> = ({ vpsId }) => {
                 {externalConfigs.length > 0 && (
                   <>
                     <tr className="bg-amber-500/5 backdrop-blur-sm">
-                      <td colSpan={5} className="px-5 py-2 text-[10px] font-bold text-amber-600 tracking-widest uppercase border-y border-amber-500/10">
+                      <td colSpan={5} className="px-5 py-2 text-[10px] font-bold text-amber-500 tracking-widest uppercase border-y border-amber-500/10">
                         External Cluster Workloads
                       </td>
                     </tr>
@@ -389,7 +389,7 @@ const ProxyManager: React.FC<ProxyManagerProps> = ({ vpsId }) => {
                         <td className="px-5 py-4 whitespace-nowrap">
                           <div className="flex items-center space-x-2">
                             <div className="h-1.5 w-1.5 rounded-full bg-amber-500 shadow-sm shadow-amber-500/50" />
-                            <span className="text-[10px] font-bold text-amber-600 tracking-tight">EXTERNAL</span>
+                            <span className="text-[10px] font-bold text-amber-500 tracking-tight">EXTERNAL</span>
                           </div>
                         </td>
                         <td className="px-5 py-4 font-semibold text-text-primary text-xs font-mono">{cfg.domain}</td>
