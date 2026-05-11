@@ -8,7 +8,7 @@ interface ResourceChartProps {
   compact?: boolean;
 }
 
-const POLL_MS = 3000;
+const POLL_MS = 10000;
 
 const ResourceChart: React.FC<ResourceChartProps> = ({ vpsId, isConnected, compact = false }) => {
   const [latest, setLatest] = useState<{ cpu: number; ram: number } | null>(null);

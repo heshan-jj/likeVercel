@@ -93,6 +93,7 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
   const logBodyRef = useRef<HTMLDivElement>(null);
   const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [unmanaged, setUnmanaged] = useState<UnmanagedProcess[]>([]);
+  const [pm2Installed, setPm2Installed] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -101,6 +102,7 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
   const [showDeploy, setShowDeploy] = useState(false);
   const [deployForm, setDeployForm] = useState({ projectPath: '', port: '', command: '', processName: '' });
   const [deploying, setDeploying] = useState(false);
+  const [installingPm2, setInstallingPm2] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmAdoptProc, setConfirmAdoptProc] = useState<UnmanagedProcess | null>(null);
@@ -128,6 +130,7 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
       const { data } = await api.get(`/vps/${vpsId}/processes`);
       setDeployments(data.processes);
       setUnmanaged(data.unmanagedProcesses || []);
+      setPm2Installed(data.pm2Installed);
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } };
       setError(error.response?.data?.error || 'Failed to load processes');
@@ -143,12 +146,33 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
     return () => clearInterval(interval);
   }, [fetchProcesses]);
 
+  const handleInstallPm2 = async () => {
+    setInstallingPm2(true);
+    setError('');
+    try {
+      await api.post(`/vps/${vpsId}/install-pm2`);
+      showToast('PM2 installed successfully', 'success');
+      fetchProcesses();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } } };
+      setError(error.response?.data?.error || 'PM2 installation failed');
+    } finally {
+      setInstallingPm2(false);
+    }
+  };
+
   const handleDeploy = async () => {
     if (!deployForm.projectPath.trim()) return;
     setDeploying(true);
     setError('');
     try {
-      const body: DeployRequest = { projectPath: deployForm.projectPath };
+      let projectPath = deployForm.projectPath.trim();
+      // Ensure absolute path
+      if (!projectPath.startsWith('/')) {
+        projectPath = '/' + projectPath;
+      }
+
+      const body: DeployRequest = { projectPath };
       if (deployForm.port) body.port = parseInt(deployForm.port);
       if (deployForm.command) body.command = deployForm.command;
       if (deployForm.processName) body.processName = deployForm.processName;
@@ -158,8 +182,15 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
       setDeployForm({ projectPath: '', port: '', command: '', processName: '' });
       fetchProcesses();
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
-      setError(error.response?.data?.error || 'Deployment failed');
+      const error = err as { response?: { data?: { error?: string, details?: any[] } } };
+      const data = error.response?.data;
+      
+      if (data?.details && Array.isArray(data.details)) {
+        const messages = data.details.map((d: any) => `${d.path.join('.')}: ${d.message}`).join(', ');
+        setError(`Validation failed: ${messages}`);
+      } else {
+        setError(data?.error || 'Deployment failed');
+      }
     } finally {
       setDeploying(false);
     }
@@ -340,6 +371,29 @@ const ProcessManager: React.FC<ProcessManagerProps> = ({ vpsId }) => {
           <span>Provision Deployment</span>
         </Button>
       </div>
+
+      {!pm2Installed && (
+        <div className="p-5 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-amber-500/20 rounded-xl text-amber-600">
+              <Activity size={24} />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-amber-700 tracking-tight">PM2 Runtime Not Detected</h4>
+              <p className="text-[11px] text-amber-600/80 font-medium">PM2 is required for managed process orchestration, auto-restarts, and log streaming.</p>
+            </div>
+          </div>
+          <Button 
+            onClick={handleInstallPm2} 
+            isLoading={installingPm2}
+            variant="secondary"
+            className="bg-amber-500 hover:bg-amber-600 text-white border-none px-6 h-10 shadow-lg shadow-amber-500/20"
+          >
+            <Plus size={16} className="mr-2" />
+            <span>Install PM2 Globally</span>
+          </Button>
+        </div>
+      )}
 
       {error && (
         <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl flex items-center justify-between text-xs font-semibold shadow-sm">

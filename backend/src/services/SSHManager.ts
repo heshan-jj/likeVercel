@@ -162,6 +162,18 @@ export class SSHManager extends EventEmitter {
       throw new Error(`No active connection for VPS ${vpsId}`);
     }
 
+    // Wrap command to include common node/pm2 paths for non-interactive shells
+    // and try to source bash profile if possible
+    const envSetup = [
+      'PATH=$PATH:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin',
+      '[ -d "$HOME/.nvm" ] && export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"',
+      '[ -d "$HOME/.nvm/versions/node" ] && export PATH="$PATH:$(find $HOME/.nvm/versions/node -maxdepth 2 -type d -name bin | head -n 1)"',
+      '[ -d "$HOME/.npm-global/bin" ] && export PATH="$PATH:$HOME/.npm-global/bin"',
+      'export PATH="$PATH:$(npm config get prefix 2>/dev/null)/bin"'
+    ].join('; ');
+
+    const wrappedCommand = `bash -c ${JSON.stringify(`${envSetup}; ${command}`)}`;
+
     return new Promise((resolve, reject) => {
       let activeStream: ClientChannel | null = null;
 
@@ -173,7 +185,7 @@ export class SSHManager extends EventEmitter {
         reject(new Error(`Command timed out after ${timeoutMs}ms`));
       }, timeoutMs);
 
-      client.exec(command, (err, stream) => {
+      client.exec(wrappedCommand, (err, stream) => {
         if (err) {
           clearTimeout(timeout);
           return reject(err);

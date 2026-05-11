@@ -76,7 +76,7 @@ export const processStartSchema = z.object({
     .min(1, 'Project path is required')
     .refine((val) => !val.includes('..'), 'Path traversal not allowed')
     .refine((val) => val.startsWith('/'), 'Absolute path is required'),
-  port: z.number().int().min(1024).max(65535).optional(),
+  port: z.number().int().min(1).max(65535).optional(),
   command: z.string().optional(),
   processName: z.string().min(1).max(50).optional(),
 });

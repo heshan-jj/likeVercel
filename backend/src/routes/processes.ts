@@ -26,13 +26,26 @@ router.get('/:id/processes', async (req: AuthRequest, res: Response): Promise<vo
       select: { host: true },
     });
 
-    // Check actual PM2 process status
+    // Robust PM2 detection and status retrieval
     let pm2Processes: any[] = [];
+    let pm2Installed = false;
     try {
-      const pm2Output = await sshManager.executeCommand(vpsId, 'pm2 list --format json 2>/dev/null || pm2 jlist 2>/dev/null || echo "[]"');
-      pm2Processes = JSON.parse(pm2Output);
-    } catch {
-      // PM2 not available or output not parseable, pm2Processes stays empty
+      const pm2Check = await sshManager.executeCommand(vpsId, 'pm2 -v >/dev/null 2>&1 && echo "YES" || echo "NO"');
+      if (pm2Check.trim() === 'YES') {
+        pm2Installed = true;
+        const pm2Output = await sshManager.executeCommand(vpsId, 'pm2 jlist');
+        
+        // PM2 often prints version warnings or banners before/after the JSON array.
+        // We find the bounds of the JSON array to parse it safely.
+        const startIdx = pm2Output.indexOf('[');
+        const endIdx = pm2Output.lastIndexOf(']');
+        if (startIdx !== -1 && endIdx !== -1) {
+          const jsonStr = pm2Output.substring(startIdx, endIdx + 1);
+          pm2Processes = JSON.parse(jsonStr);
+        }
+      }
+    } catch (err) {
+      console.warn('[Process] PM2 detection/parse error:', err);
     }
 
     const unmanagedPm2Processes = pm2Processes.filter(
@@ -132,10 +145,40 @@ router.get('/:id/processes', async (req: AuthRequest, res: Response): Promise<vo
       };
     });
 
-    res.json({ processes: processesWithStatus, unmanagedProcesses: allUnmanaged });
+    res.json({ 
+      processes: processesWithStatus, 
+      unmanagedProcesses: allUnmanaged,
+      pm2Installed 
+    });
 
   } catch (error: any) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/vps/:id/processes/install-pm2
+router.post('/:id/install-pm2', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const vpsId = await verifyVps(req, res);
+    if (!vpsId) return;
+
+    // Check if npm is present first
+    try {
+      await sshManager.executeCommand(vpsId, 'npm -v');
+    } catch {
+      res.status(400).json({ error: 'npm is not installed on the VPS. Please install Node.js first.' });
+      return;
+    }
+
+    // Install PM2 globally
+    // We use a longer timeout as npm install can be slow
+    await sshManager.executeCommand(vpsId, 'npm install -g pm2', 300000);
+
+    res.json({ message: 'PM2 installed successfully' });
+  } catch (error: any) {
+    res.status(500).json({ 
+      error: `Installation failed: ${error.message}. Please verify that npm is installed and accessible on your server, and that the user has permissions for global installs.` 
+    });
   }
 });
 
