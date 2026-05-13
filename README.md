@@ -2,7 +2,7 @@
 
 A self-hosted, cloud-management platform designed to provide a streamlined, "Vercel-like" experience for managing Virtual Private Servers (VPS). Bridge the gap between raw SSH access and complex cloud consoles.
 
-![Dashboard Preview](https://via.placeholder.com/800x450?text=LikeVercel+Dashboard+Preview)
+![Dashboard Preview][(https://via.placeholder.com/800x450?text=LikeVercel+Dashboard+Preview](https://heshanjj.vercel.app/assets/img/project/vercel.png))
 
 ## ✨ Features
 
